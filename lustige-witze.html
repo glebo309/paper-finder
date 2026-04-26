@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lustige Witze</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2em;
+            margin-bottom: 40px;
+        }
+
+        .joke-card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .joke-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+
+        .joke-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff4757 0%, #c0392b 100%);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .joke-text {
+            font-size: 1.1em;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .punchline {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 2px solid #f0f0f0;
+            font-weight: bold;
+            color: #ff4757;
+        }
+
+        .emoji {
+            font-size: 2em;
+            margin-right: 10px;
+        }
+
+        button {
+            display: block;
+            margin: 30px auto;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            background: white;
+            color: #ff4757;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>😂 Lustige Witze 😂</h1>
+        <p class="subtitle">Viel Spaß beim Lachen!</p>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #1</span>
+            <div class="joke-text">
+                <span class="emoji">🍕</span>
+                Warum können Skelette so schlecht lügen?
+                <div class="punchline">Weil man durch sie hindurchsehen kann!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #2</span>
+            <div class="joke-text">
+                <span class="emoji">🐟</span>
+                Was macht ein Clown im Büro?
+                <div class="punchline">Faxen!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #3</span>
+            <div class="joke-text">
+                <span class="emoji">🚗</span>
+                Warum können Geister so schlecht lügen?
+                <div class="punchline">Weil sie so leicht zu durchschauen sind!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #4</span>
+            <div class="joke-text">
+                <span class="emoji">🎸</span>
+                Was ist grün und steht vor der Tür?
+                <div class="punchline">Ein Klopfsalat!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #5</span>
+            <div class="joke-text">
+                <span class="emoji">🐝</span>
+                Welches Tier kann rechnen?
+                <div class="punchline">Der Oktoplus!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #6</span>
+            <div class="joke-text">
+                <span class="emoji">☕</span>
+                Was sagt ein Kaffee zu einem anderen Kaffee?
+                <div class="punchline">"Lass uns mal einen ausgeben!"</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #7</span>
+            <div class="joke-text">
+                <span class="emoji">🌙</span>
+                Warum ging der Mathelehrer in den Ruhestand?
+                <div class="punchline">Weil er mit seinen Problemen nicht mehr klarkam!</div>
+            </div>
+        </div>
+
+        <div class="joke-card">
+            <span class="joke-number">Witz #8</span>
+            <div class="joke-text">
+                <span class="emoji">🍔</span>
+                Was ist orange und läuft den Berg hoch?
+                <div class="punchline">Eine Wanderine!</div>
+            </div>
+        </div>
+
+        <button onclick="location.reload()">🔄 Seite neu laden für mehr Spaß!</button>
+
+        <div class="footer">
+            <p>😄 Lachen ist gesund! 😄</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+# Paper Finder Configuration
+# Copy this to config.yaml and customize
+
+# Network settings
+network:
+  timeout_short: 15
+  timeout_medium: 30
+  timeout_long: 60
+  max_workers: 5  # Parallel execution threads
+
+# PDF validation
+validation:
+  min_size_kb: 50
+  max_size_mb: 100
+  title_similarity_threshold: 0.6
+
+# Caching
+cache:
+  enabled: true
+  max_age_hours: 24
+
+# Sci-Hub mirrors
+scihub:
+  domains:
+    - https://sci-hub.st
+    - https://sci-hub.se
+    - https://sci-hub.ru
+    - https://sci-hub.wf
+    - https://sci-hub.ee
+  check_reachability: true
+  cache_working_domain: true
+
+# API keys (optional)
+api:
+  unpaywall_email: your.email@example.com  # For Unpaywall OA
+  semantic_scholar_api_key: null  # Optional
+  core_api_key: null  # For CORE.ac.uk (get free at https://core.ac.uk/services/api)
+
+# Pipeline execution
+pipeline:
+  parallel_execution: true
+  method_timeout: 60
+  group_timeout: 180
+  stop_on_browser: true
+
+# Telegram settings
+telegram:
+  # Your own bot (for Telegram interface)
+  token: null  # From @BotFather
+  
+  # UNDERGROUND BOT ACCESS (THE NUCLEAR OPTION)
+  # This gives access to:
+  #   - Private Sci-Hub mirrors
+  #   - Z-Library (10M+ books)
+  #   - Direct database queries
+  #   - Community caches
+  #   - User uploads
+  #
+  # To enable:
+  # 1. Go to https://my.telegram.org
+  # 2. Get your api_id and api_hash
+  # 3. Run: python setup_telegram_underground.py
+  # 4. Set underground_enabled to true
+  
+  underground_enabled: false  # Set to true to activate
+  api_id: null  # From my.telegram.org
+  api_hash: null  # From my.telegram.org
+  phone: null  # Optional, for first auth
+  rate_limit_per_hour: 20  # Max requests to bots
+  
+  # Underground bots to use (in priority order)
+  # These run IN PARALLEL - first to respond wins!
+  underground_bots:
+    - '@scihubot'              # Best for papers, private mirrors
+    - '@nexus_search_bot'      # Nexus STC - huge collection
+    - '@libgen_scihub_bot'     # Direct LibGen database
+    - '@zlibrary_bot'          # Z-Library (10M+ books)
+    - '@scihub_bot'            # Alternative Sci-Hub
+    - '@booksandpapers_bot'    # Community uploads
+    - '@libgen_robot'          # LibGen alternative
+    - '@scihubot_bot'          # Scihubot alternative
+    - '@bookfi_bot'            # BookFi archive
+    - '@pdfdrive_bot'          # PDF Drive
+    - '@freebookspot_bot'      # Free Book Spot
+    - '@bookzz_bot'            # BookZZ/B-OK
