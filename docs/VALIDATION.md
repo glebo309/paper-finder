@@ -4,7 +4,7 @@ Date: 2026-10-10. Local interpreter: Python 3.13.2.
 
 ## Offline checks
 
-`python3 -m pytest -q`: **374 passed, 2 skipped** (final local regression run). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
+`python3 -m pytest -q`: **393 passed, 2 skipped** (latest local regression run after the publisher PDF word-spacing fix). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
 
 The default suite blocks unmocked requests. Coverage includes:
 
@@ -65,7 +65,7 @@ At 13:13 UTC, the opt-in recent-paper benchmark ran all three cases with actual 
 | Engineering the Enzyme-Support Interface / `10.1021/acsami.6c14068` | 2026-09-14 | No open full-text copy located by these providers; publisher landing page retained. |
 | Next-Generation Manufacturing: The Evolving Role of Biocatalysis in AstraZeneca / `10.1002/cbic.70489` | 2026-09-01 | Published version downloaded and verified, CC BY, 14 pages, 1,254,342 bytes. |
 
-**Result: 1/3 verified, including the available control; 0/2 hard cases acquired.** This is a curated smoke test, not a representative success-rate estimate. Failure to find an open copy in these providers does not prove that no copy exists elsewhere. The hard cases remain useful unresolved regression targets.
+**Result: 1/3 verified, including the available control; 0/2 hard cases acquired.** This is a curated smoke test, not a representative success-rate estimate. Failure to find an open copy in these providers does not prove that no copy exists elsewhere. At this stage both hard cases remained unresolved; a later ordinary-browser check below recovered one of them.
 
 The verified control came from [NLM PMC Article Datasets](https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/), `PMC13572967`, version 1. Its [cloud metadata](https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13572967.1.json) confirmed the requested DOI, PMCID, published-version status and CC BY license. The production PDF verifier matched its first-page heading exactly and corroborated the author surname Rodriguez. A separate inspection confirmed the 14-page PDF's title and author list. Its MD5 matched the checksum in the official metadata: `b666873af408e4dc47ef236005242dfc`. SHA-256: `7bf325265528b4623189b122f5189f1487220cf4807b6ccbe154834413133b8d`.
 
@@ -83,6 +83,16 @@ python3 tools/benchmark_recent_fulltext.py --live --download \
   --download-dir /tmp/paper-finder-recent-check \
   --output /tmp/paper-finder-recent-results.json
 ```
+
+## Difficult publisher PDF recovered through an ordinary browser
+
+A later Chrome guest-browser check downloaded the ThDP paper (`10.1002/chem.71699`) from Wiley's regular PDF interface: **2,995,918 bytes, 15 pages**. This was a real full-text recovery, distinct from the automated HTTP benchmark above, whose publisher requests returned 403. The API benchmark's 1/3 result is retained; it must not be presented as if the browser recovery were an automated API success. Across these separate checks, the available control and one difficult paper were obtained; the ACS peroxygenase paper remains unresolved.
+
+The initial local verifier incorrectly rejected the correct Wiley PDF. PyPDF2 extracted its title and author names with missing word spaces, while the metadata contained an exact article DOI under `/WPS-ARTICLEDOI`. Regression fixtures now cover this extraction pattern. Verification permits an exact compact title in the first-page heading only with independent corroboration from an exact article identifier or a complete author name. The article DOI metadata key is recognized; the journal DOI and arbitrary subjects are not used as article identity. Matching metadata cannot override a conflicting printed DOI or an unrelated heading. Glued supplementary headings, body citations and title-only matches remain rejected.
+
+The downloaded PDF now verifies through its compact first-page title, all three expected author names (Lanza, Bjarnesen and Muller), and the exact article DOI. Its conventional word-token title score remains visible as 0.125, with `compact_title_match: true`; no confidence percentage is invented. SHA-256: `0b16b784f58265eb1a4ba88a71c8da14fb62048e8af535150cef2c59414496ef`.
+
+The local evidence is `/private/tmp/paper-finder-thdp-browser-verification.json`; the downloaded document is `/private/tmp/paper-finder-thdp-2026-browser.pdf`. The document was not added to the repository. The real CLI then imported it offline using a saved selection and `--local-pdf`, returning `verified` and saving a copy under `~/Downloads/Papers/10.1002_chem.71699.pdf`. Browser handoff controls were also inspected in the running web app and native desktop UI. Browser-assisted recovery is not yet proof of unattended, cross-publisher acquisition coverage.
 
 ## Remaining limits
 

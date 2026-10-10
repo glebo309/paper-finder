@@ -95,6 +95,19 @@ Results distinguish:
 
 A link alone is not reported as a successful download. Verification evidence is included in acquisition JSON when available.
 
+## Finish a browser download
+
+If the publisher opens in your normal browser, download the PDF there. In the web app, select the matching paper, expand **Finish a browser download**, upload the PDF, and click **Verify and save browser PDF**. The selected title and identifier remain the verification target. The app accepts files up to 100 MB, verifies a temporary copy, and saves only matching documents. Original files are preserved and existing output files are never overwritten.
+
+In the desktop app, the result panel has **Open publisher** and **Import browser PDF**. For an ambiguous search, the chooser also has **Use browser / import instead**, so you can select the intended identity without starting another download attempt.
+
+```bash
+python3 main.py acquire --from-results results.json --select 1 \
+  --local-pdf ~/Downloads/article.pdf --output downloads --json
+```
+
+The snapshot form makes no network requests. Without a snapshot, the reference still needs metadata identification before importing. `Browser/local PDF` is the reported source; identity verification does not by itself establish the manuscript version. Incorrect and unverifiable files are not added to the library.
+
 ## Exit codes and scripting
 
 | Exit | Meaning |

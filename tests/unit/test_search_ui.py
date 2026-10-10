@@ -186,3 +186,26 @@ def test_streamlit_shows_embargo_date_and_standalone_download_version(tmp_path):
     app.run()
     assert not app.exception
     assert any('Downloaded copy: Accepted manuscript' in c.value for c in app.caption)
+
+
+def test_browser_download_import_is_reachable_and_uses_selected_identity(monkeypatch, tmp_path):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    from types import SimpleNamespace
+    import streamlit
+    selected = {'title': 'Recent paper', 'doi': '10.1234/recent', 'identifier': {'type': 'doi', 'value': '10.1234/recent'}}
+    upload = SimpleNamespace(size=10, getbuffer=lambda: b'%PDF-local')
+    monkeypatch.setattr(streamlit, 'file_uploader', Mock(return_value=upload))
+    importer = Mock(return_value=SimpleNamespace(success=False, filepath=None, source='Browser/local PDF', status='mismatch', error='Wrong article', metadata=selected, verification={}))
+    monkeypatch.setattr('src.acquisition.local_import.import_local_pdf', importer)
+    monkeypatch.setattr('paper_finder.PaperFinder', Mock(side_effect=AssertionError('No downloader should start')))
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = selected
+    app.run()
+    button = next((b for b in app.button if b.label == 'Verify and save browser PDF'), None)
+    assert button is not None
+    button.click().run()
+    assert not app.exception
+    assert importer.call_args.args[0]['doi'] == selected['doi']
+    assert any('does not match' in e.value for e in app.error)
+    assert any(e.proto.url == 'https://doi.org/10.1234/recent' for e in app.get('link_button'))

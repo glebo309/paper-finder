@@ -78,20 +78,24 @@ def _run_paper_command(args):
             print(json.dumps(payload, ensure_ascii=False, default=str)) if args.json else _display_search(payload)
             return 2 if payload.get('status') == 'ambiguous' else 1
 
+        output_dir = Path(args.output).expanduser()
+        captured_url = {'url': None}
         with redirect_stdout(sys.stderr):
-            from paper_finder import PaperFinder
-            from src.core.config import load_config
-            config = load_config(args.config) if Path(args.config).exists() else None
-            finder = PaperFinder(config=config, silent_init=True)
-            output_dir = Path(args.output).expanduser()
-            output_dir.mkdir(parents=True, exist_ok=True)
-            captured_url = {'url': None}
+            if args.local_pdf:
+                from src.acquisition.local_import import import_local_pdf
+                result = import_local_pdf(selected, args.local_pdf, str(output_dir))
+            else:
+                from paper_finder import PaperFinder
+                from src.core.config import load_config
+                config = load_config(args.config) if Path(args.config).exists() else None
+                finder = PaperFinder(config=config, silent_init=True)
+                output_dir.mkdir(parents=True, exist_ok=True)
 
-            def browser_callback(identifier, url):
-                captured_url['url'] = url
+                def browser_callback(identifier, url):
+                    captured_url['url'] = url
 
-            result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback,
-                                        recent_sources=not args.skip_recent_sources, contact_email=args.email)
+                result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback,
+                                            recent_sources=not args.skip_recent_sources, contact_email=args.email)
         outcome = {
             'success': result.success,
             'status': getattr(result, 'status', None) or ('downloaded' if result.success and result.filepath else 'link_available' if result.success else 'failed'),
@@ -204,6 +208,7 @@ def main():
         default='config.yaml'
     )
     
+    acquire_parser.add_argument('--local-pdf', metavar='PATH', help='Verify and copy a browser-downloaded PDF locally; use --from-results for fully offline import')
     acquire_parser.add_argument('--refresh', action='store_true', help='Bypass cached discovery metadata; provider cooldowns still apply')
     acquire_parser.add_argument('--skip-recent-sources', action='store_true', help='Skip checking current repository and open-access copy locations')
     acquire_parser.add_argument('--email', help='Contact email for Unpaywall (or set UNPAYWALL_EMAIL)')

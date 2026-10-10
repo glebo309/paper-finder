@@ -211,3 +211,64 @@ def test_angle_wrapped_doi_preserves_internal_balanced_brackets(tmp_path):
     result = verify(path, {'doi': '10.1000/example<component>'})
     assert result['status'] == 'verified'
     assert result['front_matter_dois'] == ['10.1000/example<component>']
+
+
+SPACED_TARGET = {'title': 'Thiamine Diphosphate-Dependent Biocatalysis in the 21<sup>st</sup> Century',
+                 'doi': '10.1002/chem.71699', 'authors': ['Lucrezia Lanza', 'Daniela Bjarnesen', 'Michael Muller']}
+GLUED_HEADING = 'ThiamineDiphosphate-DependentBiocatalysisinthe21st\nCentury'
+
+
+def test_glued_title_verified_with_explicit_wiley_article_doi(tmp_path):
+    path = pdf(tmp_path, 'Chemistry A European Journal\nPERSPECTIVE\n' + GLUED_HEADING +
+               '\nLucreziaLanza DanielaBjarnesen MichaelMuller\nAbstract\nResults',
+               {'/Title': 'Thiamine Diphosphate-Dependent Biocatalysis in the 21st Century',
+                '/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
+    result = verify(path, SPACED_TARGET)
+    assert result['status'] == 'verified'
+    assert result['compact_title_match'] is True
+    assert result['identifier_match'] is True
+
+
+def test_glued_title_requires_full_author_when_no_identifier(tmp_path):
+    path = pdf(tmp_path, GLUED_HEADING + '\nLucreziaLanza\nAbstract\nResults')
+    result = verify(path, SPACED_TARGET)
+    assert result['status'] == 'verified'
+    assert 'lanza' in result['matched_authors']
+
+
+def test_glued_title_without_independent_corroboration_is_not_verified(tmp_path):
+    path = pdf(tmp_path, GLUED_HEADING + '\nSomeoneElse\nAbstract\nResults')
+    assert verify(path, SPACED_TARGET)['status'] != 'verified'
+
+
+def test_article_doi_and_metadata_title_do_not_override_wrong_heading(tmp_path):
+    path = pdf(tmp_path, 'An unrelated enzymatic pathway survey\nJane Smith\nAbstract\nResults',
+               {'/Title': SPACED_TARGET['title'], '/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
+    assert verify(path, SPACED_TARGET)['status'] != 'verified'
+
+
+@pytest.mark.parametrize('heading', ['SupportingInformation', 'SupplementaryInformation', 'SupplementaryMaterials'])
+def test_glued_supplement_heading_is_still_rejected(tmp_path, heading):
+    path = pdf(tmp_path, heading + '\n' + GLUED_HEADING + '\nLucreziaLanza\nAbstract\nDetails',
+               {'/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
+    result = verify(path, SPACED_TARGET)
+    assert result['status'] == 'mismatch'
+    assert 'supplement' in result['reasons'][0].lower()
+
+
+def test_compact_title_in_body_is_not_title_evidence(tmp_path):
+    path = pdf(tmp_path, 'A different paper on enzymatic mechanisms\nJane Smith\nAbstract\n' +
+               GLUED_HEADING + '\nLucreziaLanza', {'/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
+    assert verify(path, SPACED_TARGET)['status'] != 'verified'
+
+
+def test_journal_doi_metadata_cannot_identify_article(tmp_path):
+    path = pdf(tmp_path, GLUED_HEADING + '\nUnknown Authors\nAbstract\nResults',
+               {'/WPS-JOURNALDOI': SPACED_TARGET['doi']})
+    assert verify(path, SPACED_TARGET)['status'] != 'verified'
+
+
+def test_expected_article_doi_metadata_cannot_override_conflicting_page_doi(tmp_path):
+    path = pdf(tmp_path, GLUED_HEADING + '\nLucreziaLanza\nDOI: 10.1002/chem.different\nAbstract\nResults',
+               {'/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
+    assert verify(path, SPACED_TARGET)['status'] == 'mismatch'

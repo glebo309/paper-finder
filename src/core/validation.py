@@ -89,7 +89,11 @@ def _normalize_text(text: str) -> str:
     """Normalize Unicode, punctuation and whitespace without losing word boundaries."""
     import re
     import unicodedata
-    text = unicodedata.normalize("NFKD", str(text)).casefold()
+    import html
+    # Citation titles may contain inline superscript/subscript markup. Removing
+    # just formatting tags preserves meaningful literal angle brackets elsewhere.
+    text = re.sub(r"</?(?:sup|sub|i|b|em|strong|span)(?:\s[^>]*)?>", "", str(text), flags=re.I)
+    text = unicodedata.normalize("NFKD", html.unescape(text)).casefold()
     text = "".join(c for c in text if not unicodedata.combining(c))
     text = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", text)
     return " ".join(re.findall(r"[^\W_]+", text, re.UNICODE))
@@ -177,12 +181,12 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     front = _front_matter(page_text)
     norm_front = _normalize_text(front)
     # Exclude arbitrary subject/keywords: these often contain cited identifiers.
-    meta_dois = _dois(" ".join(str(pdf_meta.get(key) or "") for key in ("/doi", "/DOI")))
+    meta_dois = _dois(" ".join(str(pdf_meta.get(key) or "") for key in ("/doi", "/DOI", "/WPS-ARTICLEDOI")))
     front_dois = _dois(front)
     found_dois = front_dois | meta_dois
     expected_supplement = bool(re.search(r"supplement(?:ary|al)?|supporting information", title, re.I))
     is_supplement = bool(re.search(
-        r"(?im)^\s*(?:electronic\s+)?(?:supplement(?:ary|al)?(?: information| materials?| data| appendix| methods)?|supporting information)\s*(?:$|[:.]|for\b)",
+        r"(?im)^\s*(?:electronic\s+)?(?:supplement(?:ary|al)?(?:\s*(?:information|materials?|data|appendix|methods))?|supporting\s*information)\s*(?:$|[:.]|for\b)",
         front))
     if is_supplement and not expected_supplement:
         return result("mismatch", "Document is supplementary material, not the selected main article")
@@ -192,17 +196,32 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     if isinstance(authors, str):
         authors = [authors]
     names = []
+    compact_matched_authors = []
     for author in authors:
         if isinstance(author, dict):
             author = author.get("family") or author.get("name") or ""
         tokens = _normalize_text(author).split()
         if tokens:
             names.append(tokens[-1])
+            # Some PDF text layers omit every inter-word space. Require the
+            # complete given + family name as an extracted token, not a surname
+            # substring or an initial that could match unrelated text.
+            compact_author = "".join(tokens)
+            if (len(tokens) >= 2 and len(tokens[0]) >= 2 and len(compact_author) >= 8
+                    and re.search(r"(?:^|\s)" + re.escape(compact_author) + r"\d*(?:$|\s)", norm_front)):
+                compact_matched_authors.append(tokens[-1])
     matched_authors = [name for name in names if name in norm_front.split()]
     title_words = _normalize_text(title).split()
-    strong_title = bool(title_words) and score >= .92 and (len(title_words) >= 4 or bool(matched_authors))
-    plausible_title = score >= .78 and bool(matched_authors)
+    compact_title = "".join(title_words)
+    compact_heading = "".join(_normalize_text(front[:700]).split())
+    compact_title_match = bool(len(title_words) >= 4 and len(compact_title) >= 24
+                               and compact_title in compact_heading)
     doi_match = bool(wanted_dois & found_dois)
+    compact_corroborated = compact_title_match and bool(doi_match or compact_matched_authors)
+    if compact_corroborated:
+        matched_authors = list(dict.fromkeys(matched_authors + compact_matched_authors))
+    strong_title = (bool(title_words) and score >= .92 and (len(title_words) >= 4 or bool(matched_authors))) or compact_corroborated
+    plausible_title = score >= .78 and bool(matched_authors)
     arxiv_pattern = r"arxiv\s*:\s*((?:\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?)"
     arxiv_values = {item.lower() for item in re.findall(arxiv_pattern, front, re.I)}
     # arXiv's margin stamp often extracts after the abstract and body. Its
@@ -212,7 +231,8 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     arxiv_values.update(item.lower() for item in stamps)
     arxiv_bases = {re.sub(r"v\d+$", "", item) for item in arxiv_values}
     arxiv_match = bool(arxiv and (arxiv in arxiv_values if requested_version else arxiv_base in arxiv_bases))
-    evidence = {"title_similarity": round(score, 3), "matched_authors": matched_authors,
+    evidence = {"title_similarity": round(score, 3), "compact_title_match": compact_title_match,
+                "matched_authors": matched_authors,
                 "front_matter_dois": sorted(found_dois), "identifier_match": doi_match or arxiv_match,
                 "front_matter_arxiv_ids": sorted(arxiv_values),
                 "text_extracted": bool(norm_front)}
@@ -225,6 +245,12 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
             return result("mismatch", "Front-matter arXiv version differs from the selected version", **evidence)
         return result("unverifiable", "The explicitly requested arXiv version is not corroborated", **evidence)
 
+    # An article identifier embedded in metadata cannot erase a contradictory
+    # DOI printed on the page. Identified arXiv versions can legitimately carry
+    # a later journal DOI, as handled by the separate arXiv identity evidence.
+    if wanted_dois and front_dois and not (wanted_dois & front_dois) and not arxiv_match:
+        return result("mismatch", "Printed front-matter DOI conflicts with the selected record", **evidence)
+
     if strong_title or plausible_title:
         if names and not matched_authors and not (doi_match or arxiv_match):
             return result("unverifiable", "Title matches but none of the expected authors are corroborated", **evidence)
@@ -233,6 +259,7 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
         if wanted_dois and found_dois and not doi_match and not arxiv_match:
             return result("mismatch", "Front-matter DOI conflicts with the selected record", **evidence)
         return result("verified", "Title matches the first-page heading" +
+                      (" after word-spacing normalization" if compact_corroborated and score < .92 else "") +
                       (" with author corroboration" if matched_authors else ""), **evidence)
     if doi_match or arxiv_match:
         if title and len(norm_front.split()) >= 5 and score < .35:

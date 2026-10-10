@@ -92,3 +92,41 @@ def test_search_captures_toggle_on_main_thread(monkeypatch):
     app.search()
     assert thread.call_args.kwargs['args'][2] is False
     thread.return_value.start.assert_called_once()
+
+
+def test_latest_identified_record_enables_browser_handoff():
+    app = gui()
+    app.publisher_button = Mock()
+    app.import_pdf_button = Mock()
+    record = {'title': 'Paper title', 'identifier': {'type': 'doi', 'value': '10.1234/paper'}, 'doi': '10.1234/paper'}
+    app._update_results(DownloadResult(False, status='located', metadata=record))
+    assert app._handoff_record == record
+    app.publisher_button.configure.assert_called_with(state='normal')
+    app.import_pdf_button.configure.assert_called_with(state='normal')
+
+
+def test_open_publisher_is_explicit_and_uses_record_identity(monkeypatch):
+    import gui as module
+    app = gui()
+    app._handoff_record = {'title': 'Paper title', 'doi': '10.1234/paper'}
+    browser = Mock()
+    monkeypatch.setattr(module.webbrowser, 'open', browser)
+    app.open_publisher()
+    browser.assert_called_once_with('https://doi.org/10.1234/paper')
+
+
+def test_local_import_worker_only_invokes_offline_importer(monkeypatch):
+    import sys
+    from types import ModuleType
+    module = ModuleType('src.acquisition.local_import')
+    module.import_local_pdf = Mock(return_value=DownloadResult(False, status='mismatch'))
+    monkeypatch.setitem(sys.modules, 'src.acquisition.local_import', module)
+    app = gui()
+    app.root = Mock()
+    app.finder = Mock()
+    app._search_id = 3
+    record = {'title': 'Paper title', 'doi': '10.1234/paper'}
+    app._import_pdf_thread(record, '/tmp/browser.pdf', '/tmp/papers', 3)
+    module.import_local_pdf.assert_called_once_with(record, '/tmp/browser.pdf', '/tmp/papers')
+    assert not app.finder.mock_calls
+    assert app.root.after.called

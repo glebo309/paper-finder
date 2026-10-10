@@ -241,3 +241,18 @@ def test_fresh_search_and_selection_clear_prior_access_options():
     state.update(search_result={'candidates': [RECORD]}, access_options={'locations': ['stale']})
     select_candidate(state, 0)
     assert state['access_options'] is None
+
+
+def test_local_pdf_snapshot_import_never_initializes_acquisition(monkeypatch, services, capsys, tmp_path):
+    discovery, factory, _ = services
+    snapshot = tmp_path / 'results.json'
+    snapshot.write_text(json.dumps({'version': 1, 'result': discovery.search.return_value}))
+    module = ModuleType('src.acquisition.local_import')
+    module.import_local_pdf = Mock(return_value=SimpleNamespace(success=True, status='verified', filepath=tmp_path/'copy.pdf', source='local_import', error='', metadata=RECORD, verification={'status': 'verified'}))
+    monkeypatch.setitem(sys.modules, 'src.acquisition.local_import', module)
+    source = tmp_path / 'browser.pdf'
+    assert invoke(monkeypatch, ['acquire', '--from-results', str(snapshot), '--local-pdf', str(source), '--output', str(tmp_path), '--json']) == 0
+    assert json.loads(capsys.readouterr().out)['status'] == 'verified'
+    module.import_local_pdf.assert_called_once_with(RECORD, str(source), str(tmp_path))
+    factory.assert_not_called()
+    discovery.search.assert_not_called()

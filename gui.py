@@ -246,6 +246,13 @@ class PaperFinderGUI:
             else:
                 ttk.Label(output_frame, textvariable=var).grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2)
     
+        handoff = ttk.Frame(output_frame)
+        handoff.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(12, 0))
+        self.publisher_button = ttk.Button(handoff, text="Open publisher", command=self.open_publisher, state='disabled')
+        self.publisher_button.grid(row=0, column=0)
+        self.import_pdf_button = ttk.Button(handoff, text="Import browser PDF", command=self.import_browser_pdf, state='disabled')
+        self.import_pdf_button.grid(row=0, column=1, padx=(10, 0))
+
     def build_log_section(self, parent):
         """Build the log section (content only, header is in toggle bar)"""
         # Wrapper frame for log content
@@ -353,13 +360,13 @@ class PaperFinderGUI:
             self.root.geometry("600x340")
         elif result_shown and not log_shown:
             # Search + Result
-            self.root.geometry("600x520")
+            self.root.geometry("600x560")
         elif not result_shown and log_shown:
             # Search + Log
             self.root.geometry("600x590")
         else:
             # All sections
-            self.root.geometry("600x840")
+            self.root.geometry("600x880")
     
     def center_window(self):
         """Center the window on screen"""
@@ -505,6 +512,7 @@ class PaperFinderGUI:
         
         # Extract metadata
         meta = result.metadata or {}
+        self._set_handoff_record(meta if getattr(result, "status", "") != "ambiguous" else None)
         title = meta.get('title', '')
         authors = meta.get('authors', [])
         is_oa = bool(meta.get('is_oa'))
@@ -581,6 +589,7 @@ class PaperFinderGUI:
                 details.set(record.get('title', '') + "\n" + '; '.join(record.get('match_reasons', []))
                             + "\n" + str((record.get('identifier') or {}).get('value', '')))
                 download.configure(state='normal')
+                browser_handoff.configure(state='normal')
         def acquire():
             selection = table.selection()
             if not selection:
@@ -596,10 +605,21 @@ class PaperFinderGUI:
             self.start_spinner()
             threading.Thread(target=self._search_thread,
                              args=(record, Path(self.output_var.get()), self.recent_sources.get()), daemon=True).start()
+        def use_browser():
+            selection = table.selection()
+            if not selection:
+                return
+            record = candidates[int(selection[0])]
+            window.destroy()
+            self.clear_results()
+            self._update_results(DownloadResult(False, status='located', metadata=record,
+                error='Open the publisher page, download through your browser access, then import the PDF for verification.'))
         buttons = ttk.Frame(window, padding=12)
         buttons.pack(fill='x')
         download = ttk.Button(buttons, text="Download selected paper", command=acquire, state='disabled')
         download.pack(side='right')
+        browser_handoff = ttk.Button(buttons, text='Use browser / import instead', command=use_browser, state='disabled')
+        browser_handoff.pack(side='right', padx=8)
         ttk.Button(buttons, text="Cancel", command=window.destroy).pack(side='right', padx=8)
         table.bind('<<TreeviewSelect>>', select)
         window.grab_set()
@@ -614,8 +634,60 @@ class PaperFinderGUI:
         self.log(f"Error: {error}")
         messagebox.showerror("Search Error", f"An error occurred:\n{error}")
     
+    def _set_handoff_record(self, record):
+        valid = isinstance(record, dict) and bool(record.get('title')) and bool((record.get('identifier') or {}).get('value'))
+        self._handoff_record = dict(record) if valid else None
+        state = 'normal' if valid and not getattr(self, '_search_active', False) else 'disabled'
+        for name in ('publisher_button', 'import_pdf_button'):
+            button = getattr(self, name, None)
+            if button is not None:
+                button.configure(state=state)
+
+    def open_publisher(self):
+        """Open only on an explicit button click, using the selected identity."""
+        from urllib.parse import urlsplit, quote
+        record = getattr(self, '_handoff_record', None)
+        if not record or getattr(self, '_search_active', False):
+            return
+        url = 'https://doi.org/' + quote(record['doi'], safe='/()') if record.get('doi') else record.get('url', '')
+        try:
+            parsed = urlsplit(url)
+            if parsed.scheme in ('http', 'https') and parsed.hostname and not parsed.username and not parsed.password:
+                webbrowser.open(url)
+        except ValueError:
+            return
+
+    def import_browser_pdf(self):
+        """Choose a local browser download; verification and copying stay offline."""
+        record = getattr(self, '_handoff_record', None)
+        if not record or getattr(self, '_search_active', False):
+            return
+        source = filedialog.askopenfilename(title='Import browser-downloaded PDF', filetypes=[('PDF documents', '*.pdf')])
+        if not source:
+            return
+        self._search_active = True
+        self._search_id = getattr(self, '_search_id', 0) + 1
+        self._set_handoff_record(record)
+        self.search_button.configure(state='disabled')
+        self.stop_button.configure(state='disabled')
+        self.status_var.set('Verifying browser PDF...')
+        threading.Thread(target=self._import_pdf_thread,
+            args=(dict(record), source, self.output_var.get(), self._search_id), daemon=True).start()
+
+    def _import_pdf_thread(self, record, source, output_dir, request_id):
+        from src.acquisition.local_import import import_local_pdf
+        try:
+            result = import_local_pdf(record, source, output_dir)
+        except Exception as exc:
+            result = DownloadResult(False, status='error', error=str(exc), metadata=record)
+        def finish():
+            if getattr(self, '_search_id', 0) == request_id:
+                self._update_results(result)
+        self.root.after(0, finish)
+
     def clear_results(self):
         """Clear result fields"""
+        self._set_handoff_record(None)
         for var in self.result_fields.values():
             var.set("")
         # Clear status indicator

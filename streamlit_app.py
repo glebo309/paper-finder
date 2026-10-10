@@ -129,6 +129,28 @@ if selected:
             st.error(f"Acquisition failed: {exc}")
         st.session_state.search_log = log.getvalue()
 
+if selected:
+    with st.expander("Finish a browser download"):
+        st.write("If automatic retrieval is blocked, open the publisher in your browser, download the PDF, then add it here. Paper Finder checks it against the selected paper before saving it.")
+        if selected.get("doi"):
+            st.link_button("Open publisher in browser", "https://doi.org/" + selected["doi"])
+        upload_key = "browser_pdf_" + str((selected.get("identifier") or {}).get("value"))
+        uploaded = st.file_uploader("PDF downloaded in your browser", type=["pdf"], key=upload_key)
+        if st.button("Verify and save browser PDF", disabled=uploaded is None):
+            st.session_state.result = None
+            st.session_state.browser_url = None
+            try:
+                if uploaded.size > 100 * 1024 * 1024:
+                    raise ValueError("PDF exceeds the 100 MB size limit.")
+                from tempfile import TemporaryDirectory
+                from src.acquisition.local_import import import_local_pdf
+                with TemporaryDirectory(prefix="paper-finder-browser-") as staging:
+                    local_pdf = Path(staging) / "browser.pdf"
+                    local_pdf.write_bytes(uploaded.getbuffer())
+                    st.session_state.result = import_local_pdf(selected, local_pdf, output_dir)
+            except Exception as exc:
+                st.error(f"Could not import PDF: {exc}")
+
 version_labels = {"publishedVersion": "Published version", "acceptedVersion": "Accepted manuscript", "submittedVersion": "Preprint", "unknown": "Version not established"}
 access = st.session_state.access_options
 if access:

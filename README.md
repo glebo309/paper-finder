@@ -114,6 +114,19 @@ Verification examines actual PDF metadata and first-page front matter. It compar
 
 `success` is true only for a verified local PDF. Opening a page does not count as a completed download. Scans, unusual cover pages and incomplete metadata can remain unverified; OCR is not implemented. Identity checking is a conservative heuristic, not a proof of document authenticity.
 
+## When the browser can download a paper
+
+A publisher can serve an article to your ordinary browser while denying automated HTTP requests. After selecting the paper, use **Finish a browser download** in the web interface: open the publisher, download its PDF, then upload that file and click **Verify and save browser PDF**. The desktop equivalent is **Open publisher** followed by **Import browser PDF**.
+
+The CLI can import a saved browser download against your selected metadata:
+
+```bash
+python main.py acquire --from-results results.json --select 1 \
+  --local-pdf ~/Downloads/article.pdf --output downloads --json
+```
+
+With `--from-results`, importing is entirely offline. Only a matching PDF is copied into the output library; the original and existing files stay intact. This is browser-assisted retrieval, not unattended downloading or a guarantee of institutional access. An imported copy's manuscript version remains unknown unless separately established.
+
 ## Python API
 
 ```python
@@ -156,7 +169,7 @@ python tools/benchmark_recent_fulltext.py --live --download \
   --download-dir /tmp/paper-finder-recent --output /tmp/recent-results.json
 ```
 
-This uses Europe PMC, official PMC cloud records and a bounded publisher fallback. It requires a real PDF and identity verification to count success. The three September 2026 cases currently yield one verified open-access control and zero of the two harder cases. This is a small failure-finding sample, not a coverage estimate. See [validation](docs/VALIDATION.md).
+This uses Europe PMC, official PMC cloud records and a bounded publisher fallback. It requires a real PDF and identity verification to count success. The automated three-paper check yields one verified open-access control and zero of the two harder cases. A separate ordinary-browser check subsequently recovered and verified one hard case; that assisted result is recorded separately. This is a small failure-finding sample, not a coverage estimate. See [validation](docs/VALIDATION.md).
 
 The older scripts under `tests/` outside `tests/unit/` are manual integration/download experiments and are not included in the default test run.
 
