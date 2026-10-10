@@ -304,14 +304,16 @@ def test_cancelled_adapter_does_not_abort_other_worker_or_leak_candidate(monkeyp
     def abandoned(doi, path, metadata):
         paths.append(path)
         write(path, 'abandoned')
-        cancelled.set()
         raise AcquisitionCancelled('Adapter stopped')
     def winner(doi, path, metadata):
         assert cancelled.wait(1)
         return write(path, 'winner')
     obj.register_source('abandoned', abandoned)
     obj.register_source('winner', winner)
-    result = obj.execute('10.1234/paper', tmp_path/'winner.pdf', {})
+    def progress(source, message):
+        if source == 'abandoned' and message == 'cancelled':
+            cancelled.set()
+    result = obj.execute('10.1234/paper', tmp_path/'winner.pdf', {}, progress_callback=progress)
     assert result.success and result.source == 'winner'
     assert result.attempts['abandoned'] == 'cancelled'
     assert all(not path.exists() for path in paths)
