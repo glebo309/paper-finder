@@ -18,22 +18,25 @@ def oa(title=TITLE, doi=DOI, identifier='W123'):
             'doi': 'https://doi.org/' + doi if doi else None, 'publication_year': 2021,
             'authorships': [{'author': {'display_name': 'John Jumper'}}],
             'abstract_inverted_index': {'Protein': [0], 'folding': [1]},
-            'best_oa_location': {'pdf_url': 'https://example.org/paper.pdf'}}
+            'best_oa_location': {'pdf_url': 'https://example.org/paper.pdf', 'is_oa': True, 'version': 'publishedVersion'}}
 
 
 class Response:
     def __init__(self, payload, status=200, headers=None):
         self.payload, self.status_code, self.headers = payload, status, headers or {}
+    text = '<feed xmlns="http://www.w3.org/2005/Atom"/>'
     def json(self):
         return self.payload
 
 
 class Session:
-    def __init__(self, crossref=None, openalex=None, scholar=None):
+    def __init__(self, crossref=None, openalex=None, scholar=None, europepmc=None, arxiv=None):
         self.calls = []
         self.payloads = {'crossref': crossref if crossref is not None else {'message': {'items': []}},
                          'openalex': openalex if openalex is not None else {'results': []},
-                         'semanticscholar': scholar if scholar is not None else {'data': []}}
+                         'semanticscholar': scholar if scholar is not None else {'data': []},
+                         'europepmc': europepmc if europepmc is not None else {'resultList': {'result': []}},
+                         'arxiv': arxiv if arxiv is not None else Response({})}
     def get(self, url, **kwargs):
         self.calls.append((url, kwargs))
         value = next(v for k, v in self.payloads.items() if k in url)
@@ -93,10 +96,10 @@ def test_rate_limit_is_visible_and_falls_back_without_sleep():
 
 def test_all_failures_are_unavailable_not_no_results():
     error = requests.ConnectionError('key=SECRET do not print')
-    result = DiscoveryService(session=Session(crossref=error, openalex=error, scholar=error)).search(TITLE)
+    result = DiscoveryService(session=Session(crossref=error, openalex=error, scholar=error, europepmc=error, arxiv=error)).search(TITLE)
     assert result['status'] == 'unavailable'
     assert 'SECRET' not in str(result)
-    assert set(result['errors']) == {'openalex', 'crossref', 'semanticscholar'}
+    assert set(result['errors']) == {'openalex', 'crossref', 'europepmc', 'semanticscholar', 'arxiv'}
 
 
 def test_empty_success_is_not_found():
@@ -179,7 +182,7 @@ def test_semantic_scholar_fallback_preserves_arxiv_id():
 
 def test_deadline_stops_later_provider_requests(monkeypatch):
     moments = iter([0, 0, 10, 10])
-    monkeypatch.setattr('src.core.discovery.time.monotonic', lambda: next(moments))
+    monkeypatch.setattr('src.core.discovery.time.monotonic', lambda: next(moments, 10))
     session = Session()
     result = DiscoveryService(session=session, deadline=5).search(TITLE)
     assert len(session.calls) == 1
@@ -395,7 +398,7 @@ def test_quoted_title_relaxation_does_not_discard_conflicting_author():
 
 def test_citation_relaxation_uses_shared_deadline(monkeypatch):
     moments = iter([0, 0, 5])
-    monkeypatch.setattr('src.core.discovery.time.monotonic', lambda: next(moments))
+    monkeypatch.setattr('src.core.discovery.time.monotonic', lambda: next(moments, 10))
     session = CitationSession(TITLE, [oa()])
     result = DiscoveryService(session=session, providers=['openalex'], deadline=3).search('Jumper (2021). ' + TITLE + '.')
     assert len(session.calls) == 1
@@ -501,3 +504,81 @@ def test_provider_cooldown_shared_across_services_without_retrying_http(monkeypa
     assert first['status'] == second['status'] == 'unavailable'
     assert second['errors']['openalex']['retry_after'] == '40000'
     assert 'cooling down' in second['errors']['openalex']['message']
+
+
+def test_openalex_journal_pdf_candidates_exclude_preprint_closed_and_unknown_access():
+    from src.core.discovery import _openalex
+    record = oa()
+    record.pop('best_oa_location')
+    record['locations'] = [
+        {'pdf_url': 'https://repo.org/accepted.pdf', 'is_oa': True, 'version': 'acceptedVersion', 'license': 'cc-by'},
+        {'pdf_url': 'https://repo.org/submitted.pdf', 'is_oa': True, 'version': 'submittedVersion'},
+        {'pdf_url': 'https://publisher.org/closed.pdf', 'is_oa': False, 'version': 'publishedVersion'},
+        {'pdf_url': 'https://publisher.org/unknown.pdf', 'version': 'publishedVersion'},
+    ]
+    candidate = _openalex(record)
+    assert candidate['pdf_urls'] == ['https://repo.org/accepted.pdf']
+    assert len(candidate['indexed_locations']) == 4
+    assert candidate['indexed_locations'][1]['version'] == 'submittedVersion'
+    assert candidate['indexed_locations'][1]['requires_selection'] is True
+    assert candidate['indexed_locations'][2]['downloadable'] is False
+
+
+def test_openalex_same_url_conflicting_versions_never_flattened():
+    from src.core.discovery import _openalex
+    record = oa()
+    record['locations'] = [{'pdf_url': 'https://repo.org/same.pdf', 'is_oa': True, 'version': 'submittedVersion'}]
+    record['best_oa_location'] = {'pdf_url': 'https://repo.org/same.pdf', 'is_oa': True, 'version': 'publishedVersion'}
+    candidate = _openalex(record)
+    assert candidate['pdf_urls'] == []
+    assert all(not item['downloadable'] for item in candidate['indexed_locations'])
+    assert all(item['requires_selection'] for item in candidate['indexed_locations'])
+
+
+def test_openalex_preprint_repository_identifier_remains_visible_for_manual_selection():
+    from src.core.discovery import _openalex
+    record = oa()
+    record.pop('best_oa_location')
+    record['locations'] = [{'pdf_url': 'https://arxiv.org/pdf/1706.03762', 'is_oa': True, 'version': 'submittedVersion'}]
+    candidate = _openalex(record)
+    assert candidate['pdf_urls'] == []
+    assert candidate['arxiv_ids'] == ['1706.03762']
+    assert candidate['indexed_locations'][0]['pdf_url'] == 'https://arxiv.org/pdf/1706.03762'
+
+
+def test_semantic_scholar_journal_doi_never_flattens_arxiv_preprint_pdf():
+    from src.core.discovery import _scholar
+    candidate = _scholar({'title': TITLE, 'externalIds': {'DOI': DOI, 'ArXiv': '2107.12345'},
+                          'openAccessPdf': {'url': 'https://arxiv.org/pdf/2107.12345'}})
+    assert candidate['identifier'] == {'type': 'doi', 'value': DOI}
+    assert candidate['pdf_urls'] == []
+    assert candidate['indexed_locations'][0]['version'] == 'submittedVersion'
+    assert candidate['indexed_locations'][0]['requires_selection'] is True
+
+
+def test_semantic_scholar_explicit_arxiv_record_keeps_requested_preprint():
+    from src.core.discovery import _scholar
+    candidate = _scholar({'title': TITLE, 'externalIds': {'ArXiv': '2107.12345'},
+                          'openAccessPdf': {'url': 'https://arxiv.org/pdf/2107.12345'}})
+    assert candidate['identifier'] == {'type': 'arxiv', 'value': '2107.12345'}
+    assert candidate['pdf_urls'] == ['https://arxiv.org/pdf/2107.12345']
+    assert candidate['record_type'] == 'preprint'
+
+
+def test_semantic_scholar_unknown_pdf_version_stays_unknown():
+    from src.core.discovery import _scholar
+    candidate = _scholar({'title': TITLE, 'externalIds': {'DOI': DOI},
+                          'openAccessPdf': {'url': 'https://repository.org/article.pdf'}})
+    assert candidate['pdf_urls'] == ['https://repository.org/article.pdf']
+    assert candidate['indexed_locations'][0]['version'] == 'unknown'
+
+
+def test_deduplication_cannot_reintroduce_known_alternative_pdf_from_another_index():
+    from src.core.discovery import _deduplicate, _openalex, _scholar
+    record = oa()
+    record['best_oa_location'] = {'pdf_url': 'https://repo.org/manuscript.pdf', 'is_oa': True, 'version': 'submittedVersion'}
+    scholar = _scholar({'title': TITLE, 'externalIds': {'DOI': DOI},
+                        'openAccessPdf': {'url': 'https://repo.org/manuscript.pdf'}})
+    merged = _deduplicate([scholar, _openalex(record)])[0]
+    assert merged['pdf_urls'] == []
+    assert any(location['requires_selection'] for location in merged['indexed_locations'])

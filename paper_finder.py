@@ -690,7 +690,7 @@ class PaperFinder:
         """Alias for find() - for compatibility with test harness and other code."""
         return self.find(doi_or_ref, output_dir, oa_callback, meta_callback, browser_callback)
 
-    def find(self, ref: str, output_dir: Optional[Path] = None, oa_callback=None, meta_callback=None, browser_callback=None) -> DownloadResult:
+    def find(self, ref: str, output_dir: Optional[Path] = None, oa_callback=None, meta_callback=None, browser_callback=None, *, recent_sources=False, contact_email=None) -> DownloadResult:
         """Resolve an identity before allowing any acquisition source to run."""
         self._reset_cancel()
         if not self.identity_resolver:
@@ -707,13 +707,15 @@ class PaperFinder:
         if self._cancel_requested:
             return DownloadResult(False, error="Cancelled by user", status="cancelled", metadata=record)
         return self.find_record(record, output_dir, oa_callback=oa_callback, meta_callback=meta_callback,
-                                browser_callback=browser_callback, _continue_operation=True)
+                                browser_callback=browser_callback, _continue_operation=True,
+                                recent_sources=recent_sources, contact_email=contact_email)
 
     def find_record(self, record: Dict, output_dir: Optional[Path] = None, oa_callback=None,
-                    meta_callback=None, browser_callback=None, _continue_operation=False) -> DownloadResult:
+                    meta_callback=None, browser_callback=None, _continue_operation=False, recent_sources=False, contact_email=None) -> DownloadResult:
         """Acquire a selected canonical record without repeating or changing its identity."""
         from copy import deepcopy
         record = deepcopy(record)
+        record.pop("fulltext_location", None)
         identifier = record.get("identifier") or {}
         kind, value = identifier.get("type"), identifier.get("value")
         if not value:
@@ -738,6 +740,7 @@ class PaperFinder:
                     callback(value, url)
         self._browser_callback = capture_link
         result = None
+        version_selection_required = False
         if kind == "isbn":
             result = self._handle_book(value, record, output_dir, capture_link, meta_callback)
         else:
@@ -748,13 +751,89 @@ class PaperFinder:
                 urls.append(f"https://arxiv.org/pdf/{value}")
             elif kind in {"biorxiv", "medrxiv"}:
                 urls.append(f"https://www.{kind}.org/content/{value}.full.pdf")
-            if urls:
-                result = self._download_record_urls(record, urls, output_dir)
             doi = record.get("doi") or (value if kind in {"doi", "biorxiv", "medrxiv"} else None)
-            if (result is None or not result.success) and doi and not self._cancel_requested:
+            if urls and not (recent_sources and doi and kind == "doi"):
+                result = self._download_record_urls(record, urls, output_dir)
+            if recent_sources and doi and (result is None or not result.success) and not self._cancel_requested:
+                try:
+                    access = self.find_access_options(record, contact_email=contact_email)
+                except Exception:
+                    access = {"status": "unavailable", "locations": [], "alternatives": [],
+                              "errors": {"discovery": {"kind": "error", "message": "Full-text discovery failed"}}}
+                # Preserve known preprint/conflict evidence even if today's
+                # provider lookup fails or the selected metadata was cached.
+                from src.acquisition.recent_open_access import _location
+                for indexed in record.get("indexed_locations", []):
+                    if not indexed.get("requires_selection"):
+                        continue
+                    alternative = _location(indexed.get("source") or "indexed", doi,
+                        pdf=indexed.get("pdf_url"), landing=indexed.get("landing_page_url"),
+                        version=indexed.get("version"), license=indexed.get("license"))
+                    if alternative:
+                        alternative["requires_selection"] = True
+                        if indexed.get("version_conflict"):
+                            alternative["version"] = "conflicting"
+                        existing = access.setdefault("alternatives", [])
+                        if not any(item.get("url") == alternative["url"] for item in existing):
+                            existing.append(alternative)
+                record["access_options"] = access
+                version_selection_required = bool(access.get("alternatives"))
+                # A repository may advertise an HTML article before a PDF URL.
+                # Bound this extra work and never promote a preprint implicitly.
+                from src.acquisition.recent_open_access import discover_landing_pdf
+                landing_deadline = time.monotonic() + 15
+                landing_checks = 0
+                for index, location in enumerate(access.get("locations", [])):
+                    if self._cancel_requested or landing_checks >= 3 or time.monotonic() >= landing_deadline:
+                        break
+                    if (location.get("downloadable") or location.get("availability") != "open"
+                            or location.get("requires_selection") or location.get("version") == "submittedVersion"):
+                        continue
+                    landing_checks += 1
+                    try:
+                        expanded = discover_landing_pdf(location, session=self.session,
+                            timeout=min(5, max(.1, landing_deadline - time.monotonic())))
+                    except Exception:
+                        access.setdefault("errors", {})[f"landing_{index}"] = {
+                            "kind": "error", "message": "Repository landing-page inspection failed."}
+                        continue
+                    if expanded:
+                        access["locations"][index] = expanded
+                locations = [location for location in access.get("locations", [])
+                             if location.get("downloadable") and location.get("pdf_url")
+                             and not location.get("requires_selection") and location.get("version") != "submittedVersion"]
+                record["fulltext_locations"] = locations
+                for location in access.get("locations", []):
+                    capture_link(location.get("landing_page_url") or location.get("url"))
+                blocked_urls = {location.get("pdf_url") for group in ("alternatives", "embargoed", "closed")
+                                for location in access.get(group, [])}
+                eligible_urls = [location["pdf_url"] for location in locations]
+                # Once a preprint/version conflict is known, only explicitly
+                # classified main-article locations may be downloaded here.
+                if not version_selection_required:
+                    eligible_urls.extend(url for url in urls if url not in blocked_urls)
+                new_urls = list(dict.fromkeys(eligible_urls))
+                if new_urls and not self._cancel_requested:
+                    recent = self._download_record_urls(record, new_urls, output_dir)
+                    attempts = {**(result.attempts or {} if result else {}), **(recent.attempts or {})}
+                    if recent.success and result and result.filepath and result.filepath != recent.filepath:
+                        try:
+                            Path(result.filepath).unlink(missing_ok=True)
+                        except OSError:
+                            attempts["review_copy_cleanup"] = "Could not remove superseded review copy"
+                    if recent.success or recent.status == "cancelled" or result is None or not result.filepath:
+                        result = recent
+                    result.attempts = attempts
+                    if recent.success:
+                        for location in locations:
+                            if recent.attempts.get(location["pdf_url"]) == "verified":
+                                record["fulltext_location"] = location
+                                break
+            if (result is None or not result.success) and doi and not self._cancel_requested and not version_selection_required:
                 output_file = self._available_output(output_dir, doi)
                 fallback = self._execute_pipeline(doi, output_file, meta_callback=None,
-                                                  oa_callback=capture_link, metadata=record)
+                                                  oa_callback=capture_link, metadata=record,
+                                                  exclude_sources=("Unpaywall", "Europe PMC", "Preprints Enhanced", "Open Access (Browser)") if recent_sources else ())
                 fallback = self._verify_result(fallback, record)
                 attempts = {**(result.attempts or {} if result else {}), **(fallback.attempts or {})}
                 # Remove only the review copy created by this operation, after a
@@ -767,8 +846,13 @@ class PaperFinder:
                 if fallback.success or fallback.status == "cancelled" or result is None or not result.filepath:
                     result = fallback
                 result.attempts = attempts
+        if self._cancel_requested:
+            return DownloadResult(False, error="Cancelled by user", metadata=record,
+                                  status="cancelled", attempts=result.attempts if result else {})
         if result is None:
-            result = DownloadResult(False, error="No downloadable full-text location found", metadata=record, status="not_found")
+            message = ("Preprint or conflicting-version alternatives found; inspect and choose a copy before downloading."
+                       if version_selection_required else "No downloadable full-text location found")
+            result = DownloadResult(False, error=message, metadata=record, status="located" if version_selection_required else "not_found")
         final = self._verify_result(result, record)
         if links:
             final.metadata["links"] = links
@@ -776,6 +860,18 @@ class PaperFinder:
                 final.status = "located"
                 final.error = "Article links found; full-text download has not been verified"
         return final
+
+    def find_access_options(self, record, contact_email=None):
+        """Inspect fresh full-text locations without downloading or opening pages."""
+        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        identifier = record.get("identifier") or {}
+        doi = record.get("doi") or (identifier.get("value") if identifier.get("type") == "doi" else None)
+        if not doi:
+            return {"status": "not_found", "locations": [], "alternatives": [],
+                    "errors": {"identity": {"kind": "missing_doi", "message": "Full-text copy lookup needs a DOI"}}}
+        if not contact_email:
+            contact_email = getattr(getattr(self.config, "api", None), "unpaywall_email", None)
+        return RecentOpenAccessDiscovery(session=self.session, email=contact_email).discover(doi)
 
     @staticmethod
     def _available_output(directory: Path, identifier: str) -> Path:
@@ -907,7 +1003,7 @@ class PaperFinder:
                               metadata=record, attempts=result.attempts or {}, status=status,
                               verification=verification)
 
-    def _execute_pipeline(self, doi: str, output_file: Path, meta_callback=None, oa_callback=None, metadata=None) -> DownloadResult:
+    def _execute_pipeline(self, doi: str, output_file: Path, meta_callback=None, oa_callback=None, metadata=None, exclude_sources=()) -> DownloadResult:
         """Execute the multi-source acquisition pipeline"""
         import time
         start_time = time.time()
@@ -970,7 +1066,7 @@ class PaperFinder:
             
             # Execute pipeline
             print("\n[Using new pipeline with parallel execution]")
-            result = self.pipeline.execute(doi, output_file, meta)
+            result = self.pipeline.execute(doi, output_file, meta, exclude_sources=exclude_sources)
             
             # FIX 1: Update our flags from pipeline and check for browser success
             self._cancel_requested = self.pipeline._cancel_requested
@@ -1010,6 +1106,11 @@ class PaperFinder:
         if self.config and hasattr(self.config, 'telegram') and self.config.telegram.underground_enabled:
             methods.insert(4, ("Telegram Bots", self._try_telegram_underground))
         
+        excluded = set(exclude_sources)
+        if "Preprints Enhanced" in excluded:
+            excluded.add("Preprints & Author Versions")
+        methods = [method for method in methods if method[0] not in excluded]
+
         # Reorder methods based on cache if available
         if self.cache and meta.get("publisher") and meta.get("year"):
             methods = self.cache.reorder_methods(methods, meta.get("publisher"), meta.get("year"))

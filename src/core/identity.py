@@ -29,7 +29,8 @@ class IdentityResolver:
     - Messy citation text
     """
     
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session = None, refresh=False):
+        self.refresh = refresh
         self.session = session or requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -453,7 +454,7 @@ class IdentityResolver:
     def _resolve_doi(self, doi: str, _depth: int = 0) -> Dict[str, Any]:
         """Verify the exact DOI across indexes without guessing a replacement."""
         from .discovery import DiscoveryService
-        result = DiscoveryService(session=self.session).search(doi, mode="identify")
+        result = DiscoveryService(session=self.session, refresh=self.refresh).search(doi, mode="identify")
         if result.get("selected") is not None and result['status'] == 'matched':
             return result['selected']
         error = "Metadata providers unavailable" if result['status'] == 'unavailable' else "DOI could not be verified"
@@ -606,7 +607,7 @@ class IdentityResolver:
     def _resolve_citation(self, citation: str) -> Dict[str, Any]:
         """Resolve text through ranked candidates; preserve ambiguity for every interface."""
         from .discovery import DiscoveryService
-        result = DiscoveryService(session=self.session).search(citation, mode="identify")
+        result = DiscoveryService(session=self.session, refresh=self.refresh).search(citation, mode="identify")
         if result.get("selected") is not None and result["status"] == "matched":
             return result["selected"]
         record = self._empty_record(error={

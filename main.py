@@ -58,7 +58,7 @@ def _run_paper_command(args):
                 raise ValueError("Provide a reference or --from-results FILE.")
             # Legacy providers print progress. Keep stdout valid JSON in machine mode.
             with redirect_stdout(sys.stderr):
-                payload = search_reference(args.reference, limit=args.limit, mode=getattr(args, 'mode', 'identify'))
+                payload = search_reference(args.reference, limit=args.limit, mode=getattr(args, 'mode', 'identify'), refresh=args.refresh)
         if args.command == 'search':
             if args.save_results:
                 save_results(args.save_results, payload)
@@ -90,7 +90,8 @@ def _run_paper_command(args):
             def browser_callback(identifier, url):
                 captured_url['url'] = url
 
-            result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback)
+            result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback,
+                                        recent_sources=not args.skip_recent_sources, contact_email=args.email)
         outcome = {
             'success': result.success,
             'status': getattr(result, 'status', None) or ('downloaded' if result.success and result.filepath else 'link_available' if result.success else 'failed'),
@@ -118,6 +119,43 @@ def _run_paper_command(args):
         else:
             print(f"Acquisition failed: {result.error or 'No verified document found'}")
         return 0 if result.success else 1
+    except Exception as exc:
+        payload = {'success': False, 'status': 'error', 'error': str(exc)}
+        print(json.dumps(payload, ensure_ascii=False)) if args.json else print(f"Error: {exc}", file=sys.stderr)
+        return 1
+
+
+def _run_copies_command(args):
+    """Locate version-labelled links for one supplied DOI without downloading."""
+    from src.acquisition.recent_open_access import RecentOpenAccessDiscovery, _doi
+    try:
+        doi = _doi(args.doi)
+        if not doi:
+            raise ValueError('Provide an exact DOI or doi.org URL; use search to identify a paper first.')
+        with redirect_stdout(sys.stderr):
+            result = RecentOpenAccessDiscovery(email=args.email).discover(doi)
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, default=str))
+        else:
+            print(f"Full-text locations for {doi}\nStatus: {result.get('status', 'unknown')}")
+            groups = (('locations', 'Available locations'),
+                      ('alternatives', 'Alternative versions: inspect before selecting'),
+                      ('embargoed', 'Embargoed copies'), ('closed', 'Closed locations'))
+            for key, label in groups:
+                if not result.get(key):
+                    continue
+                print(f"\n{label}:")
+                for location in result[key]:
+                    print(f"  {location.get('version') or 'unknown version'} | "
+                          f"licence: {location.get('license') or 'unknown'} | "
+                          f"source: {location.get('source') or 'unknown'}")
+                    print(f"  {location.get('url') or location.get('landing_page_url') or location.get('pdf_url')}")
+                    if location.get('available_from'):
+                        print(f"  Available from: {location['available_from']}")
+            for provider, error in result.get('errors', {}).items():
+                print(f"Provider warning ({provider}): {error}", file=sys.stderr)
+            print('\nNo files downloaded. Links and version labels require inspection; downloads still need identity verification.')
+        return 0 if result.get('locations') or result.get('alternatives') else 1
     except Exception as exc:
         payload = {'success': False, 'status': 'error', 'error': str(exc)}
         print(json.dumps(payload, ensure_ascii=False)) if args.json else print(f"Error: {exc}", file=sys.stderr)
@@ -166,6 +204,9 @@ def main():
         default='config.yaml'
     )
     
+    acquire_parser.add_argument('--refresh', action='store_true', help='Bypass cached discovery metadata; provider cooldowns still apply')
+    acquire_parser.add_argument('--skip-recent-sources', action='store_true', help='Skip checking current repository and open-access copy locations')
+    acquire_parser.add_argument('--email', help='Contact email for Unpaywall (or set UNPAYWALL_EMAIL)')
     acquire_parser.add_argument('--from-results', metavar='FILE', help='Use saved candidates without repeating discovery')
     acquire_parser.add_argument('--select', type=int, help='Explicitly select candidate N (1-based)')
     acquire_parser.add_argument('--json', action='store_true', help='Emit machine-readable JSON')
@@ -173,10 +214,16 @@ def main():
 
     search_parser = subparsers.add_parser('search', help='Search metadata and compare candidates; never download')
     search_parser.add_argument('reference', help='Title, citation, description, DOI, ISBN, arXiv ID, or URL')
+    search_parser.add_argument('--refresh', action='store_true', help='Bypass cached discovery metadata; provider cooldowns still apply')
     search_parser.add_argument('--save-results', metavar='FILE', help='Save the displayed candidate order for later acquisition')
     search_parser.add_argument('--json', action='store_true', help='Emit machine-readable JSON')
     search_parser.add_argument('--limit', type=_positive_limit, default=10, help='Candidate count, 1–50 (default: 10)')
     search_parser.add_argument('--mode', choices=['identify', 'discover'], default='identify', help='Identify one paper, or explore a topic')
+
+    copies_parser = subparsers.add_parser('copies', help='Find current full-text locations and versions for an exact DOI; never download')
+    copies_parser.add_argument('doi', help='Exact DOI or doi.org URL')
+    copies_parser.add_argument('--email', help='Contact email for Unpaywall (or set UNPAYWALL_EMAIL)')
+    copies_parser.add_argument('--json', action='store_true', help='Emit machine-readable JSON')
 
     # Telegram bot mode
     bot_parser = subparsers.add_parser(
@@ -210,6 +257,9 @@ def main():
     
     elif args.command in ('search', 'acquire'):
         sys.exit(_run_paper_command(args))
+
+    elif args.command == 'copies':
+        sys.exit(_run_copies_command(args))
 
     elif args.command == 'bot':
         # Telegram bot mode

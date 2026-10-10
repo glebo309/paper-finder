@@ -4,7 +4,7 @@ Date: 2026-10-10. Local interpreter: Python 3.13.2.
 
 ## Offline checks
 
-`python3 -m pytest -q`: **228 passed, 2 skipped**. The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
+`python3 -m pytest -q`: **374 passed, 2 skipped** (final local regression run). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
 
 The default suite blocks unmocked requests. Coverage includes:
 
@@ -19,7 +19,7 @@ The default suite blocks unmocked requests. Coverage includes:
 
 `python3 -m compileall -q main.py paper_finder.py gui.py streamlit_app.py src tools` and CLI help checks passed. The initial published implementation passed hosted GitHub Actions on Python 3.11 and 3.13 ([run](https://github.com/glebo309/paper-finder/actions/runs/38053217389)). Later regression fixes are checked again before publication.
 
-These checks establish behavior against controlled responses. They do not establish live retrieval accuracy or coverage across every source adapter. Native desktop rendering was not visually inspected in this environment; its result-routing logic is tested without opening Tk.
+These checks establish behavior against controlled responses. They do not establish live retrieval accuracy or coverage across every source adapter. Desktop result-routing logic is tested without opening Tk; a separate native Tk check confirmed the new recent-source checkbox is visible, enabled and within the window bounds. A headless Chrome inspection confirmed the refreshed browser controls without app exceptions.
 
 ## Live metadata checks
 
@@ -36,7 +36,7 @@ The four intentionally ambiguous, contradictory or impossible development querie
 
 **The repeat run at 12:53 UTC was materially worse.** Provider quotas were reached: OpenAlex returned HTTP 429 with a retry interval of about 40,000 seconds, and other providers also returned 429s. Eight queries became unavailable. Only 11/20 targets ranked first, and two incorrect automatic selections appeared when missing independent results left a misleading Crossref hit unchallenged. These failures were retained as regression cases. The final implementation requires selection for free-text results when an attempted provider fails, requires corroboration for short titles, and shares provider cooldowns across searches instead of repeatedly calling a throttled endpoint.
 
-No further live benchmark was run after the quota response. The final quota-handling fixes are verified against deterministic regression cases; a post-reset live run is still needed. The earlier successful numbers describe that particular run, not a claim about the final version's general accuracy. The eight independent cases are well-known papers and are too few to establish broad accuracy, especially for obscure work.
+No further broad identification benchmark was run after the quota response; the separate recent full-text check below uses Europe PMC and the official PMC cloud dataset. The final quota-handling fixes are verified against deterministic regression cases; a post-reset live run is still needed. The earlier successful numbers describe that particular run, not a claim about the final version's general accuracy. The eight independent cases are well-known papers and are too few to establish broad accuracy, especially for obscure work.
 
 ```bash
 python3 tools/benchmark_identification.py --live --output benchmark.json
@@ -54,6 +54,35 @@ Production `PaperFinder.find_record()` downloaded and verified:
 A deliberate wrong-first test supplied the Attention PDF for BERT. It was rejected; the following BERT PDF was verified. An existing download retained its SHA-256 and a new unique filename was used. Later verifier regressions check conflicting arXiv identifiers, explicitly requested versions, real arXiv margin stamps and significant DOI punctuation.
 
 The real CLI completed `search arxiv:1706.03762 --save-results ...` followed by `acquire --from-results ... --select 1 --json`, returning a verified local PDF with parseable JSON. A headless Chrome check exercised the running Streamlit search and selection controls against real arXiv metadata; the rendered result and download control were visually inspected. These checks contacted public metadata and open-access PDFs only, without using messaging sources.
+
+## Recent full-text acquisition, 10 October 2026
+
+At 13:13 UTC, the opt-in recent-paper benchmark ran all three cases with actual PDF downloads enabled. It queried Europe PMC and, for an exact-DOI record with an open-access PMCID, the official PMC cloud dataset. OpenAlex and Semantic Scholar were not queried during their cooldowns. No legacy acquisition routes or messaging services were used.
+
+| Paper / DOI | First-publication date | Actual result |
+| --- | --- | --- |
+| Thiamine Diphosphate-Dependent Biocatalysis in the 21st Century / `10.1002/chem.71699` | 2026-09-23 | No open full-text copy located by these providers; publisher landing page retained. |
+| Engineering the Enzyme-Support Interface / `10.1021/acsami.6c14068` | 2026-09-14 | No open full-text copy located by these providers; publisher landing page retained. |
+| Next-Generation Manufacturing: The Evolving Role of Biocatalysis in AstraZeneca / `10.1002/cbic.70489` | 2026-09-01 | Published version downloaded and verified, CC BY, 14 pages, 1,254,342 bytes. |
+
+**Result: 1/3 verified, including the available control; 0/2 hard cases acquired.** This is a curated smoke test, not a representative success-rate estimate. Failure to find an open copy in these providers does not prove that no copy exists elsewhere. The hard cases remain useful unresolved regression targets.
+
+The verified control came from [NLM PMC Article Datasets](https://pmc.ncbi.nlm.nih.gov/tools/pmcaws/), `PMC13572967`, version 1. Its [cloud metadata](https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13572967.1.json) confirmed the requested DOI, PMCID, published-version status and CC BY license. The production PDF verifier matched its first-page heading exactly and corroborated the author surname Rodriguez. A separate inspection confirmed the 14-page PDF's title and author list. Its MD5 matched the checksum in the official metadata: `b666873af408e4dc47ef236005242dfc`. SHA-256: `7bf325265528b4623189b122f5189f1487220cf4807b6ccbe154834413133b8d`.
+
+The control's metadata lookup took 0.748 seconds, download and verification 1.539 seconds, and total case processing 2.387 seconds. The three-case run recorded no provider errors. Its remaining HTML landing-page probe returned no usable PDF advertisement; success came from the explicit PDF URL in cloud metadata.
+
+This check uncovered a real upstream migration. The old `oa.fcgi` endpoint returned 404 because the [PMC OA Web Service was discontinued on 25 August 2026](https://pmc.ncbi.nlm.nih.gov/tools/oa-service/). The earlier Europe PMC browser PDF link returned 403 in this environment. The implementation now lists actual article-version metadata in the [documented public cloud structure](https://pmc-oa-opendata.s3.amazonaws.com/README.txt), verifies DOI and PMCID, and retrieves the main PDF URL advertised there. It does not infer PDF filenames, extract supplementary files, or attempt to bypass the rejected browser request.
+
+
+A final repeat with publisher fallback enabled produced the same **1/3 verified PDFs and 0/2 hard-case recoveries**. Both hard cases returned publisher HTTP 403, now recorded separately from missing indexed copies. The Wiley landing page publicly labels the ThDP article open access, so its index's closed-location flag is not a reliable statement of current publisher access. The final report is `/private/tmp/paper-finder-recent-final.json`; PDFs remain in temporary storage. The default repeat command below includes this bounded publisher check.
+
+The earlier cloud-only local report is `/private/tmp/paper-finder-recent-cloud-results.json`; its downloaded control is under `/private/tmp/paper-finder-recent-cloud-verified/`. To repeat with explicit temporary output storage:
+
+```bash
+python3 tools/benchmark_recent_fulltext.py --live --download \
+  --download-dir /tmp/paper-finder-recent-check \
+  --output /tmp/paper-finder-recent-results.json
+```
 
 ## Remaining limits
 

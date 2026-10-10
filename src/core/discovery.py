@@ -15,14 +15,17 @@ import re
 import time
 import threading
 import unicodedata
+import xml.etree.ElementTree as ET
 from urllib.parse import quote, unquote, urlsplit
 
 import requests
 
 from .provider_limits import provider_cooldowns
+from .discovery_cache import DiscoveryCache
 
 
 _STOP = set('a an and as at by for from in into is of on or the to using via with'.split())
+_ARXIV_LOCK = threading.Lock()
 _SEMANTIC_LOCK = threading.Lock()
 _SEMANTIC_NEXT_ALLOWED = 0.0
 _DOI = re.compile(r'10\.\d{4,9}/[^\s<>"]+', re.I)
@@ -114,11 +117,31 @@ def _openalex(item):
     for key in ('best_oa_location', 'primary_location'):
         if isinstance(item.get(key), dict):
             locations.append(item[key])
-    pdfs = list(dict.fromkeys(_http(loc.get('pdf_url')) for loc in locations if isinstance(loc, dict) and _http(loc.get('pdf_url'))))
+    indexed_locations = []
+    version_reports = {}
+    for loc in locations:
+        if not isinstance(loc, dict):
+            continue
+        pdf = _http(loc.get('pdf_url'))
+        version = _text(loc.get('version')) or 'unknown'
+        if pdf and version != 'unknown':
+            version_reports.setdefault(pdf, set()).add(version)
+        indexed_locations.append({'pdf_url': pdf or None,
+            'landing_page_url': _http(loc.get('landing_page_url')) or None,
+            'version': version, 'is_oa': loc.get('is_oa') is True,
+            'license': _text(loc.get('license')) or None, 'source': 'openalex'})
+    for loc in indexed_locations:
+        conflicting = len(version_reports.get(loc['pdf_url'], set())) > 1
+        loc['requires_selection'] = conflicting or loc['version'] == 'submittedVersion'
+        loc['downloadable'] = bool(loc['pdf_url'] and loc['is_oa'] and not loc['requires_selection'])
+        if conflicting:
+            loc['version_conflict'] = True
+    pdfs = list(dict.fromkeys(loc['pdf_url'] for loc in indexed_locations if loc['downloadable']))
+    all_pdfs = list(dict.fromkeys(loc['pdf_url'] for loc in indexed_locations if loc['pdf_url']))
     record_urls = list(dict.fromkeys(_http(loc.get('landing_page_url')) for loc in locations
                                     if isinstance(loc, dict) and _http(loc.get('landing_page_url'))))
     arxiv_ids = []
-    for url in record_urls + pdfs:
+    for url in record_urls + all_pdfs:
         parsed = urlsplit(url)
         if parsed.hostname in ('arxiv.org', 'www.arxiv.org', 'export.arxiv.org'):
             match = re.fullmatch(r'/(?:abs|pdf)/(\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?(?:\.pdf)?/?', parsed.path, re.I)
@@ -146,7 +169,8 @@ def _openalex(item):
                    authors=[a for a in authors if a], year=_year(item.get('publication_year')),
                    journal=_text(source.get('display_name')), abstract=abstract,
                    url=_http(primary.get('landing_page_url')) or _http(item.get('doi')) or _http(item.get('id')),
-                   pdf_urls=pdfs, record_urls=record_urls, arxiv_ids=arxiv_ids, preprint_years=preprint_years,
+                   pdf_urls=pdfs, record_urls=record_urls, indexed_locations=indexed_locations,
+                   arxiv_ids=arxiv_ids, preprint_years=preprint_years,
                    cited_by_count=citation_count, metadata_warnings=warnings, record_type=_text(item.get('type')),
                    is_retracted=bool(item.get('is_retracted')))
 
@@ -157,10 +181,91 @@ def _scholar(item):
     external = item.get('externalIds') or {}
     identifier = {'type': 'arxiv', 'value': str(external['ArXiv'])} if external.get('ArXiv') else {'type': 'semanticscholar', 'value': _text(item.get('paperId'))}
     pdf = _http((item.get('openAccessPdf') or {}).get('url'))
-    return _record('semanticscholar', item['title'], _doi(external.get('DOI')), identifier=identifier,
+    doi = _doi(external.get('DOI'))
+    is_arxiv_pdf = bool(pdf and urlsplit(pdf).hostname in ('arxiv.org', 'www.arxiv.org', 'export.arxiv.org'))
+    preprint_is_requested = (not doi and identifier['type'] == 'arxiv') or bool(doi and doi.startswith('10.48550/arxiv.'))
+    requires_selection = is_arxiv_pdf and bool(doi) and not preprint_is_requested
+    indexed_locations = [{'pdf_url': pdf, 'landing_page_url': _http(item.get('url')) or None,
+                          'version': 'submittedVersion' if is_arxiv_pdf else 'unknown',
+                          'source': 'semanticscholar', 'is_oa': True, 'license': None,
+                          'requires_selection': requires_selection,
+                          'downloadable': not requires_selection}] if pdf else []
+    return _record('semanticscholar', item['title'], doi, identifier=identifier,
                    authors=[_text(a.get('name')) for a in item.get('authors', []) if isinstance(a, dict)],
                    year=_year(item.get('year')), journal=_text(item.get('venue')), abstract=_text(item.get('abstract')),
-                   url=_http(item.get('url')), pdf_urls=[pdf] if pdf else [])
+                   url=_http(item.get('url')), pdf_urls=[pdf] if pdf and not requires_selection else [],
+                   indexed_locations=indexed_locations, record_type='preprint' if preprint_is_requested else '')
+
+
+def _europepmc(item):
+    if not isinstance(item, dict) or not _text(item.get('title')):
+        return None
+    pmid = str(item.get('pmid') or (item.get('id') if item.get('source') == 'MED' else '') or '')
+    pmid = pmid if re.fullmatch(r'\d+', pmid) else ''
+    pmcid = _text(item.get('pmcid'))
+    pmcid = pmcid if re.fullmatch(r'PMC\d+', pmcid) else ''
+    source, source_id = _text(item.get('source')), _text(item.get('id'))
+    identifier = ({'type': 'pmid', 'value': pmid} if pmid else
+                  {'type': 'pmcid', 'value': pmcid} if pmcid else
+                  {'type': 'europepmc', 'value': source + '/' + source_id} if source and source_id else None)
+    authors = []
+    for author in (item.get('authorList') or {}).get('author', []):
+        if isinstance(author, dict):
+            name = ' '.join(filter(None, [_text(author.get('firstName')), _text(author.get('lastName'))]))
+            name = name or _text(author.get('fullName')) or _text(author.get('collectiveName'))
+            if name:
+                authors.append(name)
+    if not authors:
+        authors = [a.strip() for a in _text(item.get('authorString')).split(',') if a.strip()]
+    links = (item.get('fullTextUrlList') or {}).get('fullTextUrl', [])
+    pdfs = list(dict.fromkeys(_http(link.get('url')) for link in links
+                             if isinstance(link, dict) and link.get('documentStyle', '').lower() == 'pdf'
+                             and _http(link.get('url'))))
+    journal = ((item.get('journalInfo') or {}).get('journal') or {})
+    year_text = str(item.get('pubYear') or item.get('firstPublicationDate') or '')[:4]
+    types = (item.get('pubTypeList') or {}).get('pubType', [])
+    record = _record('europepmc', item['title'], _doi(item.get('doi')), identifier=identifier,
+                    authors=authors, year=_year(int(year_text)) if year_text.isdigit() else None,
+                    journal=_text(journal.get('title') or journal.get('medlineAbbreviation')),
+                    abstract=_text(item.get('abstractText')), pmid=pmid, pmcid=pmcid,
+                    publication_date=_text(item.get('firstPublicationDate')),
+                    record_type='preprint' if source == 'PPR' or 'Preprint' in types else 'journal-article',
+                    url='https://europepmc.org/article/' + quote(source, safe='') + '/' + quote(source_id, safe=''),
+                    pdf_urls=pdfs, record_urls=[_http(link.get('url')) for link in links
+                                              if isinstance(link, dict) and _http(link.get('url'))],
+                    is_retracted=str(item.get('isRetracted', '')).upper() == 'Y' or 'Retracted Publication' in types)
+    return record
+
+
+def _arxiv_records(text, count):
+    if not isinstance(text, str) or len(text) > 2_000_000 or '<!DOCTYPE' in text.upper() or '<!ENTITY' in text.upper():
+        raise ValueError('Invalid Atom response')
+    root = ET.fromstring(text)
+    atom, arxiv = '{http://www.w3.org/2005/Atom}', '{http://arxiv.org/schemas/atom}'
+    if root.tag != atom + 'feed':
+        raise ValueError('Expected an Atom feed')
+    records = []
+    for entry in root.findall(atom + 'entry')[:count]:
+        url = entry.findtext(atom + 'id', '')
+        match = re.fullmatch(r'https?://arxiv.org/abs/(\d{4}\.\d{4,5}(?:v\d+)?|[a-z.-]+/\d{7}(?:v\d+)?)', url, re.I)
+        if not match:
+            raise ValueError('Invalid repository record')
+        identifier = match.group(1)
+        title = ' '.join(entry.findtext(atom + 'title', '').split())
+        if not title:
+            continue
+        year = entry.findtext(atom + 'published', '')[:4]
+        records.append(_record('arxiv', title, identifier={'type': 'arxiv', 'value': identifier},
+                              authors=[_text(a.findtext(atom + 'name', '')) for a in entry.findall(atom + 'author')],
+                              year=_year(int(year)) if year.isdigit() else None,
+                              abstract=' '.join(entry.findtext(atom + 'summary', '').split()),
+                              journal=_text(entry.findtext(arxiv + 'journal_ref', '')),
+                              related_doi=_doi(entry.findtext(arxiv + 'doi', '')),
+                              url='https://arxiv.org/abs/' + identifier,
+                              pdf_urls=['https://arxiv.org/pdf/' + identifier], record_type='preprint',
+                              arxiv_ids=[re.sub(r'v\d+$', '', identifier)],
+                              source_ranks={'arxiv': len(records) + 1}))
+    return records
 
 
 def _deduplicate(records):
@@ -178,13 +283,22 @@ def _deduplicate(records):
         target = merged[key]
         for name in ('sources', 'pdf_urls', 'record_urls', 'arxiv_ids', 'preprint_years', 'metadata_warnings'):
             target[name] = list(dict.fromkeys(target.get(name, []) + record.get(name, [])))
+        for location in record.get('indexed_locations', []):
+            if location not in target.setdefault('indexed_locations', []):
+                target['indexed_locations'].append(location)
         for source, rank in record.get('source_ranks', {}).items():
             target.setdefault('source_ranks', {})[source] = min(rank, target.get('source_ranks', {}).get(source, rank))
-        for name in ('authors', 'year', 'journal', 'abstract', 'url', 'publisher', 'record_type'):
+        for name in ('authors', 'year', 'journal', 'abstract', 'url', 'publisher', 'record_type',
+                     'pmid', 'pmcid', 'publication_date', 'related_doi'):
             if not target.get(name) and record.get(name):
                 target[name] = record[name]
         target['cited_by_count'] = max(target.get('cited_by_count', 0), record.get('cited_by_count', 0))
         target['is_retracted'] = target.get('is_retracted', False) or record.get('is_retracted', False)
+    for record in merged.values():
+        excluded = {location.get('pdf_url') for location in record.get('indexed_locations', [])
+                    if location.get('requires_selection') or location.get('downloadable') is False}
+        if excluded:
+            record['pdf_urls'] = [url for url in record.get('pdf_urls', []) if url not in excluded]
     return list(merged.values())
 
 
@@ -300,17 +414,51 @@ class DiscoveryService:
     bounded by a per-call timeout and a total request budget. A 429 is not retried
     immediately: its Retry-After is exposed, and other indexes can still answer.
     """
-    PROVIDERS = ('openalex', 'crossref', 'semanticscholar')
+    PROVIDERS = ('openalex', 'crossref', 'europepmc', 'semanticscholar', 'arxiv')
 
-    def __init__(self, session=None, timeout=8, deadline=25, providers=None):
+    def __init__(self, session=None, timeout=8, deadline=25, providers=None, cache=None, refresh=False):
         self.session = session or requests.Session()
+        self.cache = cache if cache is not None else DiscoveryCache()
+        self.refresh = bool(refresh)
+        self._cache_hits = {}
         self.timeout = max(.1, float(timeout))
         self.deadline = max(.1, float(deadline))
         self.providers = tuple(providers) if providers is not None else self.PROVIDERS
         if any(p not in self.PROVIDERS for p in self.providers):
             raise ValueError('Unknown discovery provider')
 
+    def _cached(self, provider, query, count, exact_doi):
+        if self.refresh:
+            return None
+        hit = self.cache.get(provider, query, count, exact_doi=exact_doi)
+        if hit is None:
+            return None
+        self._cache_hits[provider] = {key: hit[key] for key in ('age_seconds', 'expires_at')}
+        return hit['records']
+
     def _fetch(self, provider, query, count, exact_doi, remaining, now=None):
+        cached = self._cached(provider, query, count, exact_doi)
+        if cached is not None:
+            return cached, None
+        cooldown = self.cache.cooldown_remaining(provider)
+        if cooldown > 0:
+            return [], {'kind': 'rate_limited', 'message': 'Metadata provider is cooling down; respect the retry interval.',
+                        'retry_after': str(math.ceil(cooldown))}
+        records, error = self._fetch_live(provider, query, count, exact_doi, remaining, now=now)
+        if error and error.get('kind') == 'rate_limited':
+            self.cache.set_cooldown(provider, provider_cooldowns._delay(error.get('retry_after')))
+        elif not error:
+            self.cache.put(provider, query, count, records, exact_doi=exact_doi)
+        # The repository's mandatory request spacing also survives CLI restarts.
+        if provider == 'arxiv':
+            spacing = provider_cooldowns.remaining(provider, now=now)
+            if spacing > 0:
+                self.cache.set_cooldown(provider, spacing)
+        return records, error
+
+    def _fetch_live(self, provider, query, count, exact_doi, remaining, now=None):
+        if provider == 'arxiv' and exact_doi:
+            return [], None
         cooldown = provider_cooldowns.remaining(provider, now=now)
         if cooldown > 0:
             return [], {'kind': 'rate_limited', 'message': 'Metadata provider is cooling down; respect the retry interval.',
@@ -330,6 +478,24 @@ class DiscoveryService:
             if os.environ.get('CROSSREF_MAILTO'):
                 params['mailto'] = os.environ['CROSSREF_MAILTO']
             parser, key = _crossref, 'items'
+        elif provider == 'europepmc':
+            url = 'https://www.ebi.ac.uk/europepmc/webservices/rest/search'
+            params = {'query': 'DOI:"' + exact_doi + '"' if exact_doi else (_citation_title(query) or query),
+                      'format': 'json', 'resultType': 'core', 'pageSize': count}
+            parser, key = _europepmc, 'result'
+        elif provider == 'arxiv':
+            with _ARXIV_LOCK:
+                cooldown = provider_cooldowns.remaining('arxiv', now=now)
+                if cooldown > 0:
+                    return [], {'kind': 'rate_limited', 'message': 'Repository search is cooling down.',
+                                'retry_after': str(math.ceil(cooldown))}
+                provider_cooldowns.record_limit('arxiv', '3', now=now)
+            title = _citation_title(query) or query
+            words = re.findall(r'[^\W_]+', title, re.UNICODE)
+            url = 'https://export.arxiv.org/api/query'
+            params = {'search_query': 'ti:"' + ' '.join(words) + '"', 'start': 0,
+                      'max_results': count, 'sortBy': 'relevance', 'sortOrder': 'descending'}
+            headers['Accept'] = 'application/atom+xml'
         else:
             url = 'https://api.semanticscholar.org/graph/v1/paper/' + ('DOI:' + quote(exact_doi, safe='') if exact_doi else 'search')
             params = {'fields': 'title,authors,year,venue,abstract,externalIds,url,openAccessPdf'}
@@ -355,10 +521,14 @@ class DiscoveryService:
         if response.status_code != 200:
             return [], {'kind': 'http_error', 'message': f'Metadata provider returned HTTP {response.status_code}.'}
         try:
+            if provider == 'arxiv':
+                return _arxiv_records(response.text, count), None
             payload = response.json()
             if provider == 'crossref':
                 payload = payload['message']
-            rows = [payload] if exact_doi and provider != 'openalex' else payload[key]
+            if provider == 'europepmc':
+                payload = payload['resultList']
+            rows = [payload] if exact_doi and provider not in ('openalex', 'europepmc') else payload[key]
             if not isinstance(rows, list):
                 raise ValueError('Expected a list')
             records = []
@@ -369,7 +539,7 @@ class DiscoveryService:
                     records.append(record)
             records = [r for r in records if r and (not exact_doi or r.get('doi') == exact_doi)]
             return records, None
-        except (ValueError, TypeError, KeyError, AttributeError, IndexError):
+        except (ValueError, TypeError, KeyError, AttributeError, IndexError, ET.ParseError):
             return [], {'kind': 'invalid_response', 'message': 'Metadata provider returned an unexpected schema.'}
 
     def search(self, query, limit=10, mode='identify'):
@@ -379,7 +549,9 @@ class DiscoveryService:
             raise ValueError('query must be text')
         limit = max(1, min(int(limit), 50))
         query = query.strip()
-        result = {'query': query, 'status': 'not_found', 'candidates': [], 'selected': None, 'errors': {}}
+        self._cache_hits = {}
+        result = {'query': query, 'status': 'not_found', 'candidates': [], 'selected': None, 'errors': {},
+                  'cache': {'enabled': self.cache.enabled, 'refresh': self.refresh, 'hits': self._cache_hits}}
         if not query:
             return result
         if len(query) > 2000:
@@ -389,6 +561,19 @@ class DiscoveryService:
         records, successes = [], 0
         remaining = self.deadline
         for provider in self.providers:
+            if provider == 'arxiv':
+                if exact_doi:
+                    successes += 1
+                    continue
+                # Title/citation fallback only; no extra repository call for a
+                # broad exploratory query or a confidently identified article.
+                ranked = _deduplicate(records)
+                for record in ranked:
+                    _rank(query, record, exact_doi)
+                ranked.sort(key=lambda r: r['score'], reverse=True)
+                if self._match(ranked) or (len(self.providers) > 1 and
+                        (mode == 'discover' or len(_normal(_citation_title(query) or query).split()) < 4)):
+                    continue
             # Semantic Scholar is a fallback if the first two sources cannot securely identify.
             if provider == 'semanticscholar' and records and mode == 'identify':
                 ranked = _deduplicate(records)
@@ -397,7 +582,7 @@ class DiscoveryService:
                 ranked.sort(key=lambda r: r['score'], reverse=True)
                 if self._match(ranked) and (exact_doi or not result['errors']):
                     records = ranked
-                    break
+                    continue
             remaining = self.deadline - (time.monotonic() - start)
             if remaining <= 0:
                 result['errors'][provider] = {'kind': 'deadline', 'message': 'Search request budget exhausted.'}
@@ -437,12 +622,16 @@ class DiscoveryService:
             now = time.monotonic()
             remaining = self.deadline - (now - start)
             if remaining > 0:
+                cached_semantic = self._cached('openalex_semantic', query, max(10, limit), None)
                 with _SEMANTIC_LOCK:
-                    allowed = now >= _SEMANTIC_NEXT_ALLOWED
-                    if allowed:
+                    allowed = cached_semantic is not None or now >= _SEMANTIC_NEXT_ALLOWED
+                    if allowed and cached_semantic is None:
                         _SEMANTIC_NEXT_ALLOWED = now + 1.0
                 if allowed:
-                    found, error = self._fetch('openalex_semantic', query, max(10, limit), None, remaining, now=start + self.deadline - remaining)
+                    if cached_semantic is not None:
+                        found, error = cached_semantic, None
+                    else:
+                        found, error = self._fetch('openalex_semantic', query, max(10, limit), None, remaining, now=start + self.deadline - remaining)
                     if error:
                         result['errors']['openalex_semantic'] = error
                         if error.get('kind') == 'rate_limited':

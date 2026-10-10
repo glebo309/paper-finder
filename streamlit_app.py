@@ -5,6 +5,7 @@ Run: streamlit run streamlit_app.py
 """
 from contextlib import redirect_stderr, redirect_stdout
 import io
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 
@@ -18,7 +19,7 @@ st.caption("Find the right paper first. Compare the evidence, then download your
 
 for key, default in {
     "query": "", "search_result": None, "selected_record": None,
-    "result": None, "browser_url": None, "search_log": "",
+    "result": None, "browser_url": None, "search_log": "", "access_options": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -28,6 +29,7 @@ with st.form("paper_search"):
     reference = st.text_input("Title, citation, description, DOI, ISBN, arXiv ID, or URL", placeholder="The AlphaFold protein structure paper by Jumper, 2021")
     mode_label = st.radio("What are you looking for?", ["One particular paper", "Papers about a topic"], horizontal=True)
     limit = st.slider("Maximum candidates", min_value=5, max_value=30, value=10, step=5)
+    refresh = st.checkbox("Check sources again (ignore saved metadata)", value=False)
     submitted = st.form_submit_button("Find candidates", type="primary")
 
 if submitted:
@@ -38,7 +40,7 @@ if submitted:
         log = io.StringIO()
         try:
             with st.spinner("Searching and comparing metadata…"), redirect_stdout(log), redirect_stderr(log):
-                st.session_state.search_result = search_reference(reference, limit=limit, mode="identify" if mode_label == "One particular paper" else "discover")
+                st.session_state.search_result = search_reference(reference, limit=limit, mode="identify" if mode_label == "One particular paper" else "discover", refresh=refresh)
         except Exception as exc:
             st.error(f"Search failed: {exc}")
         st.session_state.search_log = log.getvalue()
@@ -93,11 +95,17 @@ if search:
             if st.button("Select this paper", key=f"select_{index}"):
                 select_candidate(st.session_state, index)
 
+contact_email = st.sidebar.text_input("Unpaywall contact email (optional)", value=os.environ.get("UNPAYWALL_EMAIL", ""), help="Unpaywall requires a contact email. Other sources work without it. This field is kept only in this session.")
+recent_sources = st.sidebar.checkbox("Prioritize recent full-text sources", value=True)
 selected = st.session_state.selected_record
 if selected:
     st.divider()
     st.subheader("Selected paper")
     st.write(selected.get("title") or selected.get("identifier", {}).get("value"))
+    if selected.get("doi") and st.button("Find full-text copies"):
+        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        with st.spinner("Checking current repository and publisher copies..."):
+            st.session_state.access_options = RecentOpenAccessDiscovery(email=contact_email or None).discover(selected["doi"])
     if st.button("Download selected paper", type="primary"):
         st.session_state.result = None
         st.session_state.browser_url = None
@@ -112,11 +120,38 @@ if selected:
                 from paper_finder import PaperFinder
                 finder = PaperFinder(silent_init=True)
                 output_dir.mkdir(parents=True, exist_ok=True)
-                st.session_state.result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback)
+                st.session_state.result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback, recent_sources=recent_sources, contact_email=contact_email or None)
+                access = getattr(st.session_state.result, "metadata", None) or {}
+                if access.get("access_options"):
+                    st.session_state.access_options = access["access_options"]
             st.session_state.browser_url = captured_url["url"]
         except Exception as exc:
             st.error(f"Acquisition failed: {exc}")
         st.session_state.search_log = log.getvalue()
+
+version_labels = {"publishedVersion": "Published version", "acceptedVersion": "Accepted manuscript", "submittedVersion": "Preprint", "unknown": "Version not established"}
+access = st.session_state.access_options
+if access:
+    st.subheader("Full-text copies")
+    for group, heading in (("locations", "Available locations"), ("alternatives", "Preprint alternatives: inspect before using"), ("embargoed", "Embargoed copies"), ("closed", "Publisher or institutional access")):
+        items = access.get(group, [])
+        if items:
+            st.write(heading)
+        for index, location in enumerate(items):
+            version = version_labels.get(location.get("version"), "Version not established")
+            st.caption(f"{version} · {location.get('source', 'Repository')} · Licence: {location.get('license') or 'not reported'}")
+            if location.get("available_from"):
+                st.caption("Embargo ends: " + str(location["available_from"]))
+            url = location.get("pdf_url") or location.get("landing_page_url") or location.get("url")
+            if url and urlparse(url).scheme in ("http", "https"):
+                st.link_button(f"Open {version.lower()} ({index + 1})", url)
+    if not any(access.get(group) for group in ("locations", "alternatives", "embargoed", "closed")):
+        st.info("No full-text copy was located by these sources. This does not establish that no copy exists.")
+    if access.get("errors"):
+        with st.expander("Full-text source details"):
+            st.json(access["errors"])
+    if selected and selected.get("doi"):
+        st.link_button("Publisher / institutional sign-in", "https://doi.org/" + selected["doi"])
 
 result = st.session_state.result
 if result:
@@ -125,6 +160,9 @@ if result:
     if result.success and result.filepath and Path(result.filepath).is_file():
         st.success(f"Document downloaded and verified. Source: {result.source}")
         st.caption(str(result.filepath))
+        location = (getattr(result, "metadata", None) or {}).get("fulltext_location")
+        if location:
+            st.caption("Downloaded copy: " + version_labels.get(location.get("version"), "Version not established"))
         with open(result.filepath, "rb") as document:
             st.download_button("Save PDF", data=document, file_name=Path(result.filepath).name, mime="application/pdf")
     elif status == "unverifiable":

@@ -147,3 +147,42 @@ def test_streamlit_exposes_repository_identity_and_metadata_conflicts():
     assert any('Indexed DOI conflicts' in item.value for item in app.warning)
     assert any('1706.03762' in item.value for item in app.caption)
     assert any(item.proto.url == 'https://arxiv.org/abs/1706.03762' for item in app.get('link_button'))
+
+
+def test_recent_copies_visible_before_download_and_preprints_labelled(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    report = {'status': 'found', 'locations': [{'source': 'repository', 'version': 'acceptedVersion', 'license': 'cc-by', 'url': 'https://repo.example/paper.pdf', 'pdf_url': 'https://repo.example/paper.pdf'}], 'alternatives': [{'source': 'preprint server', 'version': 'submittedVersion', 'url': 'https://repo.example/preprint'}], 'embargoed': [], 'errors': {}}
+    lookup = Mock(return_value=report)
+    monkeypatch.setattr('src.acquisition.recent_open_access.RecentOpenAccessDiscovery.discover', lookup)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = {'title': 'A new paper', 'doi': '10.1234/new', 'identifier': {'type': 'doi', 'value': '10.1234/new'}}
+    app.run()
+    button = next((b for b in app.button if b.label == 'Find full-text copies'), None)
+    assert button is not None
+    button.click().run()
+    assert not app.exception
+    lookup.assert_called_once_with('10.1234/new')
+    assert app.session_state['result'] is None
+    rendered = ' '.join(x.value for x in app.markdown) + ' '.join(x.value for x in app.caption)
+    assert 'Accepted manuscript' in rendered
+    assert 'Preprint' in rendered
+    assert any(x.proto.url == 'https://repo.example/paper.pdf' for x in app.get('link_button'))
+
+
+def test_streamlit_shows_embargo_date_and_standalone_download_version(tmp_path):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    from types import SimpleNamespace
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['access_options'] = {'embargoed': [{'version': 'acceptedVersion', 'available_from': '2027-01-01'}]}
+    app.run()
+    assert not app.exception
+    assert any('2027-01-01' in c.value for c in app.caption)
+    path = tmp_path / 'verified.pdf'
+    path.write_bytes(b'%PDF-test')
+    app.session_state['access_options'] = None
+    app.session_state['result'] = SimpleNamespace(success=True, filepath=path, source='repository', status='verified', error=None, verification=None, metadata={'fulltext_location': {'version': 'acceptedVersion'}})
+    app.run()
+    assert not app.exception
+    assert any('Downloaded copy: Accepted manuscript' in c.value for c in app.caption)

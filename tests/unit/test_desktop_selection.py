@@ -40,3 +40,55 @@ def test_unverifiable_without_file_is_not_labelled_saved():
     app = gui()
     app._update_results(DownloadResult(False, status='unverifiable', error='No text', metadata={}))
     assert 'saved' not in str(app.result_fields['status'].set.call_args).lower()
+
+
+def test_recent_sources_toggle_is_visible_and_enabled_by_default(monkeypatch):
+    import gui as module
+    app = gui()
+    app.search = Mock()
+    app.browse_output = Mock()
+    app.stop_search = Mock()
+    variable = Mock(get=Mock(return_value=True))
+    boolean = Mock(return_value=variable)
+    monkeypatch.setattr(module.tk, 'BooleanVar', boolean)
+    monkeypatch.setattr(module.tk, 'StringVar', Mock())
+    for name in ('LabelFrame', 'Label', 'Entry', 'Button', 'Frame'):
+        monkeypatch.setattr(module.ttk, name, Mock())
+    checkbox = Mock()
+    monkeypatch.setattr(module.ttk, 'Checkbutton', checkbox)
+    app.build_input_section(Mock())
+    boolean.assert_called_once_with(value=True)
+    assert app.recent_sources is variable
+    assert checkbox.call_args.kwargs['text'] == 'Prioritize recent full-text sources'
+    assert checkbox.call_args.kwargs['variable'] is variable
+    checkbox.return_value.grid.assert_called_once()
+
+
+def test_worker_passes_recent_setting_for_reference_and_selected_record():
+    for reference in ('10.1234/paper', {'title': 'Selected paper'}):
+        for enabled in (True, False):
+            app = gui()
+            app.root = Mock()
+            app.verbose_logging = Mock(get=Mock(return_value=False))
+            app.finder = Mock()
+            app._search_error = Mock()
+            app._search_thread(reference, '/tmp/papers', recent_sources=enabled)
+            method = app.finder.find_record if isinstance(reference, dict) else app.finder.find
+            assert method.call_args.kwargs['recent_sources'] is enabled
+            assert method.call_args.args == (reference, '/tmp/papers')
+
+
+def test_search_captures_toggle_on_main_thread(monkeypatch):
+    import gui as module
+    app = gui()
+    app.root = Mock()
+    app.doi_var = Mock(get=Mock(return_value='10.1234/paper'))
+    app.output_var = Mock(get=Mock(return_value='/tmp/papers'))
+    app.recent_sources = Mock(get=Mock(return_value=False))
+    for name in ('clear_results', 'start_spinner', 'update_timer'):
+        setattr(app, name, Mock())
+    thread = Mock()
+    monkeypatch.setattr(module.threading, 'Thread', thread)
+    app.search()
+    assert thread.call_args.kwargs['args'][2] is False
+    thread.return_value.start.assert_called_once()

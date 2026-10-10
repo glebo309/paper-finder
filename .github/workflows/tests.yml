@@ -22,3 +22,5 @@ jobs:
       - run: python -m pytest -q
       - run: python main.py search --help
       - run: python tools/benchmark_identification.py
+      - run: python main.py copies --help
+      - run: python tools/benchmark_recent_fulltext.py

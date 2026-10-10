@@ -113,7 +113,8 @@ class AcquisitionPipeline:
         doi: str,
         output_file: Path,
         metadata: Dict,
-        progress_callback: Callable[[str, str], None] = None
+        progress_callback: Callable[[str, str], None] = None,
+        exclude_sources=()
     ) -> AcquisitionResult:
         """
         Execute acquisition pipeline.
@@ -138,7 +139,7 @@ class AcquisitionPipeline:
         for tier in ("fast", "medium", "slow"):
             if self._cancel_requested:
                 break
-            sources = [source for source in self.sources if source.enabled and source.tier == tier]
+            sources = [source for source in self.sources if source.enabled and source.tier == tier and source.name not in exclude_sources]
             if self.cache and metadata.get("publisher"):
                 try:
                     sources = self._reorder_by_cache(sources, self.cache.get_best_methods(metadata["publisher"], top_n=3))

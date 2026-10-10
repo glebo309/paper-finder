@@ -18,7 +18,7 @@ def test_phrase_to_merged_identity_to_correct_pdf(tmp_path):
                 'id': 'https://openalex.org/W123', 'doi': 'https://doi.org/' + TARGET['doi'],
                 'title': TARGET['title'], 'publication_year': 2021,
                 'authorships': [{'author': {'display_name': 'John Jumper'}}],
-                'locations': [{'pdf_url': 'https://example.org/wrong.pdf'}, {'pdf_url': 'https://example.org/right.pdf'}]
+                'locations': [{'pdf_url': 'https://example.org/wrong.pdf', 'is_oa': True, 'version': 'publishedVersion'}, {'pdf_url': 'https://example.org/right.pdf', 'is_oa': True, 'version': 'publishedVersion'}]
             }]}
         elif url == 'https://api.crossref.org/works':
             response.json.return_value = {'message': {'items': [{
@@ -26,6 +26,8 @@ def test_phrase_to_merged_identity_to_correct_pdf(tmp_path):
                 'author': [{'given': 'John', 'family': 'Jumper'}],
                 'published': {'date-parts': [[2021]]}
             }]}}
+        elif url == 'https://www.ebi.ac.uk/europepmc/webservices/rest/search':
+            response.json.return_value = {'resultList': {'result': []}}
         elif url == 'https://example.org/wrong.pdf':
             response.iter_content.return_value = [wrong]
         elif url == 'https://example.org/right.pdf':
@@ -45,5 +47,6 @@ def test_phrase_to_merged_identity_to_correct_pdf(tmp_path):
     assert result.filepath.read_bytes() == correct
     assert result.attempts['https://example.org/wrong.pdf'] == 'mismatch'
     assert calls == ['https://api.openalex.org/works', 'https://api.crossref.org/works',
+                     'https://www.ebi.ac.uk/europepmc/webservices/rest/search',
                      'https://example.org/wrong.pdf', 'https://example.org/right.pdf']
     assert not list(tmp_path.glob('.paperfinder-*'))

@@ -25,7 +25,9 @@ def invoke(monkeypatch, args):
 def services(monkeypatch):
     discovery = Mock()
     discovery.search.return_value = {"query": "alphafold", "status": "matched", "candidates": [RECORD], "selected": RECORD, "errors": {}}
+    from src.core.discovery import _doi
     module = ModuleType("src.core.discovery")
+    module._doi = _doi
     module.DiscoveryService = Mock(return_value=discovery)
     monkeypatch.setitem(sys.modules, "src.core.discovery", module)
     finder = Mock()
@@ -108,7 +110,7 @@ def test_actual_constructor_accepts_cli_configuration(monkeypatch, tmp_path, cap
 
 def test_located_link_is_not_reported_as_downloaded(monkeypatch, services, capsys):
     _, _, finder = services
-    def locate(record, output_dir, browser_callback):
+    def locate(record, output_dir, browser_callback, **kwargs):
         browser_callback(record["doi"], "https://example.org/paper.pdf")
         return SimpleNamespace(success=False, filepath=None, source="publisher", error="No verified PDF saved", metadata=record, status="located", verification=None)
     finder.find_record.side_effect = locate
@@ -160,3 +162,82 @@ def test_snapshot_acquisition_rejects_conflicting_query(monkeypatch, services, c
     assert "reference" in json.loads(capsys.readouterr().out)["error"].lower()
     discovery.search.assert_not_called()
     factory.assert_not_called()
+
+
+def test_refresh_flag_reaches_discovery(monkeypatch, services, capsys):
+    assert invoke(monkeypatch, ['search', 'alphafold', '--refresh', '--json']) == 0
+    sys.modules['src.core.discovery'].DiscoveryService.assert_called_once_with(refresh=True)
+
+
+def test_acquire_recent_options_reach_finder(monkeypatch, services, tmp_path, capsys):
+    _, _, finder = services
+    assert invoke(monkeypatch, ['acquire', 'alphafold', '--refresh', '--skip-recent-sources',
+        '--email', 'researcher@example.org', '--output', str(tmp_path), '--json']) == 0
+    assert finder.find_record.call_args.kwargs['recent_sources'] is False
+    assert finder.find_record.call_args.kwargs['contact_email'] == 'researcher@example.org'
+    sys.modules['src.core.discovery'].DiscoveryService.assert_called_once_with(refresh=True)
+
+
+def test_acquire_checks_recent_sources_by_default(monkeypatch, services, tmp_path, capsys):
+    _, _, finder = services
+    assert invoke(monkeypatch, ['acquire', 'alphafold', '--output', str(tmp_path), '--json']) == 0
+    assert finder.find_record.call_args.kwargs['recent_sources'] is True
+
+
+@pytest.fixture
+def copies_service(monkeypatch):
+    import src.acquisition.recent_open_access as recent
+    service = Mock()
+    service.discover.return_value = {'doi': RECORD['doi'], 'status': 'available',
+        'locations': [{'url': 'https://example.org/paper.pdf', 'version': 'acceptedVersion',
+                       'license': 'cc-by', 'source': 'unpaywall', 'downloadable': True}],
+        'alternatives': [], 'embargoed': [], 'closed': [], 'errors': {}}
+    factory = Mock(return_value=service)
+    monkeypatch.setattr(recent, 'RecentOpenAccessDiscovery', factory)
+    return factory, service
+
+
+def test_copies_json_is_metadata_only(monkeypatch, services, copies_service, capsys):
+    discovery, acquisition, _ = services
+    factory, copies = copies_service
+    assert invoke(monkeypatch, ['copies', RECORD['doi'], '--email', 'researcher@example.org', '--json']) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert payload['locations'][0]['version'] == 'acceptedVersion'
+    factory.assert_called_once_with(email='researcher@example.org')
+    copies.discover.assert_called_once_with(RECORD['doi'])
+    discovery.search.assert_not_called()
+    acquisition.assert_not_called()
+
+
+def test_copies_text_explains_versions_embargo_and_no_download(monkeypatch, copies_service, capsys):
+    _, copies = copies_service
+    copies.discover.return_value['alternatives'] = [{'url': 'https://example.org/preprint', 'version': 'submittedVersion', 'source': 'openalex'}]
+    copies.discover.return_value['embargoed'] = [{'url': 'https://example.org/embargo', 'version': 'acceptedVersion', 'available_from': '2027-01-01', 'source': 'unpaywall'}]
+    assert invoke(monkeypatch, ['copies', RECORD['doi']]) == 0
+    output = capsys.readouterr().out
+    for expected in ('acceptedVersion', 'cc-by', 'unpaywall', 'submittedVersion', '2027-01-01', 'No files downloaded'):
+        assert expected in output
+
+
+def test_copies_no_locations_returns_nonzero(monkeypatch, copies_service, capsys):
+    _, copies = copies_service
+    copies.discover.return_value.update(locations=[], status='not_found')
+    assert invoke(monkeypatch, ['copies', RECORD['doi'], '--json']) == 1
+    assert json.loads(capsys.readouterr().out)['status'] == 'not_found'
+
+
+def test_copies_rejects_description_before_any_request(monkeypatch, copies_service, capsys):
+    factory, _ = copies_service
+    assert invoke(monkeypatch, ['copies', 'that protein folding paper', '--json']) == 1
+    assert json.loads(capsys.readouterr().out)['status'] == 'error'
+    factory.assert_not_called()
+
+
+def test_fresh_search_and_selection_clear_prior_access_options():
+    from src.cli.search_helpers import begin_search, select_candidate
+    state = {'access_options': {'locations': ['stale']}}
+    begin_search(state, 'new query')
+    assert state['access_options'] is None
+    state.update(search_result={'candidates': [RECORD]}, access_options={'locations': ['stale']})
+    select_candidate(state, 0)
+    assert state['access_options'] is None

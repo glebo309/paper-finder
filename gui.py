@@ -44,7 +44,7 @@ class PaperFinderGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Paper Finder - Academic PDF Download")
-        self.root.geometry("600x300")  # Start with only search section visible (enough room for both toggles)
+        self.root.geometry("600x340")  # Start with only search section visible (enough room for both toggles)
         
         # Configure style
         self.setup_style()
@@ -150,9 +150,14 @@ class PaperFinderGUI:
         )
         browse_btn.grid(row=1, column=2, padx=(6, 0), pady=(10, 0))
         
+        self.recent_sources = tk.BooleanVar(value=True)
+        ttk.Checkbutton(input_frame, text="Prioritize recent full-text sources",
+                        variable=self.recent_sources).grid(
+                            row=2, column=0, columnspan=3, sticky=tk.W, pady=(12, 0))
+
         # Search button with status indicator
         button_frame = ttk.Frame(input_frame)
-        button_frame.grid(row=2, column=0, columnspan=3, pady=(20, 0))
+        button_frame.grid(row=3, column=0, columnspan=3, pady=(12, 0))
         
         self.search_button = ttk.Button(
             button_frame, 
@@ -345,16 +350,16 @@ class PaperFinderGUI:
         
         if not result_shown and not log_shown:
             # Only search section (both toggles visible)
-            self.root.geometry("600x300")
+            self.root.geometry("600x340")
         elif result_shown and not log_shown:
             # Search + Result
-            self.root.geometry("600x480")
+            self.root.geometry("600x520")
         elif not result_shown and log_shown:
             # Search + Log
-            self.root.geometry("600x550")
+            self.root.geometry("600x590")
         else:
             # All sections
-            self.root.geometry("600x800")
+            self.root.geometry("600x840")
     
     def center_window(self):
         """Center the window on screen"""
@@ -408,12 +413,12 @@ class PaperFinderGUI:
         # Pass raw reference - finder.find() will handle DOI extraction/resolution
         thread = threading.Thread(
             target=self._search_thread,
-            args=(ref, Path(self.output_var.get())),
+            args=(ref, Path(self.output_var.get()), self.recent_sources.get()),
             daemon=True
         )
         thread.start()
     
-    def _search_thread(self, ref: str, output_dir: Path):
+    def _search_thread(self, ref: str, output_dir: Path, recent_sources=True):
         """Background thread for searching"""
         request_id = getattr(self, "_search_id", 0)
         def post(callback, *args):
@@ -470,9 +475,11 @@ class PaperFinderGUI:
                 post(_set)
 
             if isinstance(ref, dict):
-                result = self.finder.find_record(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
+                result = self.finder.find_record(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta,
+                                                      recent_sources=recent_sources)
             else:
-                result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
+                result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta,
+                                                      recent_sources=recent_sources)
 
             # Update UI in main thread, passing the browser_opened flag
             post(self._update_results, result, browser_opened[0])
@@ -588,7 +595,7 @@ class PaperFinderGUI:
             self.status_var.set("Downloading selected paper...")
             self.start_spinner()
             threading.Thread(target=self._search_thread,
-                             args=(record, Path(self.output_var.get())), daemon=True).start()
+                             args=(record, Path(self.output_var.get()), self.recent_sources.get()), daemon=True).start()
         buttons = ttk.Frame(window, padding=12)
         buttons.pack(fill='x')
         download = ttk.Button(buttons, text="Download selected paper", command=acquire, state='disabled')

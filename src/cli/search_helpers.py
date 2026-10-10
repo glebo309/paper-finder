@@ -12,12 +12,13 @@ def _dedicated_reference(query):
     )
 
 
-def search_reference(query, limit=10, mode="identify"):
+def search_reference(query, limit=10, mode="identify", refresh=False):
     """Return candidates without constructing an acquisition engine."""
     query = query.strip()
     if mode == "identify" and _dedicated_reference(query):
         from src.core.identity import IdentityResolver
-        record = IdentityResolver().resolve(query)
+        resolver = IdentityResolver(refresh=True) if refresh else IdentityResolver()
+        record = resolver.resolve(query)
         valid = bool(record.get("identifier", {}).get("value") and record.get("title") and not record.get("error"))
         if valid:
             if isinstance(record.get("year"), str):
@@ -32,18 +33,19 @@ def search_reference(query, limit=10, mode="identify"):
         status = "matched" if valid else record.get("status", "not_found")
         return {"query": query, "status": status, "candidates": [record] if valid else record.get("candidates", []), "selected": record if valid else None, "errors": errors}
     from src.core.discovery import DiscoveryService
-    return DiscoveryService().search(query, limit=limit, mode=mode)
+    return DiscoveryService(refresh=refresh).search(query, limit=limit, mode=mode)
 
 
 def begin_search(state, query):
     state["query"] = query
-    for key in ("search_result", "selected_record", "result", "browser_url"):
+    for key in ("search_result", "selected_record", "result", "browser_url", "access_options"):
         state[key] = None
     state["search_log"] = ""
 
 
 def select_candidate(state, index):
     state["selected_record"] = state["search_result"]["candidates"][index]
+    state["access_options"] = None
     state["result"] = None
     state["browser_url"] = None
     state["search_log"] = ""

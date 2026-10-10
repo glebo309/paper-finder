@@ -18,3 +18,9 @@ def isolated_provider_cooldowns(monkeypatch):
     monkeypatch.setattr(provider_limits, 'provider_cooldowns', cooldowns)
     monkeypatch.setattr(discovery, 'provider_cooldowns', cooldowns)
     monkeypatch.setattr(discovery, '_SEMANTIC_NEXT_ALLOWED', 0.0)
+
+
+@pytest.fixture(autouse=True)
+def isolated_discovery_cache(monkeypatch):
+    """Unit fixtures must neither read nor contaminate the user's metadata cache."""
+    monkeypatch.setenv('PAPER_FINDER_CACHE', '0')

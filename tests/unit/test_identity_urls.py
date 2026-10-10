@@ -184,3 +184,13 @@ def test_bare_arxiv_pattern_must_match_entire_input():
     assert resolver._extract_arxiv_id('Results from 1706.03762 in our study') is None
     assert resolver._extract_arxiv_id('1706.03762v2extra') is None
     assert resolver._extract_arxiv_id('hep-th/9901001v2extra') is None
+
+
+def test_identity_refresh_reaches_shared_discovery(monkeypatch):
+    from unittest.mock import Mock
+    from src.core.identity import IdentityResolver
+    factory = Mock()
+    factory.return_value.search.return_value = {'status': 'not_found', 'candidates': [], 'errors': {}}
+    monkeypatch.setattr('src.core.discovery.DiscoveryService', factory)
+    IdentityResolver(refresh=True).resolve('10.1234/new')
+    assert factory.call_args.kwargs['refresh'] is True

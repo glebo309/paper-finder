@@ -1,0 +1,72 @@
+{
+  "description": "Three recent September 2026 chemistry/biocatalysis records observed in Europe PMC on 2026-10-10. Hard means initial discovery had no direct PDF, not that no copy exists. Small operational smoke test, not a representative acquisition-rate estimate.",
+  "observed_at": "2026-10-10",
+  "cases": [
+    {
+      "id": "thdp-2026",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/chem.71699"
+        },
+        "doi": "10.1002/chem.71699",
+        "title": "Thiamine Diphosphate-Dependent Biocatalysis in the 21st Century.",
+        "authors": [
+          "Lucrezia Lanza",
+          "Daniela Bjarnesen",
+          "Michael M\u00fcller"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-23",
+        "journal": "Chemistry (Weinheim an der Bergstrasse, Germany)"
+      }
+    },
+    {
+      "id": "peroxygenase-2026",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c14068"
+        },
+        "doi": "10.1021/acsami.6c14068",
+        "title": "Engineering the Enzyme-Support Interface: Arginine-Directed Anchoring of Peroxygenase on a \u03b2-Ketoester Covalent Organic Framework.",
+        "authors": [
+          "Wanzheng Wu",
+          "Yikang Lu",
+          "Aitao Li",
+          "Yuxia Pang",
+          "Hongming Lou",
+          "Xueqing Qiu",
+          "Zhixian Li"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-14",
+        "journal": "ACS applied materials & interfaces"
+      }
+    },
+    {
+      "id": "astrazeneca-2026",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/cbic.70489"
+        },
+        "doi": "10.1002/cbic.70489",
+        "title": "Next-Generation Manufacturing: The Evolving Role of Biocatalysis in AstraZeneca.",
+        "authors": [
+          "Alba Diaz-Rodriguez",
+          "Martin A Hayes",
+          "Keith R Mulholland",
+          "Fernando Tur",
+          "Samantha Staniland"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Chembiochem : a European journal of chemical biology"
+      }
+    }
+  ]
+}

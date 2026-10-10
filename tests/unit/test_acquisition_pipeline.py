@@ -162,3 +162,15 @@ def test_pre_requested_cancellation_is_not_reset_by_execute(monkeypatch, tmp_pat
     assert not result.success
     assert "cancel" in result.error.lower()
     source.assert_not_called()
+
+
+def test_explicit_source_exclusion_is_per_operation(tmp_path):
+    from src.core.pipeline import AcquisitionPipeline
+    from src.core.config import Config
+    pipeline = AcquisitionPipeline(config=Config())
+    calls = []
+    pipeline.register_source('excluded', lambda *args: calls.append('excluded'), tier='fast')
+    pipeline.register_source('retained', lambda *args: calls.append('retained'), tier='fast')
+    pipeline.execute('10.1234/test', tmp_path / 'one.pdf', {}, exclude_sources=('excluded',))
+    assert calls == ['retained']
+    assert all(source.enabled for source in pipeline.sources)
