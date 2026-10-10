@@ -15,6 +15,7 @@ from typing import Optional, List, Dict, Tuple
 from urllib.parse import quote
 
 import requests
+from src.core.cancellation import CancellableSession, get as cancellable_get, cancellable_sleep
 from bs4 import BeautifulSoup
 
 
@@ -47,7 +48,7 @@ def translate_title(title: str, target_lang: str) -> Optional[str]:
         }
         
         headers = {'User-Agent': UA}
-        response = requests.get(base_url, params=params, headers=headers, timeout=10)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return None
@@ -111,8 +112,8 @@ def _search_baidu(query: str) -> List[Tuple[str, str]]:
         url = f"https://www.baidu.com/s?wd={quote(query)}+PDF"
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(1, 2))
-        response = requests.get(url, headers=headers, timeout=10)
+        cancellable_sleep(random.uniform(1, 2))
+        response = cancellable_get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return []
@@ -144,8 +145,8 @@ def _search_yandex(query: str) -> List[Tuple[str, str]]:
         url = f"https://yandex.ru/search/?text={quote(query)}+PDF"
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(1, 2))
-        response = requests.get(url, headers=headers, timeout=10)
+        cancellable_sleep(random.uniform(1, 2))
+        response = cancellable_get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return []
@@ -177,8 +178,8 @@ def _search_naver(query: str) -> List[Tuple[str, str]]:
         url = f"https://search.naver.com/search.naver?query={quote(query)}+PDF"
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(1, 2))
-        response = requests.get(url, headers=headers, timeout=10)
+        cancellable_sleep(random.uniform(1, 2))
+        response = cancellable_get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return []
@@ -235,7 +236,7 @@ def try_fetch_with_multilang(
         'ko': 'naver'
     }
     
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': UA})
     
     for lang in languages:
@@ -288,7 +289,7 @@ def try_fetch_with_multilang(
                                         print(f"  ✓ Downloaded from {lang} search")
                                         return f'multilang_{lang}'
                     
-                    time.sleep(random.uniform(1, 2))
+                    cancellable_sleep(random.uniform(1, 2))
                     
                 except Exception as e:
                     continue

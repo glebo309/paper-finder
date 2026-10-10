@@ -463,7 +463,19 @@ def try_fetch_from_preprints_enhanced(
                 if pdf_resp.content.startswith(b'%PDF') and len(pdf_resp.content) > 50*1024:
                     with output_file.open('wb') as f:
                         f.write(pdf_resp.content)
-                    print(f"    ✓ Downloaded from {strategy_name}")
+                    from src.core.validation import verify_document_identity
+                    try:
+                        verification = verify_document_identity(output_file, {
+                            'doi': doi, 'title': title, 'authors': authors,
+                        })
+                    except Exception:
+                        output_file.unlink(missing_ok=True)
+                        raise
+                    if verification.get('status') != 'verified':
+                        output_file.unlink(missing_ok=True)
+                        print(f"    ✗ Rejected {strategy_name} PDF: identity not verified")
+                        continue
+                    print(f"    ✓ Downloaded and verified from {strategy_name}")
                     return True
                 else:
                     print(f"    ✗ Not a valid PDF")

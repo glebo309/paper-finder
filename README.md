@@ -25,7 +25,7 @@ For the Tk desktop interface:
 python main.py gui
 ```
 
-The desktop interface searches and acquires strong matches directly. Uncertain matches open a candidate chooser. **Prioritize recent full-text sources** is enabled by default and can be toggled in the search panel. It requires a Python installation with Tk support.
+The desktop interface searches and acquires strong matches directly. Uncertain matches open a candidate chooser. **Include recent full-text sources** is enabled by default and can be toggled in the search panel. It requires a Python installation with Tk support.
 
 ## Command line
 
@@ -58,7 +58,7 @@ Inspect current full-text locations without downloading:
 python main.py copies "10.1038/s41586-021-03819-2" --email you@example.org
 ```
 
-This shows source, version, licence when known, and any preprint alternatives or embargo information. The contact email enables Unpaywall; Europe PMC and OpenAlex can be queried without it. `acquire` checks these current locations by default before eligible unclassified PDF links and older fallback adapters. Use `--skip-recent-sources` to disable that stage or `--email` to provide a contact address.
+This shows source, version, licence when known, and any preprint alternatives or embargo information. The contact email enables Unpaywall; Europe PMC and OpenAlex can be queried without it. `acquire` includes these sources in the same acquisition race as selected-record URLs and the enabled registered adapters. Use `--skip-recent-sources` to omit the recent-source jobs or `--email` to provide a contact address.
 
 See [the usage guide](docs/SEARCH.md) for JSON output, exit codes, configuration and result states.
 
@@ -92,13 +92,17 @@ Set `PAPER_FINDER_CACHE=0` to disable this cache or `PAPER_FINDER_CACHE_DIR` to 
 
 ## Acquisition and verification
 
-With **Prioritize recent full-text sources** enabled, DOI acquisition first checks Europe PMC, Unpaywall and OpenAlex for current copies. Exact open-access PMC records also use NLM's current public cloud dataset. When no eligible PDF is indexed, a bounded publisher check follows the DOI and reads the publisher's own access metadata; a denied request is reported as blocked rather than proof of closed access. Classified copies are tried before eligible unclassified URLs from the selected record. Available publisher and accepted-manuscript locations are eligible; submitted versions and conflicting version reports are kept as alternatives for inspection. Embargoed and closed locations are shown separately. A missing licence is reported as unknown, not inferred from free access. This stage makes bounded checks of repository landing pages when no direct PDF URL is indexed.
+The normal paper pipeline submits all enabled registered sources to one acquisition race. With **Include recent full-text sources** enabled, DOI records also get six independent jobs: Europe PMC, OpenAlex, Unpaywall, publisher access metadata, HAL and Zenodo. Eligible direct URLs from the selected record join the same race. A slow early source does not hold later source groups behind serial tiers. The first PDF that passes verification wins; finding a URL or opening a browser does not win.
 
-The browser's **Find full-text copies** button and the CLI `copies` command inspect this information without starting a download. Newly deposited work may not yet be indexed, and publisher or institutional access may still be necessary. Version labels come from providers and do not replace verification of the PDF itself.
+Europe PMC can discover matching open-access files through NLM's current public PMC cloud metadata. The publisher job follows bounded DOI redirects and reads access metadata independently of index success; a blocked request does not establish closed access. Repository jobs retain copy versions and identity evidence, and eligible open landing pages can be checked for an advertised PDF. A missing licence remains unknown.
 
-For DOI records, the existing acquisition adapters provide further paths through Unpaywall, PMC, Europe PMC, repositories, publisher pages, preprints, CORE, and the project's existing mirror and book integrations. If known preprint or conflicting-version alternatives exist and no eligible copy verifies, recent mode stops for inspection instead of handing the request to version-blind legacy sources. Otherwise a legacy download can verify identity while its manuscript version remains unknown. These adapters remain available; their coverage is not a promise that every source currently works. Source configuration remains in `src/core/config.py` and optional `config.yaml`.
+The browser's **Find full-text copies** button and CLI `copies` inspect locations without downloading. Preprints and conflicting versions remain explicit alternatives: select **Select this manuscript** in the browser, or save them with `copies --save-alternatives` and select the saved candidate before acquisition. Their presence never stops independent routes from looking for the requested paper. Embargoed and closed locations are not treated as downloadable open copies.
 
-Sources write to isolated temporary files. Only a verified winner is published, and existing files are preserved. A wrong file does not win because it arrived first. Direct discovered downloads have a size limit, a five-location limit and a shared time budget. Acquisition groups have deadlines and cancellation checks. Running source threads cannot be forcibly killed; late workers cannot overwrite the result and clean up their temporary files when they finish.
+In recent-source mode, an unknown-version or unclassified copy must contain the requested identifier in the verifier's accepted identity evidence. Classified published and accepted manuscripts can also pass the existing title-and-author checks. All candidates are checked for contradictory identifiers and supplements; a version label never replaces PDF verification. A preprint selection changes the verification target to that manuscript's own record.
+
+The operation deadline is `pipeline.method_timeout` (45 seconds by default). `pipeline.parallel_execution: false` opts out of the race and tries the same jobs sequentially within that deadline. Sources write isolated temporary files, only a verified winner is published, and existing files are preserved. Cancellation and the deadline stop new work cooperatively; Python cannot forcibly terminate an already running source thread. Late workers cannot replace the winner and clean up their temporary files when they finish.
+
+Inspect local configuration with `python main.py sources` or the browser's **Search sources and configuration** expander. Registered, enabled or configured means the source can be attempted, not that it has retrieved a live paper successfully. API keys, Telegram setup, disabled adapters and other prerequisites are shown separately. Source settings remain in `src/core/config.py` and optional `config.yaml`; measured coverage remains in [validation](docs/VALIDATION.md) and the [legacy source audit](docs/DEEP_SOURCES.md).
 
 Verification examines actual PDF metadata and first-page front matter. It compares title, authors and exact identifiers, rejects contradictory identifiers and supplementary-material headings, and excludes body/reference-list matches. A DOI appearing only in a bibliography is insufficient.
 

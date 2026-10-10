@@ -83,7 +83,13 @@ class RecentOpenAccessDiscovery:
     version reports and requires explicit user selection. `embargoed` and
     `closed` are informational only. Landing pages have downloadable=False.
     Provider failures are reported in `errors` separately from missing copies.
-    Only provider cooldowns are persisted; full-text locations are freshly fetched. The public APIs may not yet have indexed very recent deposits.
+    Only provider cooldowns are persisted; full-text locations are freshly fetched.
+    The public APIs may not yet have indexed very recent deposits.
+
+    Set providers=[name], publisher_fallback=False for an independent source
+    job. Names are europepmc, unpaywall, openalex, and publisher. An explicitly
+    selected publisher always runs once; the default preserves the three-index
+    search followed by conditional publisher fallback.
     """
     PROVIDERS = ('europepmc', 'unpaywall', 'openalex')
 
@@ -93,7 +99,7 @@ class RecentOpenAccessDiscovery:
         self.timeout = max(.1, float(timeout))
         self.deadline = max(.1, float(deadline))
         self.providers = tuple(providers) if providers is not None else self.PROVIDERS
-        if any(provider not in self.PROVIDERS for provider in self.providers):
+        if any(provider not in self.PROVIDERS + ('publisher',) for provider in self.providers):
             raise ValueError('Unknown full-text location provider')
         self.email = email if email is not None else os.environ.get('UNPAYWALL_EMAIL')
         self.publisher_fallback = bool(publisher_fallback)
@@ -196,6 +202,8 @@ class RecentOpenAccessDiscovery:
         merged = {}
         succeeded = 0
         for provider in self.providers:
+            if provider == 'publisher':
+                continue  # Explicit publisher job is handled once below.
             remaining = self.deadline - (time.monotonic() - start)
             if remaining <= 0:
                 result['errors'][provider] = {'kind': 'deadline', 'message': 'Full-text discovery time budget exhausted.'}
@@ -257,8 +265,9 @@ class RecentOpenAccessDiscovery:
         # Indexes can lag behind a publisher's own access declaration. Inspect
         # the canonical DOI landing page once, only when no usable main-article
         # PDF has been located, sharing the overall discovery time budget.
-        if self.publisher_fallback and not any(item.get('availability') == 'open'
-                and item.get('downloadable') and not item.get('requires_selection') for item in merged.values()):
+        if ('publisher' in self.providers or (self.publisher_fallback and not any(
+                item.get('availability') == 'open' and item.get('downloadable')
+                and not item.get('requires_selection') for item in merged.values()))):
             remaining = self.deadline - (time.monotonic() - start)
             if remaining <= 0:
                 result['errors']['publisher'] = {'kind': 'deadline', 'message': 'Publisher access check skipped because the discovery time budget was exhausted.'}

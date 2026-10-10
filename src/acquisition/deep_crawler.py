@@ -25,6 +25,7 @@ from urllib.parse import quote, urljoin, urlparse, unquote
 from difflib import SequenceMatcher
 
 import requests
+from src.core.cancellation import CancellableSession, get as cancellable_get, cancellable_sleep
 from bs4 import BeautifulSoup
 
 
@@ -64,7 +65,7 @@ def extract_author_info(metadata: Dict) -> List[Dict]:
     
     # Fall back to simple author list if no raw data
     if not author_list:
-        author_list = metadata.get('author', [])
+        author_list = metadata.get('authors') or metadata.get('author', [])
         # If authors is a list of strings, convert to dicts
         if author_list and isinstance(author_list[0], str):
             for author_name in author_list:
@@ -168,18 +169,18 @@ def search_with_retry(url: str, max_retries: int = 3) -> Optional[requests.Respo
     
     for attempt in range(max_retries):
         try:
-            response = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+            response = cancellable_get(url, headers=headers, timeout=15, allow_redirects=True)
             if response.status_code == 200:
                 return response
             elif response.status_code == 429:  # Rate limited
                 wait_time = (2 ** attempt) * random.uniform(1, 2)
-                time.sleep(wait_time)
+                cancellable_sleep(wait_time)
                 continue
             else:
                 return None
         except Exception as e:
             if attempt < max_retries - 1:
-                time.sleep(random.uniform(1, 2))
+                cancellable_sleep(random.uniform(1, 2))
                 continue
             return None
     
@@ -221,7 +222,7 @@ def search_duckduckgo(query: str, num_results: int = 10) -> List[str]:
                             urls.append(actual_url)
                             if len(urls) >= num_results:
                                 break
-                    except:
+                    except Exception:
                         continue
     except Exception as e:
         pass
@@ -316,7 +317,7 @@ def multi_engine_search(query: str, num_results: int = 15) -> List[str]:
             continue
         
         # Small delay between engines
-        time.sleep(random.uniform(1, 2))
+        cancellable_sleep(random.uniform(1, 2))
     
     return all_urls[:num_results * 2]  # Return up to 2x the requested number
 
@@ -332,7 +333,7 @@ def find_orcid(author_name: str) -> Optional[str]:
             'Accept': 'application/json'
         }
         
-        response = requests.get(search_url, headers=headers, timeout=10)
+        response = cancellable_get(search_url, headers=headers, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
@@ -382,7 +383,7 @@ def search_academic_profiles(author_name: str, affiliation: str = None) -> List[
         orcid_id = find_orcid(author_name)
         if orcid_id:
             profiles.append(('ORCID', f'https://orcid.org/{orcid_id}'))
-    except:
+    except Exception:
         pass
     
     return profiles
@@ -476,7 +477,7 @@ def find_author_homepage(author_name: str, affiliation: str = None) -> List[str]
             continue
         
         # Small delay between queries
-        time.sleep(random.uniform(1, 1.5))
+        cancellable_sleep(random.uniform(1, 1.5))
     
     # Sort by score and return URLs (INCREASED from 5 to 8)
     homepages.sort(reverse=True)
@@ -700,7 +701,7 @@ def search_institutional_repositories(title: str, affiliation: str = None, doi: 
             continue
         
         # Small delay
-        time.sleep(random.uniform(1, 1.5))
+        cancellable_sleep(random.uniform(1, 1.5))
     
     # Sort by score and return top URLs (INCREASED from 15 to 25)
     pdf_urls.sort(reverse=True)
@@ -733,7 +734,7 @@ def try_fetch_deep_crawl(
     
     print("  Deep crawling author pages and repositories...")
     
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': UA})
     
     # Extract author info
@@ -901,7 +902,7 @@ def try_fetch_deep_crawl(
                     print(f"        ✗ Failed: {type(e).__name__}")
                 continue
         
-        time.sleep(random.uniform(1, 2))
+        cancellable_sleep(random.uniform(1, 2))
     
     return None
 

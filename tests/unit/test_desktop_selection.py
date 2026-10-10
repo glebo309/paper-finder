@@ -59,7 +59,7 @@ def test_recent_sources_toggle_is_visible_and_enabled_by_default(monkeypatch):
     app.build_input_section(Mock())
     boolean.assert_called_once_with(value=True)
     assert app.recent_sources is variable
-    assert checkbox.call_args.kwargs['text'] == 'Prioritize recent full-text sources'
+    assert checkbox.call_args.kwargs['text'] == 'Include recent full-text sources'
     assert checkbox.call_args.kwargs['variable'] is variable
     checkbox.return_value.grid.assert_called_once()
 

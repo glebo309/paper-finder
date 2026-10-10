@@ -97,7 +97,7 @@ if search:
                 select_candidate(st.session_state, index)
 
 contact_email = st.sidebar.text_input("Unpaywall contact email (optional)", value=os.environ.get("UNPAYWALL_EMAIL", ""), help="Unpaywall requires a contact email. Other sources work without it. This field is kept only in this session.")
-recent_sources = st.sidebar.checkbox("Prioritize recent full-text sources", value=True)
+recent_sources = st.sidebar.checkbox("Include recent full-text sources", value=True)
 with st.sidebar.expander("University / library access"):
     from src.acquisition.institutional_access import browser_access_url, validate_login_url, validate_proxy_template
     from src.core.config import get_config
@@ -132,9 +132,9 @@ if selected:
     st.subheader("Selected paper")
     st.write(selected.get("title") or selected.get("identifier", {}).get("value"))
     if selected.get("doi") and st.button("Find full-text copies"):
-        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        from src.acquisition.access_options import discover_access_options
         with st.spinner("Checking current repository and publisher copies..."):
-            st.session_state.access_options = RecentOpenAccessDiscovery(email=contact_email or None).discover(selected["doi"])
+            st.session_state.access_options = discover_access_options(selected, email=contact_email or None)
     if st.button("Download selected paper", type="primary"):
         stop_browser_watch(st.session_state)
         st.session_state.result = None
@@ -227,6 +227,19 @@ if access:
             url = location.get("pdf_url") or location.get("landing_page_url") or location.get("url")
             if url and urlparse(url).scheme in ("http", "https"):
                 st.link_button(f"Open {version.lower()} ({index + 1})", url)
+            alternative_record = location.get("record")
+            if group == "alternatives" and alternative_record and (alternative_record.get("identifier") or {}).get("value"):
+                st.write(alternative_record.get("title") or "Related manuscript")
+                st.caption("This is a separate manuscript selection. Its own identifier will be verified when downloaded.")
+                if st.button("Select this manuscript", key=f"manuscript_{group}_{index}"):
+                    from copy import deepcopy
+                    stop_browser_watch(st.session_state)
+                    st.session_state.selected_record = deepcopy(alternative_record)
+                    st.session_state.result = None
+                    st.session_state.browser_url = None
+                    st.session_state.access_options = None
+                    st.session_state.search_log = ""
+                    st.rerun()
     if not any(access.get(group) for group in ("locations", "alternatives", "embargoed", "closed")):
         st.info("No full-text copy was located by these sources. This does not establish that no copy exists.")
     if access.get("errors"):
@@ -285,3 +298,9 @@ with st.sidebar:
         except Exception as exc:
             st.error(f"Could not open folder: {exc}")
     st.caption("Search only reads metadata. Acquisition starts only when you click Download selected paper.")
+
+with st.expander("Search sources and configuration"):
+    from src.core.source_status import source_status
+    st.caption("Configuration status, not proof that a source can retrieve your paper. These checks stay offline. Actual attempts and verification appear in download results.")
+    sources = source_status(get_config())
+    st.dataframe([{"Source": row["name"], "State": row["status"], "Details": " ".join(row.get("notes", []))} for row in sources], hide_index=True)

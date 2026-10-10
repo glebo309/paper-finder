@@ -251,6 +251,10 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     if wanted_dois and front_dois and not (wanted_dois & front_dois) and not arxiv_match:
         return result("mismatch", "Printed front-matter DOI conflicts with the selected record", **evidence)
 
+    policy = record.get("verification_policy") or {}
+    if policy.get("require_identifier") and not (doi_match or arxiv_match):
+        return result("unverifiable", "Known version alternatives require the selected identifier in PDF metadata or front matter", **evidence)
+
     if strong_title or plausible_title:
         if names and not matched_authors and not (doi_match or arxiv_match):
             return result("unverifiable", "Title matches but none of the expected authors are corroborated", **evidence)

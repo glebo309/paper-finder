@@ -186,14 +186,14 @@ def test_acquire_checks_recent_sources_by_default(monkeypatch, services, tmp_pat
 
 @pytest.fixture
 def copies_service(monkeypatch):
-    import src.acquisition.recent_open_access as recent
+    import src.acquisition.access_options as access
     service = Mock()
     service.discover.return_value = {'doi': RECORD['doi'], 'status': 'available',
         'locations': [{'url': 'https://example.org/paper.pdf', 'version': 'acceptedVersion',
                        'license': 'cc-by', 'source': 'unpaywall', 'downloadable': True}],
         'alternatives': [], 'embargoed': [], 'closed': [], 'errors': {}}
-    factory = Mock(return_value=service)
-    monkeypatch.setattr(recent, 'RecentOpenAccessDiscovery', factory)
+    factory = service.discover
+    monkeypatch.setattr(access, 'discover_access_options', factory)
     return factory, service
 
 
@@ -203,8 +203,7 @@ def test_copies_json_is_metadata_only(monkeypatch, services, copies_service, cap
     assert invoke(monkeypatch, ['copies', RECORD['doi'], '--email', 'researcher@example.org', '--json']) == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload['locations'][0]['version'] == 'acceptedVersion'
-    factory.assert_called_once_with(email='researcher@example.org')
-    copies.discover.assert_called_once_with(RECORD['doi'])
+    factory.assert_called_once_with({'doi': RECORD['doi'], 'identifier': {'type': 'doi', 'value': RECORD['doi']}}, email='researcher@example.org')
     discovery.search.assert_not_called()
     acquisition.assert_not_called()
 
@@ -295,3 +294,68 @@ def test_watch_keyboard_interrupt_becomes_cancelled_json(monkeypatch, services, 
     assert invoke(monkeypatch, ['acquire', 'alphafold', '--watch-downloads', str(tmp_path), '--json']) == 1
     assert json.loads(capsys.readouterr().out)['status'] == 'cancelled'
     watcher.cancel.assert_called_once()
+
+
+def test_sources_json_reports_local_configuration_without_finder(monkeypatch, services, capsys):
+    discovery, factory, _ = services
+    assert invoke(monkeypatch, ['sources', '--json']) == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert isinstance(payload, list)
+    assert any(row['id'] == 'telegram' for row in payload)
+    assert all(row['validation'] == 'not_live_revalidated' for row in payload)
+    factory.assert_not_called()
+    discovery.search.assert_not_called()
+
+
+def test_copies_saved_selection_passes_exact_metadata_without_research(monkeypatch, services, copies_service, capsys, tmp_path):
+    discovery, constructor, _ = services
+    snapshot = tmp_path/'selected.json'
+    snapshot.write_text(json.dumps({'version':1, 'result':dict(discovery.search.return_value, status='ambiguous', selected=None)}))
+    access, _ = copies_service
+    assert invoke(monkeypatch, ['copies', '--from-results', str(snapshot), '--select', '1', '--json']) == 0
+    access.assert_called_once_with(RECORD, email=None)
+    discovery.search.assert_not_called()
+    constructor.assert_not_called()
+
+
+def test_copies_ambiguous_snapshot_never_picks_first_record(monkeypatch, services, copies_service, capsys, tmp_path):
+    discovery, _, _ = services
+    snapshot = tmp_path/'ambiguous.json'
+    snapshot.write_text(json.dumps({'version':1, 'result':dict(discovery.search.return_value, status='ambiguous', selected=None)}))
+    assert invoke(monkeypatch, ['copies', '--from-results', str(snapshot), '--json']) == 2
+    copies_service[0].assert_not_called()
+
+
+def test_copies_doi_and_snapshot_are_mutually_exclusive(monkeypatch, copies_service, capsys, tmp_path):
+    assert invoke(monkeypatch, ['copies', RECORD['doi'], '--from-results', str(tmp_path/'ignored.json'), '--json']) != 0
+    copies_service[0].assert_not_called()
+
+
+def test_saved_alternatives_keep_own_identity_and_are_explicitly_acquirable(monkeypatch, services, copies_service, capsys, tmp_path):
+    _, _, finder = services
+    _, copies = copies_service
+    alternate = dict(RECORD, doi='10.1234/preprint', identifier={'type':'doi','value':'10.1234/preprint'}, record_type='preprint',
+                     pdf_urls=['https://repo.example.org/preprint.pdf'])
+    copies.discover.return_value['alternatives'] = [
+        {'record':alternate, 'source':'hal', 'version':'submittedVersion', 'requested_doi':RECORD['doi'], 'identity_evidence':'title_author_match'},
+        {'url':'https://example.org/no-identity'}, {'record':{'title':'Invalid identifier'}}]
+    path = tmp_path/'alternatives.json'
+    assert invoke(monkeypatch, ['copies', RECORD['doi'], '--save-alternatives', str(path), '--json']) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report['alternatives_snapshot']['count'] == 1
+    saved = json.loads(path.read_text())['result']
+    assert saved['status'] == 'ambiguous' and saved['selected'] is None
+    assert saved['candidates'][0]['doi'] == alternate['doi']
+    assert saved['candidates'][0]['alternative_for']['doi'] == RECORD['doi']
+    assert invoke(monkeypatch, ['acquire', '--from-results', str(path), '--select', '1', '--output', str(tmp_path), '--json']) == 0
+    assert finder.find_record.call_args.args[0]['doi'] == alternate['doi']
+
+
+def test_save_empty_alternative_set_is_explicit_and_has_no_selection(monkeypatch, copies_service, capsys, tmp_path):
+    path = tmp_path/'empty.json'
+    assert invoke(monkeypatch, ['copies', RECORD['doi'], '--save-alternatives', str(path), '--json']) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report['alternatives_snapshot']['count'] == 0
+    assert 'No selectable' in report['alternatives_snapshot']['message']
+    result = json.loads(path.read_text())['result']
+    assert result['status'] == 'not_found' and result['selected'] is None

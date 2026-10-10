@@ -170,15 +170,69 @@ def _run_paper_command(args):
         return 1
 
 
+def _save_alternative_records(path, report, original):
+    """Export only validated canonical alternatives, without choosing a version."""
+    from copy import deepcopy
+    from src.cli.search_helpers import save_results, _validate_snapshot
+    candidates = []
+    query = 'Alternative versions of ' + str(original.get('doi') or original.get('title') or (original.get('identifier') or {}).get('value') or 'selected paper')
+    for location in report.get('alternatives', []):
+        record = location.get('record') if isinstance(location, dict) else None
+        if not isinstance(record, dict):
+            continue
+        record = deepcopy(record)
+        record['alternative_for'] = {key: deepcopy(original[key]) for key in ('doi', 'identifier', 'title') if key in original}
+        record['alternative_evidence'] = {key: deepcopy(location[key]) for key in
+            ('source', 'sources', 'version', 'license', 'requested_doi', 'identity_evidence', 'provenance') if key in location}
+        candidate_result = {'query':query, 'status':'ambiguous', 'candidates':[record], 'selected':None, 'errors':{}}
+        try:
+            _validate_snapshot({'version':1, 'result':candidate_result})
+        except (ValueError, TypeError):
+            continue
+        if record not in candidates:
+            candidates.append(record)
+        if len(candidates) >= 50:
+            break
+    result = {'query':query, 'status':'ambiguous' if candidates else 'not_found',
+              'candidates':candidates, 'selected':None, 'errors':deepcopy(report.get('errors') or {})}
+    save_results(path, result)
+    return {'path':str(Path(path).expanduser()), 'count':len(candidates),
+            'message':f'Saved {len(candidates)} alternative records; explicit --select is required.' if candidates else 'No selectable alternative records were available; the saved snapshot is empty.'}
+
+
 def _run_copies_command(args):
-    """Locate version-labelled links for one supplied DOI without downloading."""
-    from src.acquisition.recent_open_access import RecentOpenAccessDiscovery, _doi
+    """Locate indexed and direct-repository copies without acquisition."""
+    from src.acquisition.recent_open_access import _doi
+    from src.acquisition.access_options import discover_access_options
+    from src.cli.search_helpers import load_results
     try:
-        doi = _doi(args.doi)
-        if not doi:
-            raise ValueError('Provide an exact DOI or doi.org URL; use search to identify a paper first.')
+        if args.doi and args.from_results:
+            raise ValueError('Provide a DOI or --from-results, not both.')
+        if args.from_results:
+            payload = load_results(args.from_results)
+            candidates = payload.get('candidates', [])
+            if args.select is not None:
+                if not 1 <= args.select <= len(candidates):
+                    raise ValueError(f'Choose a candidate from 1 to {len(candidates)}.')
+                record = candidates[args.select - 1]
+            elif payload.get('status') == 'matched' and payload.get('selected'):
+                record = payload['selected']
+            else:
+                payload['error'] = 'Choose the original paper with --select N; no candidate was chosen automatically.'
+                print(json.dumps(payload, ensure_ascii=False)) if args.json else print(payload['error'])
+                return 2
+        else:
+            if args.select is not None:
+                raise ValueError('--select requires --from-results FILE.')
+            doi = _doi(args.doi)
+            if not doi:
+                raise ValueError('Provide an exact DOI or doi.org URL; use search to identify a paper first.')
+            record = {'doi':doi, 'identifier':{'type':'doi', 'value':doi}}
+        doi = record.get('doi') or (record.get('identifier') or {}).get('value')
         with redirect_stdout(sys.stderr):
-            result = RecentOpenAccessDiscovery(email=args.email).discover(doi)
+            result = discover_access_options(record, email=args.email)
+        if args.save_alternatives:
+            result['alternatives_snapshot'] = _save_alternative_records(args.save_alternatives, result, record)
         if args.json:
             print(json.dumps(result, ensure_ascii=False, default=str))
         else:
@@ -199,12 +253,33 @@ def _run_copies_command(args):
                         print(f"  Available from: {location['available_from']}")
             for provider, error in result.get('errors', {}).items():
                 print(f"Provider warning ({provider}): {error}", file=sys.stderr)
+            if result.get('alternatives_snapshot'):
+                exported = result['alternatives_snapshot']
+                print(f"\n{exported['message']}\nSnapshot: {exported['path']}")
             print('\nNo files downloaded. Links and version labels require inspection; downloads still need identity verification.')
         return 0 if result.get('locations') or result.get('alternatives') else 1
     except Exception as exc:
         payload = {'success': False, 'status': 'error', 'error': str(exc)}
         print(json.dumps(payload, ensure_ascii=False)) if args.json else print(f"Error: {exc}", file=sys.stderr)
         return 1
+
+
+def _run_sources_command(args):
+    from src.core.source_status import source_status
+    from src.core.config import load_config
+    with redirect_stdout(sys.stderr):
+        rows = source_status(load_config(args.config))
+    if args.json:
+        print(json.dumps(rows, ensure_ascii=False))
+    else:
+        print('Source configuration inventory. No source was contacted or live-validated.\n')
+        for row in rows:
+            print(f"{row['name']}: {row['status'].replace('_', ' ')} | {row['validation'].replace('_', ' ')}")
+            for note in row['notes']:
+                print(f"  {note}")
+            if row.get('configured_bots'):
+                print('  Configured bots: ' + ', '.join(row['configured_bots']))
+    return 0
 
 
 def main():
@@ -271,10 +346,17 @@ def main():
     search_parser.add_argument('--limit', type=_positive_limit, default=10, help='Candidate count, 1–50 (default: 10)')
     search_parser.add_argument('--mode', choices=['identify', 'discover'], default='identify', help='Identify one paper, or explore a topic')
 
-    copies_parser = subparsers.add_parser('copies', help='Find current full-text locations and versions for an exact DOI; never download')
-    copies_parser.add_argument('doi', help='Exact DOI or doi.org URL')
+    copies_parser = subparsers.add_parser('copies', help='Find indexed and repository copies for a DOI or selected record; never download')
+    copies_parser.add_argument('doi', nargs='?', help='Exact DOI or doi.org URL; omit with --from-results')
+    copies_parser.add_argument('--from-results', metavar='FILE', help='Use saved candidate metadata for direct repository searches')
+    copies_parser.add_argument('--select', type=int, help='Choose original candidate N from the snapshot (1-based)')
+    copies_parser.add_argument('--save-alternatives', metavar='FILE', help='Save selectable alternative identities for acquire --from-results FILE --select N')
     copies_parser.add_argument('--email', help='Contact email for Unpaywall (or set UNPAYWALL_EMAIL)')
     copies_parser.add_argument('--json', action='store_true', help='Emit machine-readable JSON')
+
+    sources_parser = subparsers.add_parser('sources', help='Inspect local source configuration without connecting or sending messages')
+    sources_parser.add_argument('--config', '-c', default='config.yaml', help='Configuration file')
+    sources_parser.add_argument('--json', action='store_true', help='Emit machine-readable JSON')
 
     # Telegram bot mode
     bot_parser = subparsers.add_parser(
@@ -308,6 +390,9 @@ def main():
     
     elif args.command in ('search', 'acquire'):
         sys.exit(_run_paper_command(args))
+
+    elif args.command == 'sources':
+        sys.exit(_run_sources_command(args))
 
     elif args.command == 'copies':
         sys.exit(_run_copies_command(args))

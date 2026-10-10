@@ -45,6 +45,8 @@ def test_preprint_alternative_is_exposed_without_automatic_download(tmp_path):
     result = f.find_record(record(), tmp_path, recent_sources=True)
     assert not result.success
     assert result.metadata['access_options']['alternatives'] == [alternative]
+    f._execute_pipeline.assert_called_once()
+    assert f._execute_pipeline.call_args.kwargs['metadata']['verification_policy']['require_identifier'] is True
 
 
 def test_recent_lookup_failure_does_not_hide_legacy_result(tmp_path):
@@ -63,7 +65,8 @@ def test_recent_route_does_not_repeat_unversioned_legacy_oa_sources(tmp_path):
     f._execute_pipeline = Mock(return_value=DownloadResult(False))
     f.find_record(record(), tmp_path, recent_sources=True)
     excluded = f._execute_pipeline.call_args.kwargs.get('exclude_sources', ())
-    assert {'Unpaywall', 'Europe PMC', 'Preprints Enhanced', 'Open Access (Browser)'} <= set(excluded)
+    assert {'Unpaywall', 'Europe PMC', 'Open Access (Browser)'} <= set(excluded)
+    assert 'Preprints Enhanced' not in excluded
 
 
 def test_known_open_landing_page_resolves_advertised_pdf(monkeypatch, tmp_path):
@@ -100,10 +103,12 @@ def test_recent_lookup_precedes_flattened_pdf_and_blocks_known_preprint(monkeypa
     alternative = {'pdf_url': rec['pdf_urls'][0], 'version': 'submittedVersion', 'requires_selection': True}
     f.find_access_options = Mock(return_value={'locations': [], 'alternatives': [alternative], 'errors': {}})
     f._download_record_urls = Mock(side_effect=AssertionError('Must not silently download known preprint'))
-    f._execute_pipeline = Mock(side_effect=AssertionError('Legacy version-blind fallback could reintroduce this preprint'))
+    f._execute_pipeline = Mock(return_value=DownloadResult(False))
     result = f.find_record(rec, tmp_path, recent_sources=True)
     assert not result.success
     assert result.metadata['access_options']['alternatives'] == [alternative]
+    f._execute_pipeline.assert_called_once()
+    assert f._execute_pipeline.call_args.kwargs['metadata']['verification_policy']['require_identifier'] is True
 
 
 def test_cancel_during_copy_lookup_keeps_cancelled_status(tmp_path):
@@ -132,7 +137,26 @@ def test_known_indexed_preprint_remains_manual_when_current_lookup_fails(tmp_pat
     rec = record()
     rec['indexed_locations'] = [{'pdf_url': 'https://repo.example/preprint.pdf', 'version': 'submittedVersion', 'requires_selection': True, 'source': 'openalex', 'is_oa': True}]
     f.find_access_options = Mock(side_effect=RuntimeError('Provider unavailable'))
-    f._execute_pipeline = Mock(side_effect=AssertionError('Do not lose known manuscript-version evidence'))
+    f._execute_pipeline = Mock(return_value=DownloadResult(False))
     result = f.find_record(rec, tmp_path, recent_sources=True)
     assert not result.success
     assert result.metadata['access_options']['alternatives'][0]['version'] == 'submittedVersion'
+
+
+def test_known_preprint_does_not_block_verified_journal_from_deep_source(tmp_path):
+    f = finder()
+    f.find_access_options = Mock(return_value={'locations': [], 'alternatives': [{'version': 'submittedVersion', 'pdf_url': 'https://example.org/preprint.pdf'}]})
+    path = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nDOI: ' + TARGET['doi'] + '\nAbstract\nResults')
+    f._execute_pipeline = Mock(return_value=DownloadResult(True, filepath=path, source='Open Repositories'))
+    result = f.find_record(record(), tmp_path, recent_sources=True)
+    assert result.success and result.source == 'Open Repositories'
+    assert result.verification['identifier_match'] is True
+
+
+def test_access_options_calls_combined_repository_discovery(monkeypatch):
+    f = finder()
+    combined = Mock(return_value={'locations': [], 'alternatives': [], 'errors': {}})
+    monkeypatch.setattr('src.acquisition.access_options.discover_access_options', combined)
+    f.find_access_options(record())
+    assert combined.call_args.args[0]['doi'] == TARGET['doi']
+    assert combined.call_args.kwargs['session'] is f.session

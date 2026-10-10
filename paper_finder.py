@@ -197,6 +197,8 @@ class PaperFinder:
     def _reset_cancel(self) -> None:
         self._cancel_requested = False
         self._browser_opened = False
+        if self.pipeline is not None:
+            self.pipeline._reset_cancel()
     
     def _handle_book(self, isbn: str, metadata: Dict, output_dir: Path, browser_callback=None, meta_callback=None) -> DownloadResult:
         """Stage each book candidate separately and verify before publication."""
@@ -228,7 +230,7 @@ class PaperFinder:
             config = self.config.telegram
             source = TelegramUndergroundSource(session=self.session, api_id=config.api_id,
                        api_hash=config.api_hash, phone=config.phone,
-                       rate_limit_per_hour=config.rate_limit_per_hour)
+                       rate_limit_per_hour=config.rate_limit_per_hour, bots=config.underground_bots)
             result = source.try_acquire(doi=isbn or title, output_file=path, metadata=deepcopy(metadata))
             return bool(result.success)
 
@@ -237,7 +239,7 @@ class PaperFinder:
             browser_callback=book_browser_callback)),
             ("LibGen Books", lambda path: try_libgen_main(title, list(authors), path))]
         telegram_config = getattr(self.config, 'telegram', None)
-        if telegram_config and telegram_config.underground_enabled and telegram_config.api_id:
+        if telegram_config and telegram_config.underground_enabled and telegram_config.api_id and telegram_config.api_hash:
             sources.append(("Telegram Bots (Book)", telegram))
 
         def discard_retained():
@@ -414,7 +416,8 @@ class PaperFinder:
     
     def _check_cancel(self) -> bool:
         """Check if cancellation was requested. Returns True if cancelled."""
-        return self._cancel_requested
+        from src.core.pipeline import operation_cancelled
+        return self._cancel_requested or operation_cancelled()
     
     def _register_sources(self) -> None:
         """Register all acquisition sources with the pipeline.
@@ -435,7 +438,7 @@ class PaperFinder:
         
         # Telegram bots (runs in parallel with shadow libraries)
         if self.config and hasattr(self.config, 'telegram'):
-            if self.config.telegram.underground_enabled and self.config.telegram.api_id:
+            if self.config.telegram.underground_enabled and self.config.telegram.api_id and self.config.telegram.api_hash:
                 self.pipeline.register_source("Telegram Bots", self._try_telegram_underground, tier='fast')
         
         # Direct fast-paths (arXiv, bioRxiv, medRxiv handled in find())
@@ -510,6 +513,13 @@ class PaperFinder:
                 if not issubclass(obj, SimpleAcquisitionSource) or obj is SimpleAcquisitionSource:
                     continue
 
+                # Disabled messaging integrations must not be reactivated by
+                # dynamic discovery or environment credentials.
+                if obj.__name__ == 'TelegramUndergroundSource':
+                    telegram_config = getattr(self.config, 'telegram', None)
+                    if not (telegram_config and telegram_config.underground_enabled
+                            and telegram_config.api_id and telegram_config.api_hash):
+                        continue
                 # Instantiate once to read metadata such as name
                 try:
                     # Special handling for TelegramUndergroundSource - pass config
@@ -519,7 +529,8 @@ class PaperFinder:
                             api_id=self.config.telegram.api_id,
                             api_hash=self.config.telegram.api_hash,
                             phone=self.config.telegram.phone,
-                            rate_limit_per_hour=self.config.telegram.rate_limit_per_hour
+                            rate_limit_per_hour=self.config.telegram.rate_limit_per_hour,
+                            bots=self.config.telegram.underground_bots
                         )
                     else:
                         instance = obj(session=self.session)
@@ -542,7 +553,8 @@ class PaperFinder:
                                     api_id=_config.telegram.api_id,
                                     api_hash=_config.telegram.api_hash,
                                     phone=_config.telegram.phone,
-                                    rate_limit_per_hour=_config.telegram.rate_limit_per_hour
+                                    rate_limit_per_hour=_config.telegram.rate_limit_per_hour,
+                                    bots=_config.telegram.underground_bots
                                 )
                             else:
                                 src = _cls(session=_session)
@@ -557,7 +569,8 @@ class PaperFinder:
     
     def _create_session(self) -> requests.Session:
         """Create HTTP session with proper headers"""
-        session = requests.Session()
+        from src.core.cancellation import CancellableSession
+        session = CancellableSession()
         session.headers.update({"User-Agent": UA})
         return session
 
@@ -577,7 +590,8 @@ class PaperFinder:
                 # On last attempt, raise; otherwise brief backoff
                 if attempt == max_retries:
                     raise
-                time.sleep(1.0 * attempt)
+                from src.core.cancellation import cancellable_sleep
+                cancellable_sleep(1.0 * attempt)
         # Should not reach here
         if last_exc is not None:
             raise last_exc
@@ -743,6 +757,13 @@ class PaperFinder:
         version_selection_required = False
         if kind == "isbn":
             result = self._handle_book(value, record, output_dir, capture_link, meta_callback)
+        elif self.pipeline is not None:
+            from src.acquisition.racing import acquire_record_race
+            result = acquire_record_race(self, record, output_dir,
+                recent_sources=recent_sources, contact_email=contact_email)
+            record = result.metadata
+            for location in record.get("access_options", {}).get("locations", []):
+                capture_link(location.get("landing_page_url") or location.get("url"))
         else:
             urls = list(record.get("pdf_urls") or [])
             if record.get("pdf_url"):
@@ -829,11 +850,15 @@ class PaperFinder:
                             if recent.attempts.get(location["pdf_url"]) == "verified":
                                 record["fulltext_location"] = location
                                 break
-            if (result is None or not result.success) and doi and not self._cancel_requested and not version_selection_required:
+            if (result is None or not result.success) and doi and not self._cancel_requested:
+                if version_selection_required:
+                    # Continue independent sources, but require the requested
+                    # identifier before an unclassified legacy copy can win.
+                    record["verification_policy"] = {"require_identifier": True}
                 output_file = self._available_output(output_dir, doi)
                 fallback = self._execute_pipeline(doi, output_file, meta_callback=None,
                                                   oa_callback=capture_link, metadata=record,
-                                                  exclude_sources=("Unpaywall", "Europe PMC", "Preprints Enhanced", "Open Access (Browser)") if recent_sources else ())
+                                                  exclude_sources=("Unpaywall", "Europe PMC", "Open Access (Browser)") if recent_sources else ())
                 fallback = self._verify_result(fallback, record)
                 attempts = {**(result.attempts or {} if result else {}), **(fallback.attempts or {})}
                 # Remove only the review copy created by this operation, after a
@@ -863,7 +888,7 @@ class PaperFinder:
 
     def find_access_options(self, record, contact_email=None):
         """Inspect fresh full-text locations without downloading or opening pages."""
-        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        from src.acquisition.access_options import discover_access_options
         identifier = record.get("identifier") or {}
         doi = record.get("doi") or (identifier.get("value") if identifier.get("type") == "doi" else None)
         if not doi:
@@ -871,7 +896,7 @@ class PaperFinder:
                     "errors": {"identity": {"kind": "missing_doi", "message": "Full-text copy lookup needs a DOI"}}}
         if not contact_email:
             contact_email = getattr(getattr(self.config, "api", None), "unpaywall_email", None)
-        return RecentOpenAccessDiscovery(session=self.session, email=contact_email).discover(doi)
+        return discover_access_options(record, session=self.session, email=contact_email)
 
     @staticmethod
     def _available_output(directory: Path, identifier: str) -> Path:
@@ -883,7 +908,7 @@ class PaperFinder:
             output = directory / f"{name}_{uuid.uuid4().hex[:8]}.pdf"
         return output
 
-    def _download_record_urls(self, record: Dict, urls: List[str], directory: Path) -> DownloadResult:
+    def _download_record_urls(self, record: Dict, urls: List[str], directory: Path, *, session=None) -> DownloadResult:
         """Try provider-discovered PDF locations with bounded size and atomic publication."""
         import os
         import time
@@ -900,7 +925,7 @@ class PaperFinder:
             parsed = urlparse(url)
             if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password:
                 continue
-            if self._cancel_requested:
+            if self._check_cancel():
                 return DownloadResult(False, error="Cancelled by user", status="cancelled", attempts=attempts)
             fd, name = tempfile.mkstemp(prefix=".paperfinder-", suffix=".pdf", dir=directory)
             os.close(fd)
@@ -908,7 +933,7 @@ class PaperFinder:
             response = None
             try:
                 remaining = max(.1, deadline - time.monotonic())
-                response = self.session.get(url, stream=True, timeout=(min(5, remaining), min(15, remaining)))
+                response = (session or self.session).get(url, stream=True, timeout=(min(5, remaining), min(15, remaining)))
                 if response.status_code != 200:
                     attempts[url] = f"HTTP {response.status_code}"
                     continue
@@ -919,7 +944,7 @@ class PaperFinder:
                 size = 0
                 with temporary.open('wb') as target:
                     for chunk in response.iter_content(chunk_size=65536):
-                        if self._cancel_requested:
+                        if self._check_cancel():
                             raise InterruptedError("Cancelled by user")
                         if time.monotonic() >= deadline:
                             raise TimeoutError("Download deadline exceeded")
@@ -927,7 +952,7 @@ class PaperFinder:
                         if size > limit:
                             raise ValueError("File exceeds size limit")
                         target.write(chunk)
-                if self._cancel_requested:
+                if self._check_cancel():
                     raise InterruptedError("Cancelled by user")
                 verification = verify_document_identity(temporary, record)
                 state = verification["status"]
@@ -939,7 +964,7 @@ class PaperFinder:
                 output = self._available_output(directory, record['identifier']['value'])
                 if state == "unverifiable":
                     output = self._available_output(directory, output.stem + ".unverified")
-                if self._cancel_requested:
+                if self._check_cancel():
                     raise InterruptedError("Cancelled by user")
                 for retry in range(5):
                     try:
@@ -967,7 +992,7 @@ class PaperFinder:
                 if response is not None:
                     response.close()
                 temporary.unlink(missing_ok=True)
-        if self._cancel_requested:
+        if self._check_cancel():
             return DownloadResult(False, error="Cancelled by user", status="cancelled", attempts=attempts)
         return retained or DownloadResult(False, error="Discovered full-text locations did not yield a verified paper",
                                           metadata=record, attempts=attempts, status="not_found")
@@ -1103,7 +1128,7 @@ class PaperFinder:
         ]
         
         # Add Telegram bots to fast methods if enabled
-        if self.config and hasattr(self.config, 'telegram') and self.config.telegram.underground_enabled:
+        if self.config and hasattr(self.config, 'telegram') and self.config.telegram.underground_enabled and self.config.telegram.api_id and self.config.telegram.api_hash:
             methods.insert(4, ("Telegram Bots", self._try_telegram_underground))
         
         excluded = set(exclude_sources)
@@ -2330,7 +2355,8 @@ class PaperFinder:
         try:
             # Short sleep to let Sci-Hub/Telegram win the race if they are fast (0.5-2s)
             # This prevents opening the browser unnecessarily for papers available in shadow libs.
-            time.sleep(3.0)
+            from src.core.cancellation import cancellable_sleep
+            cancellable_sleep(3.0)
             
             from playwright.sync_api import sync_playwright
             
@@ -2982,7 +3008,8 @@ class PaperFinder:
                 api_id=self.config.telegram.api_id if self.config and hasattr(self.config, 'telegram') else None,
                 api_hash=self.config.telegram.api_hash if self.config and hasattr(self.config, 'telegram') else None,
                 phone=self.config.telegram.phone if self.config and hasattr(self.config, 'telegram') else None,
-                rate_limit_per_hour=self.config.telegram.rate_limit_per_hour if self.config and hasattr(self.config, 'telegram') else 20
+                rate_limit_per_hour=self.config.telegram.rate_limit_per_hour if self.config and hasattr(self.config, 'telegram') else 20,
+                bots=self.config.telegram.underground_bots if self.config and hasattr(self.config, 'telegram') else None
             )
             
             # Try to acquire

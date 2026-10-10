@@ -10,6 +10,7 @@ Springer is tricky - they have multiple access points:
 """
 
 import requests
+from src.core.cancellation import cancellable_sleep
 from bs4 import BeautifulSoup
 from pathlib import Path
 from typing import Optional, Dict
@@ -35,7 +36,7 @@ def try_springer_sharedit(doi: str, session: requests.Session) -> Optional[str]:
             for link in soup.find_all('a', href=True):
                 if 'pdf' in link['href'].lower() or 'download' in link['href'].lower():
                     return link['href']
-    except:
+    except Exception:
         pass
     
     return None
@@ -56,7 +57,7 @@ def try_springer_preview(doi: str, session: requests.Session) -> Optional[bytes]
             # Check if it's a real preview (>100KB) not just a stub
             if len(response.content) > 100 * 1024:
                 return response.content
-    except:
+    except Exception:
         pass
     
     return None
@@ -87,7 +88,7 @@ def try_springer_author_manuscript(title: str, doi: str, session: requests.Sessi
                     # Check if it's from a university/institution
                     if any(domain in download_url for domain in ['.edu', '.ac.', 'repository', 'eprints']):
                         return download_url
-    except:
+    except Exception:
         pass
     
     return None
@@ -117,7 +118,7 @@ def try_springer_researchgate_direct(doi: str, title: str, session: requests.Ses
                     if href.startswith('/'):
                         href = f"https://www.researchgate.net{href}"
                     return href
-    except:
+    except Exception:
         pass
     
     return None
@@ -144,7 +145,7 @@ def try_springer_google_scholar_pdf(title: str, session: requests.Session) -> Op
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         }
         
-        time.sleep(random.uniform(2, 4))  # Avoid blocking
+        cancellable_sleep(random.uniform(2, 4))  # Avoid blocking
         
         response = session.get(search_url, params=params, headers=headers, timeout=15)
         if response.status_code == 200:
@@ -155,7 +156,7 @@ def try_springer_google_scholar_pdf(title: str, session: requests.Session) -> Op
                 href = link['href']
                 if href.endswith('.pdf') and any(domain in href for domain in ['.edu', '.ac.', 'researchgate', 'academia']):
                     return href
-    except:
+    except Exception:
         pass
     
     return None

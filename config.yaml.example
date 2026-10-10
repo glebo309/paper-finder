@@ -6,7 +6,7 @@ network:
   timeout_short: 15
   timeout_medium: 30
   timeout_long: 60
-  max_workers: 5  # Parallel execution threads
+  max_workers: 5  # Legacy adapter setting; acquisition starts each enabled route
 
 # PDF validation
 validation:
@@ -54,8 +54,8 @@ institutional:
 # Pipeline execution
 pipeline:
   parallel_execution: true
-  method_timeout: 60
-  group_timeout: 180
+  method_timeout: 45  # Whole acquisition race deadline in seconds
+  group_timeout: 180  # Retained for old configs; unused by the race
   stop_on_browser: true
 
 # Telegram settings

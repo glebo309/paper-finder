@@ -27,7 +27,7 @@ class NetworkConfig:
     timeout_long: int = 60  # For scraping/browser
     max_retries: int = 3
     retry_backoff: float = 1.0  # Seconds
-    max_workers: int = 5  # Parallel execution
+    max_workers: int = 5  # Legacy adapter setting; acquisition race starts each enabled route
     user_agent: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 
 
@@ -89,8 +89,8 @@ class APIConfig:
 class PipelineConfig:
     """Pipeline execution settings."""
     parallel_execution: bool = True
-    method_timeout: int = 45  # Per-group timeout (all methods in tier)
-    group_timeout: int = 50  # Maximum time for one tier before moving to next
+    method_timeout: int = 45  # Whole acquisition race deadline in seconds
+    group_timeout: int = 50  # Retained for old config compatibility; unused by the race
     
     # Browser open detection - stop searching if OA found
     stop_on_browser: bool = True

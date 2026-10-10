@@ -114,6 +114,8 @@ def test_concurrent_destination_creation_is_never_overwritten(finder, tmp_path, 
 
 
 def test_doi_fallback_preserves_direct_mismatch_evidence(finder, tmp_path):
+    # Explicitly exercise the compatibility path without the race coordinator.
+    finder.pipeline = None
     finder._download_record_urls = Mock(return_value=DownloadResult(
         False, attempts={'https://example.org/wrong.pdf': 'mismatch'}, status='not_found'))
     finder._execute_pipeline = Mock(return_value=DownloadResult(
@@ -125,6 +127,8 @@ def test_doi_fallback_preserves_direct_mismatch_evidence(finder, tmp_path):
 
 
 def test_verified_fallback_removes_only_own_unverified_download(finder, tmp_path):
+    # Explicitly exercise the compatibility path without the race coordinator.
+    finder.pipeline = None
     retained = tmp_path / 'own.unverified.pdf'
     retained.write_bytes(b'%PDF-unreadable')
     preexisting = tmp_path / 'previous.unverified.pdf'
@@ -142,6 +146,8 @@ def test_verified_fallback_removes_only_own_unverified_download(finder, tmp_path
 
 
 def test_failed_fallback_keeps_unverified_file_and_all_attempts(finder, tmp_path):
+    # Explicitly exercise the compatibility path without the race coordinator.
+    finder.pipeline = None
     retained = tmp_path / 'own.unverified.pdf'
     retained.write_bytes(b'%PDF-unreadable')
     finder._download_record_urls = Mock(return_value=DownloadResult(

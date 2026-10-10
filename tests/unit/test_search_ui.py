@@ -314,3 +314,38 @@ def test_web_institution_defaults_honor_config_and_invalid_proxy_has_no_handoff(
     assert not app.exception
     assert not any(b.proto.label == 'Open publisher in browser' for b in app.get('link_button'))
     assert any('proxy' in e.value.lower() for e in app.sidebar.error)
+
+
+def test_web_source_status_is_visible_without_contacting_sources(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    status = Mock(return_value=[{'name': 'Telegram Bots', 'status': 'disabled', 'notes': ['No messaging account configured'], 'validation': 'not_live_revalidated'}])
+    monkeypatch.setattr('src.core.source_status.source_status', status)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.run()
+    assert not app.exception
+    assert any(e.label == 'Search sources and configuration' for e in app.expander)
+    assert len(app.dataframe) == 1
+    table = app.dataframe[0].value
+    assert table.iloc[0]['Source'] == 'Telegram Bots'
+    assert table.iloc[0]['State'] == 'disabled'
+    status.assert_called_once()
+
+
+def test_preprint_record_can_be_explicitly_selected_without_journal_identity(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    selected = {'title': 'Journal paper', 'doi': '10.1234/journal', 'identifier': {'type': 'doi', 'value': '10.1234/journal'}}
+    preprint = {'title': 'Earlier manuscript', 'doi': '10.1234/preprint', 'identifier': {'type':'doi','value':'10.1234/preprint'}, 'pdf_urls':['https://repo.example/preprint.pdf']}
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = selected
+    app.session_state['access_options'] = {'alternatives':[{'version':'submittedVersion', 'source':'zenodo','record':preprint,'url':'https://repo.example/preprint.pdf','requires_selection':True}]}
+    app.run()
+    choose = next((b for b in app.button if b.label == 'Select this manuscript'), None)
+    assert choose is not None
+    choose.click().run()
+    assert not app.exception
+    assert app.session_state['selected_record']['doi'] == '10.1234/preprint'
+    assert app.session_state['selected_record']['pdf_urls'] == preprint['pdf_urls']
+    assert app.session_state['result'] is None
+    assert app.session_state['access_options'] is None

@@ -4,7 +4,7 @@ Date: 2026-10-10. Local interpreter: Python 3.13.2.
 
 ## Offline checks
 
-`python3 -m pytest -q`: **458 passed, 2 skipped** (local regression run including browser watching, institutional settings and publisher metadata follow-ups). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
+`python3 -m pytest -q`: **554 passed, 2 skipped** (local regression run including parallel acquisition, cooperative cancellation, repository discovery, browser watching and institutional settings). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
 
 The default suite blocks unmocked requests. Coverage includes:
 
@@ -105,6 +105,16 @@ The desktop's five recovery controls were checked in native Tk and fit within it
 Generic institutional settings accept an official library access URL and a proxy template with one encoded article URL placeholder. Configuration files, environment values and visible app controls are supported. Credentials and cookies stay in the ordinary browser. No university account was used to test authenticated access; successful account-specific access remains unverified. Eduroam is network connectivity, not a universal entitlement to subscribed journals.
 
 See [the expanded recent-paper benchmark](RECENT_BENCHMARK.md) for the fixed cohort, automated failures and separately recorded publisher follow-ups.
+
+## Parallel acquisition and repository audit, 10 October 2026
+
+The normal selected-paper entry point now starts eligible direct links, every enabled registered route, and six independent recent-source jobs in the same race. A seven-party barrier regression requires the legacy route and all six discovery jobs to enter before any can continue. Other tests verify wrong-first/correct-second downloads, cross-provider manuscript conflicts, stale access labels, cancellation during verification, interruption of retries and HTTP streams, and a new operation starting while an old worker exits. Only a verified winner is published; losing and unverified race candidates are removed. Linux CI exposed a completion-order edge case: a winner could hide an already-decided rejection while its worker cleaned up. Three deterministic regressions now cover that order. A bounded 50 ms cleanup grace period preserves completed outcomes without waiting for stalled network requests.
+
+A live production-entry-point check enabled the six public discovery jobs and disabled all legacy registry routes. It downloaded and verified `10.1002/cbic.70489` through Europe PMC's official PMC cloud location in **2.729 seconds**: **1,254,342 bytes, 14 pages**, published version, CC BY, exact DOI confirmed. The process exited normally in 3.009 seconds. A second control, `10.1016/j.coelec.2023.101346`, had an exact-DOI HAL location but its download was unverifiable; no PDF was retained. That process exited in 4.622 seconds. OpenAlex cooldowns were honored; Unpaywall remained unconfigured; no browser or messaging service was used. These controls do not estimate difficult-paper retrieval performance. Evidence: [live race report](../tests/fixtures/acquisition_race_live_20261010.json).
+
+The separately bounded legacy audit acquired **0/4 difficult papers and 0/1 available control**. Two repository candidates were unrelated Dataverse PDFs, correctly rejected. Repository and preprint adapters now continue after those mismatches instead of returning early. Full results, endpoint failures, test budgets and limitations are in [DEEP_SOURCES.md](DEEP_SOURCES.md). The prior frozen automated benchmark remains **4/26 verified, 0/21 hard cases**; neither the race implementation nor these controls establish an improvement to that count.
+
+Configured sources are now visible with `python3 main.py sources` and in the browser source inventory. The CLI can save repository alternatives for explicit selection, and the browser provides a manuscript selection button. Source availability labels describe configuration, not proven live success. An identifier match establishes paper identity; copies without version provenance remain version-unknown.
 
 ## Remaining limits
 

@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import requests
+from src.core.cancellation import CancellableSession, get as cancellable_get, cancellable_sleep
 from bs4 import BeautifulSoup
 
 
@@ -318,13 +319,13 @@ def _search_scholar_query(
         
         # Smart delay with jitter
         delay = random.uniform(MIN_DELAY, MAX_DELAY)
-        time.sleep(delay)
+        cancellable_sleep(delay)
         
         # Make request with retry logic
         response = None
         for attempt in range(MAX_RETRIES):
             try:
-                response = requests.get(
+                response = cancellable_get(
                     base_url,
                     params=params,
                     headers=headers,
@@ -336,7 +337,7 @@ def _search_scholar_query(
                 if attempt < MAX_RETRIES - 1:
                     backoff = BACKOFF_FACTOR ** attempt
                     print(f"    Timeout, retrying in {backoff}s...")
-                    time.sleep(backoff)
+                    cancellable_sleep(backoff)
                 else:
                     print("    Max retries reached")
                     _mark_failure()
@@ -436,9 +437,9 @@ def _parse_versions_page(versions_url: str, expected_title: str) -> Set[PDFCandi
     
     try:
         headers = {'User-Agent': _get_random_user_agent()}
-        time.sleep(random.uniform(2, 4))  # Be polite
+        cancellable_sleep(random.uniform(2, 4))  # Be polite
         
-        response = requests.get(versions_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response = cancellable_get(versions_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if response.status_code != 200 or _detect_captcha(response):
             return candidates
         
@@ -562,7 +563,7 @@ def extract_pdf_from_page(page_url: str, expected_title: str = None) -> Optional
     
     try:
         headers = {'User-Agent': UA}
-        response = requests.get(page_url, headers=headers, timeout=15, allow_redirects=True)
+        response = cancellable_get(page_url, headers=headers, timeout=15, allow_redirects=True)
         
         if response.status_code != 200:
             return None
@@ -627,7 +628,7 @@ def try_fetch_from_google_scholar(
     print(f"  Found {len(candidates)} candidates (sorted by priority)")
     
     # Create session with rotating user agent
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': _get_random_user_agent()})
     
     # Try each candidate in priority order
@@ -698,7 +699,7 @@ def try_fetch_from_google_scholar(
         finally:
             # Small delay between attempts
             if i < len(candidates):
-                time.sleep(random.uniform(1, 2))
+                cancellable_sleep(random.uniform(1, 2))
     
     print("  All candidates exhausted")
     return None
@@ -728,9 +729,9 @@ def search_researchgate(title: str, author: str = None) -> List[str]:
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         }
         
-        time.sleep(random.uniform(2, 3))
+        cancellable_sleep(random.uniform(2, 3))
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -771,9 +772,9 @@ def search_academia_edu(title: str, author: str = None) -> List[str]:
         
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(2, 3))
+        cancellable_sleep(random.uniform(2, 3))
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
