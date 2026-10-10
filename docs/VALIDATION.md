@@ -4,7 +4,7 @@ Date: 2026-10-10. Local interpreter: Python 3.13.2.
 
 ## Offline checks
 
-`python3 -m pytest -q`: **393 passed, 2 skipped** (latest local regression run after the publisher PDF word-spacing fix). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
+`python3 -m pytest -q`: **458 passed, 2 skipped** (local regression run including browser watching, institutional settings and publisher metadata follow-ups). The skipped cases are pre-existing optional tests for the absent `is_valid_title` helper. Current document identity verification has its own active tests. PyPDF2 emits one deprecation warning.
 
 The default suite blocks unmocked requests. Coverage includes:
 
@@ -93,6 +93,18 @@ The initial local verifier incorrectly rejected the correct Wiley PDF. PyPDF2 ex
 The downloaded PDF now verifies through its compact first-page title, all three expected author names (Lanza, Bjarnesen and Muller), and the exact article DOI. Its conventional word-token title score remains visible as 0.125, with `compact_title_match: true`; no confidence percentage is invented. SHA-256: `0b16b784f58265eb1a4ba88a71c8da14fb62048e8af535150cef2c59414496ef`.
 
 The local evidence is `/private/tmp/paper-finder-thdp-browser-verification.json`; the downloaded document is `/private/tmp/paper-finder-thdp-2026-browser.pdf`. The document was not added to the repository. The real CLI then imported it offline using a saved selection and `--local-pdf`, returning `verified` and saving a copy under `~/Downloads/Papers/10.1002_chem.71699.pdf`. Browser handoff controls were also inspected in the running web app and native desktop UI. Browser-assisted recovery is not yet proof of unattended, cross-publisher acquisition coverage.
+
+## Browser download watching and institutional settings
+
+The browser, desktop and CLI now expose a bounded download-folder watcher. It snapshots existing files before waiting, requires stable PDF observations, verifies the selected identity, and publishes only a matching copy. Tests cover wrong PDFs followed by the correct one, partial downloads, symlinks, oversized files, existing files, timeouts and cancellation during verification before publication. A new browser search or candidate selection cancels the old watch. Streamlit AppTest exercises start, progress, cancellation, successful completion, configuration defaults and invalid proxy settings.
+
+An offline integration check placed the **actual previously downloaded Wiley paper** in an isolated watched folder after the snapshot. The first poll waited; the second verified and imported the 15-page, 2,995,918-byte PDF. The original and watched download remained intact, and all three files had the previously recorded SHA-256. This tests the watcher with a real publisher PDF; it is not a new browser retrieval or an additional benchmark success. Local evidence: `/private/tmp/paper-finder-real-watcher-verification.json`.
+
+The desktop's five recovery controls were checked in native Tk and fit within its 600 x 650 result view. The updated browser interaction is covered by Streamlit AppTest. A fresh screenshot inspection could not run because the native browser automation connection was unavailable.
+
+Generic institutional settings accept an official library access URL and a proxy template with one encoded article URL placeholder. Configuration files, environment values and visible app controls are supported. Credentials and cookies stay in the ordinary browser. No university account was used to test authenticated access; successful account-specific access remains unverified. Eduroam is network connectivity, not a universal entitlement to subscribed journals.
+
+See [the expanded recent-paper benchmark](RECENT_BENCHMARK.md) for the fixed cohort, automated failures and separately recorded publisher follow-ups.
 
 ## Remaining limits
 

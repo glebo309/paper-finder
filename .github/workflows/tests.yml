@@ -24,3 +24,4 @@ jobs:
       - run: python tools/benchmark_identification.py
       - run: python main.py copies --help
       - run: python tools/benchmark_recent_fulltext.py
+      - run: python tools/benchmark_recent_fulltext.py --cases tests/fixtures/recent_fulltext_cohort_20261010.json

@@ -58,7 +58,7 @@ Inspect current full-text locations without downloading:
 python main.py copies "10.1038/s41586-021-03819-2" --email you@example.org
 ```
 
-This shows source, version, licence when known, and any preprint alternatives or embargo information. The contact email enables Unpaywall; Europe PMC and OpenAlex can be queried without it. `acquire` checks these current locations by default after the selected record's existing PDF links, before older fallback adapters. Use `--skip-recent-sources` to disable that stage or `--email` to provide a contact address.
+This shows source, version, licence when known, and any preprint alternatives or embargo information. The contact email enables Unpaywall; Europe PMC and OpenAlex can be queried without it. `acquire` checks these current locations by default before eligible unclassified PDF links and older fallback adapters. Use `--skip-recent-sources` to disable that stage or `--email` to provide a contact address.
 
 See [the usage guide](docs/SEARCH.md) for JSON output, exit codes, configuration and result states.
 
@@ -116,16 +116,37 @@ Verification examines actual PDF metadata and first-page front matter. It compar
 
 ## When the browser can download a paper
 
-A publisher can serve an article to your ordinary browser while denying automated HTTP requests. After selecting the paper, use **Finish a browser download** in the web interface: open the publisher, download its PDF, then upload that file and click **Verify and save browser PDF**. The desktop equivalent is **Open publisher** followed by **Import browser PDF**.
+A publisher can serve an article to your ordinary browser while denying automated HTTP requests. After selecting the paper, expand **Finish a browser download**, check your browser's download folder, and click **Watch for browser PDF** before downloading. Open the publisher, sign in if needed, and save its PDF. Paper Finder detects a completed file, verifies its identity, and copies a matching paper into your library. Progress and **Stop watching** remain visible; watching stops after five minutes. Keep the web page open.
 
-The CLI can import a saved browser download against your selected metadata:
+Only new or changed PDFs after starting the watch are checked. Existing downloads, incomplete files and unrelated papers are not imported. Original files stay intact and existing library files are never overwritten. Folder watching works on the computer running Paper Finder; remote users can use the PDF upload control instead. Desktop and command-line browser handoff are also available.
+
+From the command line, start the browser and watch its download folder:
+
+```bash
+python main.py acquire --from-results results.json --select 1 \
+  --watch-downloads ~/Downloads --watch-timeout 300 --output downloads --json
+```
+
+Desktop provides **Watch browser download** and a **Stop** button, plus **Institution settings** for optional library URLs.
+
+For a previously downloaded file, use **Verify and save browser PDF** in the web interface, **Import browser PDF** on desktop, or:
 
 ```bash
 python main.py acquire --from-results results.json --select 1 \
   --local-pdf ~/Downloads/article.pdf --output downloads --json
 ```
 
-With `--from-results`, importing is entirely offline. Only a matching PDF is copied into the output library; the original and existing files stay intact. This is browser-assisted retrieval, not unattended downloading or a guarantee of institutional access. An imported copy's manuscript version remains unknown unless separately established.
+With `--from-results`, importing is entirely offline. Only a matching PDF is copied into the output library. This is browser-assisted retrieval, not unattended downloading or a guarantee of institutional access. An imported copy's manuscript version remains unknown unless separately established.
+
+### University and library access
+
+Use the publisher's **Institutional sign-in** in your ordinary browser, choosing your own university. Federated systems such as SWITCH edu-ID work through that browser login. A university VPN can also provide access where the library supports it. Paper Finder does not ask for your password or copy browser cookies.
+
+Eduroam provides network access; it does not itself grant journal subscriptions. A campus connection may provide access under that institution's arrangements, while roaming at another institution does not transfer your home library's subscriptions. See the [eduroam explanation](https://eduroam.org/faqs/) and [SWITCH federation documentation](https://help.switch.ch/aai/).
+
+The web sidebar's **University / library access** settings accept an optional official library access page and proxy template. Leave the proxy blank for ordinary publisher login or VPN. For a library that supplies an EZproxy-style link, use its actual address with `{url}` as the article URL placeholder, for example `https://library.example/login?url={url}`. The placeholder is encoded automatically. No institution is hardcoded.
+
+You can also set `PAPER_FINDER_LIBRARY_PROXY` and `PAPER_FINDER_LIBRARY_LOGIN` in the environment. Settings point to your library's existing access service; they cannot establish that a subscription covers a particular paper. Automatic retrieval still runs separately from your browser's authenticated session.
 
 ## Python API
 

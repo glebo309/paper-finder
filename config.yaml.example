@@ -36,6 +36,21 @@ api:
   semantic_scholar_api_key: null  # Optional
   core_api_key: null  # For CORE.ac.uk (get free at https://core.ac.uk/services/api)
 
+# Institutional browser access (optional, works with any institution)
+# Open articles in your normal browser to use its existing institutional sign-in,
+# campus access, or university VPN. eduroam provides Wi-Fi; it is not a journal
+# subscription. Authentication stays with your publisher/library in the browser.
+# Use only the official login/help URL or proxy format supplied by your library.
+# Leave the proxy empty for ordinary publisher institutional sign-in or VPN.
+# Environment overrides: PAPER_FINDER_LIBRARY_LABEL, PAPER_FINDER_LIBRARY_LOGIN,
+# PAPER_FINDER_LIBRARY_PROXY. An empty environment value clears that setting.
+institutional:
+  label: ""  # Optional display name, e.g. "My University Library"
+  login_url: ""  # Optional official institutional login or remote-access page
+  proxy_template: ""  # Example format: "https://library.example/login?url={url}"
+  # {url} is replaced with the fully encoded article URL; exactly one is required.
+  # Do not put passwords, session cookies, or temporary sign-in tokens here.
+
 # Pipeline execution
 pipeline:
   parallel_execution: true

@@ -1,0 +1,1325 @@
+{
+  "description": "Frozen recent full-text cohort, selected before running the expanded download benchmark. Index-hard means no explicitly free main PDF in the initial Europe PMC core record. It does not establish publisher access or absence of other copies.",
+  "frozen_at": "2026-10-10T15:32:20.025425+00:00",
+  "date_window": [
+    "2026-09-01",
+    "2026-10-10"
+  ],
+  "selection_rule": "Three fixed topic queries, first 40 relevance-ranked MED records each; traverse in returned order, require unique DOI and firstPublicationDate in window; take 7 index-hard per topic plus 2,2,1 indexed-available controls. Exclude the 3 prior development cases.",
+  "screened_records": 120,
+  "excluded_development_dois": [
+    "10.1002/cbic.70489",
+    "10.1002/chem.71699",
+    "10.1021/acsami.6c14068"
+  ],
+  "cases": [
+    {
+      "id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer Kühne",
+          "Julian S Hertel",
+          "André Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F Münker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 2,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42779262",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/adma.75120"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-02",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/anie.9389619"
+        },
+        "doi": "10.1002/anie.9389619",
+        "title": "Bifunctional Core-Shell Architecture of nFe0@CNT Enables Efficient Biocatalytic Reduction.",
+        "authors": [
+          "Nuo Xu",
+          "Wang-Xiao Jia",
+          "Jia-Hui Du",
+          "Zhao-Tong Tang",
+          "Dong-Hua Xie",
+          "Xin Zhang",
+          "Guo-Ping Sheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-08",
+        "journal": "Angewandte Chemie (International ed. in English)",
+        "pmid": "42711794",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 4,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42711794",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/anie.9389619"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 5,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42772121",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.copbio.2026.103584"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 6,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42689727",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1021/acsami.6c11728"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-05",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1039/d6ob00991c"
+        },
+        "doi": "10.1039/d6ob00991c",
+        "title": "Thiamine diphosphate-dependent enzymes: mechanistic principles, stereoselective C-C bond formation, and synthetic biocatalytic applications.",
+        "authors": [
+          "Jinxi Huang",
+          "Letong Huang",
+          "Xuemei Wang",
+          "Chunchun You",
+          "Yushuo Feng",
+          "Yuxiang Li",
+          "Maoyuan Zeng",
+          "Chun Zhu",
+          "Yi Huang",
+          "Lei Qin",
+          "Yongzheng Chen",
+          "Jiawei Yang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Organic & biomolecular chemistry",
+        "pmid": "42638609",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 7,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42638609",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1039/d6ob00991c"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-06",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/jacs.6c08848"
+        },
+        "doi": "10.1021/jacs.6c08848",
+        "title": "Ground-State Flavin-Dependent Enzymatic Catalysis for Formal Hydrophosphinylation of Alkenes.",
+        "authors": [
+          "Duo Zhang",
+          "Chentao Liu",
+          "Kangni Yin",
+          "Chunbo Wang",
+          "Juntao Wang",
+          "Peiyun Zhu",
+          "Chunlei Yang",
+          "Xinyu Duan",
+          "Lishuang Ma",
+          "Yongzhen Peng",
+          "Jian Xu"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Journal of the American Chemical Society",
+        "pmid": "42701258",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 8,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42701258",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1021/jacs.6c08848"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-available_control-01",
+      "cohort": "available_control",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/cbic.70492"
+        },
+        "doi": "10.1002/cbic.70492",
+        "title": "Sustainable Biocatalytic Cascades: A Versatile Tool in the Synthesis of Natural Products With Therapeutic Potential.",
+        "authors": [
+          "Ram N Yadav",
+          "Sovan Dey",
+          "Satyendra Kumar Pandey",
+          "Anup Barman",
+          "Md Firoj Hossain",
+          "Luciana C Schmidt",
+          "Vandana Singh"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Chembiochem : a European journal of chemical biology",
+        "pmid": "42673276",
+        "pmcid": "PMC13529271",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 9,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42673276",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/cbic.70492"
+          },
+          {
+            "availability": "Free",
+            "availabilityCode": "F",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13529271"
+          },
+          {
+            "availability": "Free",
+            "availabilityCode": "F",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13529271?pdf=render"
+          },
+          {
+            "availability": "Free",
+            "availabilityCode": "F",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/cbic.70492"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-07",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.bioorg.2026.110521"
+        },
+        "doi": "10.1016/j.bioorg.2026.110521",
+        "title": "In vitro enzymatic synthesis of long-acting therapeutic proteins and peptides.",
+        "authors": [
+          "Gaoshuai Li",
+          "Yanlu Zhang",
+          "Qicheng Zhu",
+          "Yongjun Mao",
+          "Yanchao Han",
+          "Chenshui Lin",
+          "Hongliang Duan",
+          "Xudong Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-18",
+        "journal": "Bioorganic chemistry",
+        "pmid": "42764007",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 10,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42764007",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.bioorg.2026.110521"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-available_control-02",
+      "cohort": "available_control",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.3390/biology15181652"
+        },
+        "doi": "10.3390/biology15181652",
+        "title": "Sequential Conversion of D-Xylose to Furfuryl Alcohol by Bet:FA:MA-Water Dehydration and EutG-GDH Whole-Cell Bioreduction.",
+        "authors": [
+          "Haoyu Chai",
+          "Jutao Li",
+          "Cuiluan Ma",
+          "Yu-Cai He"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-18",
+        "journal": "Biology",
+        "pmid": "42792597",
+        "pmcid": "PMC13604293",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 20,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42792597",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "Y",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.3390/biology15181652"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13604293"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13604293?pdf=render"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-01",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/cbic.70508"
+        },
+        "doi": "10.1002/cbic.70508",
+        "title": "Realization of a Manufacturing-Scale Synthesis of Niraparib Using an Evolved Transaminase.",
+        "authors": [
+          "Rhiannon E H Jones",
+          "Sandy Chang",
+          "Neal Desai",
+          "Ashley Hughes",
+          "Lydia Jordan",
+          "Justin M Kaplan",
+          "Jonathan Latham",
+          "Zhi Liu",
+          "Calvin Manning",
+          "Joel Melby",
+          "Catherine Roerden",
+          "Qiaogong Su",
+          "Robert Whitten",
+          "Katherine Honicker"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Chembiochem : a European journal of chemical biology",
+        "pmid": "42801751",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 2,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42801751",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/cbic.70508"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-02",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.foodchem.2026.150886"
+        },
+        "doi": "10.1016/j.foodchem.2026.150886",
+        "title": "Tailoring lipases as versatile food biocatalysts to enhance their comprehensive performance: A state-of-the-art review.",
+        "authors": [
+          "Jiaojiao Xia",
+          "Oussama Kouiti",
+          "Zhouyuan Zhao",
+          "Jiayi Chen",
+          "Sunjie Zhang",
+          "Luyi Chen",
+          "Yuzhe Xie",
+          "Zhi Li",
+          "Yi Hu",
+          "Ling Jiang",
+          "Rubing Huang",
+          "Bin Zou"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Food chemistry",
+        "pmid": "42697073",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 4,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42697073",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.foodchem.2026.150886"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-03",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acs.jafc.6c08020"
+        },
+        "doi": "10.1021/acs.jafc.6c08020",
+        "title": "Structural and Functional Perspectives of α-L-Rhamnosidase in Glycoside Biotransformation, Therapeutic Applications, and Enzyme Engineering.",
+        "authors": [
+          "Kunwar Vishal",
+          "Vinita Yadav",
+          "Pramod K Yadav"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Journal of agricultural and food chemistry",
+        "pmid": "42715967",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 5,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42715967",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1021/acs.jafc.6c08020"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-04",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acs.jafc.6c09373"
+        },
+        "doi": "10.1021/acs.jafc.6c09373",
+        "title": "An Engineered Fusion Enzyme-MOF Platform for Enhanced Biotransformation of Ginsenoside Rd to Rare Ginsenoside Rh2.",
+        "authors": [
+          "Zinuo Chen",
+          "Wei Xie",
+          "Fenglin Ye",
+          "Qingsheng Chen",
+          "Jingyu He",
+          "Yufei Cao",
+          "Wen-Yong Lou"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Journal of agricultural and food chemistry",
+        "pmid": "42715968",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 6,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42715968",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1021/acs.jafc.6c09373"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 7,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42801570",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "Y",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/advs.77789"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13616300"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13616300?pdf=render"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-available_control-02",
+      "cohort": "available_control",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/cbic.70537"
+        },
+        "doi": "10.1002/cbic.70537",
+        "title": "Unspecific Peroxygenase-Based Chemo-Enzymatic Synthesis of Amino Alcohols for Pharmaceutical Preparation.",
+        "authors": [
+          "Simon Last",
+          "Alina Gazizova",
+          "Katharina Wittmann",
+          "Niklas Dietz",
+          "Martin J Weissenborn",
+          "Jan von Langermann"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Chembiochem : a European journal of chemical biology",
+        "pmid": "42764703",
+        "pmcid": "PMC13591206",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 8,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42764703",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "Y",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/cbic.70537"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13591206"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13591206?pdf=render"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-05",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.tibtech.2026.08.011"
+        },
+        "doi": "10.1016/j.tibtech.2026.08.011",
+        "title": "Engineering biosensors to enhance monoterpene indole alkaloid production in yeast.",
+        "authors": [
+          "Maxence Holtz",
+          "Simon D'Oelsnitz",
+          "Cecília Castellví Domingo",
+          "Niklas G Madsen",
+          "Mars Yu Hong",
+          "Jonathan Asmund Arnesen",
+          "Aafke C A van Aalst",
+          "Samantha de Haan",
+          "Christopher K Weingarten",
+          "Ditte H Welner",
+          "Pamela A Silver",
+          "Yan Jessie Zhang",
+          "Michael K Jensen",
+          "Carlos G Acevedo-Rocha"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-09",
+        "journal": "Trends in biotechnology",
+        "pmid": "42716825",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 10,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42716825",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.tibtech.2026.08.011"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-06",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.micres.2026.128741"
+        },
+        "doi": "10.1016/j.micres.2026.128741",
+        "title": "From oxygen detoxification to peroxide supply: Microbial NADH oxidases in redox physiology and H₂O₂-coupled biocatalysis.",
+        "authors": [
+          "Haixi Zhao",
+          "Jiarong Li",
+          "Yilin Huang",
+          "Nan Xiang",
+          "Chen Jin",
+          "Ruijian Shao",
+          "Su Sun"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-23",
+        "journal": "Microbiological research",
+        "pmid": "42809901",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 12,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42809901",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.micres.2026.128741"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-07",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/smll.75979"
+        },
+        "doi": "10.1002/smll.75979",
+        "title": "Regioselective C-H Oxyfunctionalization of Aliphatic Acids Through a Consecutive Biosolar Cascade.",
+        "authors": [
+          "Chung Hyun Lee",
+          "Min Seok Byun",
+          "Hyun-Woo Kim",
+          "Kunwoo Park",
+          "Donghun Kim",
+          "Seungbum Hong",
+          "Soo-Jin Yeom",
+          "Chan Beum Park"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Small (Weinheim an der Bergstrasse, Germany)",
+        "pmid": "42801495",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 13,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42801495",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/smll.75979"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-01",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1128/jvi.01168-26"
+        },
+        "doi": "10.1128/jvi.01168-26",
+        "title": "Low-pH-induced conformational changes in the spike protein promote porcine deltacoronavirus infection by enhancing viral binding efficiency to the porcine aminopeptidase receptor.",
+        "authors": [
+          "Ruiming Yu",
+          "Liping Zhang",
+          "Peng Zhou",
+          "Zhongwang Zhang",
+          "Yingjie Bai",
+          "Dongsheng Wang",
+          "Ya Liu",
+          "Xinru Wang",
+          "Gang Du",
+          "Ligang Yuan",
+          "Huichen Guo",
+          "Li Pan",
+          "Xinsheng Liu"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-09",
+        "journal": "Journal of virology",
+        "pmid": "42714163",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 1,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42714163",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1128/jvi.01168-26"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 2,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42749801",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1038/s41586-026-11021-5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-03",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.jbc.2026.113599"
+        },
+        "doi": "10.1016/j.jbc.2026.113599",
+        "title": "SCRIB inhibits PP1 phosphatase activity without blocking or structurally altering its active site.",
+        "authors": [
+          "Siba Alharbi",
+          "Amit Kumawat",
+          "Brandon Huntington",
+          "Afaque A Momin",
+          "Shaden Alfaiyz",
+          "Vincenzo di Florio",
+          "Marta Rigoli",
+          "Kelly Cardona Londono",
+          "Walter Rocchia",
+          "Anandsukeerthi Sandholu",
+          "Stefan T Arold"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-23",
+        "journal": "The Journal of biological chemistry",
+        "pmid": "42778107",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 3,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42778107",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.jbc.2026.113599"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-04",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41594-026-01890-9"
+        },
+        "doi": "10.1038/s41594-026-01890-9",
+        "title": "Structure-guided discovery and engineering of miniature CRISPR-Cas12m for epigenome editing.",
+        "authors": [
+          "Tao Yu",
+          "Meng Ji",
+          "Donglin Yu",
+          "Zhao Guan",
+          "Rongyi Zhu",
+          "Yunpeng Jiang",
+          "Zhiyi Yang",
+          "Lizhen Qiu",
+          "Ziyi Zhang",
+          "Jiawei Mu",
+          "Fengbiao Mao",
+          "Kuanhui Xiang",
+          "Lin Bai",
+          "Kailong Li"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature structural & molecular biology",
+        "pmid": "42749924",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 4,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42749924",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1038/s41594-026-01890-9"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-05",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.jsb.2026.108378"
+        },
+        "doi": "10.1016/j.jsb.2026.108378",
+        "title": "Cryo-EM structure of human TMEM45A with a bound 2-Hydroxypalmitate.",
+        "authors": [
+          "Mariana Grieben",
+          "Julica Inderhees",
+          "Niklas Ebersberger"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-26",
+        "journal": "Journal of structural biology",
+        "pmid": "42800517",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 5,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42800517",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.jsb.2026.108378"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-06",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.str.2026.08.016"
+        },
+        "doi": "10.1016/j.str.2026.08.016",
+        "title": "Structures of distinct human acetylcholinesterase tetramer forms in complex with synaptic anchoring proteins.",
+        "authors": [
+          "Jonah Cheung",
+          "Akira Karasawa"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Structure (London, England : 1993)",
+        "pmid": "42772275",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 6,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42772275",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.str.2026.08.016"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-07",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.bbrc.2026.154679"
+        },
+        "doi": "10.1016/j.bbrc.2026.154679",
+        "title": "Structural heterogeneity of CTE Type I tau filaments with an interface-shifted polymorph.",
+        "authors": [
+          "Ryohei Watanabe",
+          "Edward B Lee"
+        ],
+        "year": 2026,
+        "publication_date": "2026-10-01",
+        "journal": "Biochemical and biophysical research communications",
+        "pmid": "42826653",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 7,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42826653",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.bbrc.2026.154679"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-available_control-01",
+      "cohort": "available_control",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.3389/fmicb.2026.1873698"
+        },
+        "doi": "10.3389/fmicb.2026.1873698",
+        "title": "Investigating the survival mechanisms of Lactiplantibacillus plantarum QZW5 under repeated freeze-thaw stress: an integrated study using biochemical assays, environmental cryo-electron microscopy, and multi-omics approaches.",
+        "authors": [
+          "Miao Zhang",
+          "Shuang Wen",
+          "Zelin Zhang",
+          "Emmanuel Tenakwa",
+          "Naana Akufo",
+          "Huili Pang",
+          "Lei Wang",
+          "Guofang Wu",
+          "Terry Ansah",
+          "Dongsheng Lei",
+          "Yimin Cai",
+          "Zhongfang Tan"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Frontiers in microbiology",
+        "pmid": "42819804",
+        "pmcid": "PMC13625046",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 13,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42819804",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "Y",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.3389/fmicb.2026.1873698"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13625046"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13625046?pdf=render"
+          }
+        ]
+      }
+    }
+  ]
+}

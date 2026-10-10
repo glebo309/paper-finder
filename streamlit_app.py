@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import streamlit as st
 
-from src.cli.search_helpers import begin_search, search_reference, select_candidate
+from src.cli.search_helpers import begin_search, search_reference, select_candidate, stop_browser_watch
 
 st.set_page_config(page_title="Paper Finder", page_icon="📄", layout="centered")
 st.title("Paper Finder")
@@ -20,6 +20,7 @@ st.caption("Find the right paper first. Compare the evidence, then download your
 for key, default in {
     "query": "", "search_result": None, "selected_record": None,
     "result": None, "browser_url": None, "search_log": "", "access_options": None,
+    "browser_watch": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -97,7 +98,35 @@ if search:
 
 contact_email = st.sidebar.text_input("Unpaywall contact email (optional)", value=os.environ.get("UNPAYWALL_EMAIL", ""), help="Unpaywall requires a contact email. Other sources work without it. This field is kept only in this session.")
 recent_sources = st.sidebar.checkbox("Prioritize recent full-text sources", value=True)
+with st.sidebar.expander("University / library access"):
+    from src.acquisition.institutional_access import browser_access_url, validate_login_url, validate_proxy_template
+    from src.core.config import get_config
+    institution = getattr(get_config(), "institutional", {})
+    def institution_value(key):
+        return institution.get(key, "") if isinstance(institution, dict) else getattr(institution, key, "")
+    st.caption("Use your university's publisher sign-in in your normal browser, or connect its VPN. Eduroam provides Wi-Fi; journal access still depends on the institution and its subscriptions.")
+    library_proxy = st.text_input("Library proxy template (optional)", value=os.environ.get("PAPER_FINDER_LIBRARY_PROXY", institution_value("proxy_template")), key="library_proxy", help="Use your library's official URL with {url} where the encoded article URL belongs. Leave blank for direct publisher access.")
+    library_login = st.text_input("Library access page (optional)", value=os.environ.get("PAPER_FINDER_LIBRARY_LOGIN", institution_value("login_url")), key="library_login", help="An official library sign-in or access instructions page. No passwords are stored.")
+    proxy_valid = True
+    try:
+        library_proxy = validate_proxy_template(library_proxy)
+    except ValueError as exc:
+        st.error(f"Library proxy: {exc}")
+        proxy_valid = False
+    try:
+        library_login = validate_login_url(library_login)
+        if library_login:
+            st.link_button("Open library access page", library_login)
+    except ValueError as exc:
+        st.error(f"Library access page: {exc}")
+
 selected = st.session_state.selected_record
+publisher_url = None
+if selected and proxy_valid:
+    try:
+        publisher_url = browser_access_url(selected, library_proxy)
+    except ValueError as exc:
+        st.warning(f"Publisher link unavailable: {exc}")
 if selected:
     st.divider()
     st.subheader("Selected paper")
@@ -107,6 +136,7 @@ if selected:
         with st.spinner("Checking current repository and publisher copies..."):
             st.session_state.access_options = RecentOpenAccessDiscovery(email=contact_email or None).discover(selected["doi"])
     if st.button("Download selected paper", type="primary"):
+        stop_browser_watch(st.session_state)
         st.session_state.result = None
         st.session_state.browser_url = None
         log = io.StringIO()
@@ -131,12 +161,42 @@ if selected:
 
 if selected:
     with st.expander("Finish a browser download"):
-        st.write("If automatic retrieval is blocked, open the publisher in your browser, download the PDF, then add it here. Paper Finder checks it against the selected paper before saving it.")
-        if selected.get("doi"):
-            st.link_button("Open publisher in browser", "https://doi.org/" + selected["doi"])
+        st.write("Start watching, open the publisher, and download its PDF in your browser. Paper Finder detects the finished download and verifies it against the selected paper before saving it.")
+        if publisher_url:
+            st.link_button("Open publisher in browser", publisher_url)
+        download_folder = st.text_input("Browser download folder", value=str(Path.home() / "Downloads"), key="browser_download_dir")
+        st.caption("This is a folder on the computer running Paper Finder. Only new or changed PDFs after starting are checked. Watching stops after five minutes; keep this page open.")
+        if st.button("Watch for browser PDF", disabled=st.session_state.browser_watch is not None):
+            stop_browser_watch(st.session_state)
+            st.session_state.result = None
+            st.session_state.browser_url = None
+            try:
+                from src.acquisition.browser_handoff import BrowserDownloadWatcher
+                st.session_state.browser_watch = BrowserDownloadWatcher(selected, Path(download_folder).expanduser(), output_dir)
+            except (ValueError, OSError) as exc:
+                st.error(f"Could not watch downloads: {exc}")
+
+        @st.fragment(run_every="2s" if st.session_state.browser_watch is not None else None)
+        def browser_download_progress():
+            watcher = st.session_state.browser_watch
+            if watcher is None:
+                return
+            if st.button("Stop watching"):
+                stop_browser_watch(st.session_state)
+                st.rerun()
+            outcome = watcher.poll()
+            if outcome is not None:
+                st.session_state.result = outcome
+                st.session_state.browser_watch = None
+                st.rerun()
+            st.info(watcher.message)
+
+        browser_download_progress()
+        st.caption("Already downloaded, or using Paper Finder on another computer? Add the file below instead.")
         upload_key = "browser_pdf_" + str((selected.get("identifier") or {}).get("value"))
         uploaded = st.file_uploader("PDF downloaded in your browser", type=["pdf"], key=upload_key)
         if st.button("Verify and save browser PDF", disabled=uploaded is None):
+            stop_browser_watch(st.session_state)
             st.session_state.result = None
             st.session_state.browser_url = None
             try:
@@ -172,8 +232,8 @@ if access:
     if access.get("errors"):
         with st.expander("Full-text source details"):
             st.json(access["errors"])
-    if selected and selected.get("doi"):
-        st.link_button("Publisher / institutional sign-in", "https://doi.org/" + selected["doi"])
+    if publisher_url:
+        st.link_button("Publisher / institutional sign-in", publisher_url)
 
 result = st.session_state.result
 if result:

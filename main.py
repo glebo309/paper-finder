@@ -27,6 +27,45 @@ def _positive_limit(value):
     return number
 
 
+def _watch_timeout(value):
+    import math
+    seconds = float(value)
+    if not math.isfinite(seconds) or not 1 <= seconds <= 86400:
+        raise argparse.ArgumentTypeError('watch timeout must be 1–86400 seconds')
+    return seconds
+
+
+def _watch_browser_download(record, args, output_dir):
+    import time
+    import webbrowser
+    from src.acquisition.browser_handoff import BrowserDownloadWatcher
+    from src.acquisition.institutional_access import load_institutional_settings, browser_access_url
+    from src.core.config import load_config
+    settings = load_institutional_settings(load_config(args.config))
+    url = browser_access_url(record, proxy_template=args.proxy_template if args.proxy_template is not None else settings.proxy_template)
+    # Snapshot before opening the browser so even a quick download is noticed.
+    watcher = BrowserDownloadWatcher(record, args.watch_downloads, output_dir, timeout=args.watch_timeout)
+    if watcher.finished:
+        return watcher.poll()
+    if args.open_library_login and settings.login_url:
+        webbrowser.open(settings.login_url)
+    webbrowser.open(url)
+    print(f'Watching {args.watch_downloads}. Complete sign-in and download the PDF in your browser. Ctrl+C cancels.', file=sys.stderr)
+    previous = None
+    try:
+        while True:
+            result = watcher.poll()
+            if watcher.message != previous:
+                print(watcher.message, file=sys.stderr)
+                previous = watcher.message
+            if result is not None:
+                return result
+            time.sleep(1)
+    except KeyboardInterrupt:
+        watcher.cancel()
+        return watcher.poll()
+
+
 def _display_search(payload):
     print(f"Search: {payload.get('query', '')}")
     print(f"Status: {payload.get('status', 'unknown')}")
@@ -81,7 +120,9 @@ def _run_paper_command(args):
         output_dir = Path(args.output).expanduser()
         captured_url = {'url': None}
         with redirect_stdout(sys.stderr):
-            if args.local_pdf:
+            if args.watch_downloads:
+                result = _watch_browser_download(selected, args, str(output_dir))
+            elif args.local_pdf:
                 from src.acquisition.local_import import import_local_pdf
                 result = import_local_pdf(selected, args.local_pdf, str(output_dir))
             else:
@@ -208,7 +249,12 @@ def main():
         default='config.yaml'
     )
     
-    acquire_parser.add_argument('--local-pdf', metavar='PATH', help='Verify and copy a browser-downloaded PDF locally; use --from-results for fully offline import')
+    browser_mode = acquire_parser.add_mutually_exclusive_group()
+    browser_mode.add_argument('--watch-downloads', metavar='DIR', help='Open the publisher or configured library proxy, then watch for a new matching PDF')
+    acquire_parser.add_argument('--watch-timeout', type=_watch_timeout, default=300, metavar='SECONDS', help='Browser download watch timeout (default: 300 seconds)')
+    acquire_parser.add_argument('--proxy-template', help='Official library proxy URL template with one {url}; overrides configured template')
+    acquire_parser.add_argument('--open-library-login', action='store_true', help='Also open the configured library sign-in page when watching')
+    browser_mode.add_argument('--local-pdf', metavar='PATH', help='Verify and copy a browser-downloaded PDF locally; use --from-results for fully offline import')
     acquire_parser.add_argument('--refresh', action='store_true', help='Bypass cached discovery metadata; provider cooldowns still apply')
     acquire_parser.add_argument('--skip-recent-sources', action='store_true', help='Skip checking current repository and open-access copy locations')
     acquire_parser.add_argument('--email', help='Contact email for Unpaywall (or set UNPAYWALL_EMAIL)')

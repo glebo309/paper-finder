@@ -4,13 +4,14 @@
 Default: show cases without network access. --live: metadata locations only.
 --live --download --download-dir /tmp/paper-finder-recent: fetch eligible PDFs,
 verify their identities, and retain them in the chosen temporary directory.
-This curated three-case sample is not an estimate of general retrieval success.
+Use --cases to select the frozen expanded cohort. Curated samples do not estimate general retrieval success.
 No legacy acquisition routes or messaging services are invoked.
 """
 import argparse
 from collections import Counter
 from datetime import date, datetime, timezone
 import json
+import hashlib
 from pathlib import Path
 import re
 import sys
@@ -64,7 +65,7 @@ def _landing(location):
 
 
 def run_cases(cases, service, *, download=False, download_dir=None,
-              downloader=None, landing_resolver=None):
+              downloader=None, landing_resolver=None, on_case=None):
     if download and download_dir is None:
         raise ValueError('Downloading requires an explicit temporary output directory')
     directory = Path(download_dir) if download_dir is not None else None
@@ -77,10 +78,10 @@ def run_cases(cases, service, *, download=False, download_dir=None,
         record = case['record']
         discovery = service.discover(record['doi'])
         metadata_seconds = time.monotonic() - start
-        row = {'id': case['id'], 'cohort': case.get('cohort'), 'doi': record['doi'],
+        row = {'id': case['id'], 'cohort': case.get('cohort'), 'domain': case.get('domain'), 'doi': record['doi'],
                'title': record['title'], 'publication_date': record['publication_date'],
                'age_days': (today - date.fromisoformat(record['publication_date'])).days,
-               'metadata_status': discovery.get('status'),
+               'metadata_status': discovery.get('status'), 'publisher_access': discovery.get('publisher_access'),
                'provider_errors': discovery.get('errors', {}),
                'metadata_seconds': round(metadata_seconds, 3), 'download_seconds': 0.0,
                'locations': discovery.get('locations', []), 'alternatives': discovery.get('alternatives', []),
@@ -131,14 +132,53 @@ def run_cases(cases, service, *, download=False, download_dir=None,
                                                   if location.get('pdf_url') == row['verified_url']), None)
             row['download_error'] = result.error
         row['elapsed_seconds'] = round(time.monotonic() - start, 3)
+        row['failure_category'] = failure_category(row)
         rows.append(row)
+        if on_case:
+            on_case(row)
     counts = Counter(row['status'] for row in rows)
     return {'generated_at': datetime.now(timezone.utc).isoformat(), 'download_requested': download,
             'scope': 'Recent curated full-text smoke test; not a representative success-rate estimate.',
             'summary': {'cases': len(rows), 'verified': counts['verified'],
+                        'automated_verified': counts['verified'], 'browser_verified': 0,
+                        'cohorts': group_summary(rows, 'cohort'), 'domains': group_summary(rows, 'domain'),
+                        'failure_categories': dict(Counter(row['failure_category'] for row in rows if row['failure_category'])),
                         'pdf_bytes': sum(row['pdf_bytes'] for row in rows),
                         'provider_errors': sum(len(row['provider_errors']) for row in rows),
                         'statuses': dict(counts)}, 'cases': rows}
+
+
+def failure_category(row):
+    if row['status'] == 'verified':
+        return None
+    if row['status'] in ('mismatch', 'unverifiable'):
+        return 'identity_' + row['status']
+    attempts = list(row.get('attempts', {}).values())
+    if any(str(value) in ('HTTP 401', 'HTTP 403', 'HTTP 429') for value in attempts):
+        return 'pdf_http_blocked'
+    if (row.get('publisher_access') or {}).get('status') == 'blocked':
+        return 'publisher_http_blocked'
+    if any(value.get('kind') in ('rate_limited', 'authentication') for value in row.get('provider_errors', {}).values()):
+        return 'metadata_provider_access'
+    if row['status'] == 'unavailable':
+        return 'metadata_unavailable'
+    if row.get('eligible_pdf_urls') and row.get('download_requested'):
+        return 'pdf_not_verified'
+    if row.get('alternatives'):
+        return 'alternative_requires_selection'
+    if row.get('embargoed'):
+        return 'embargoed_copy_only'
+    return 'no_verified_pdf_observed'
+
+
+def group_summary(rows, field):
+    groups = {}
+    for row in rows:
+        group = groups.setdefault(row.get(field) or 'unspecified', {'cases': 0, 'verified': 0, 'statuses': {}})
+        group['cases'] += 1
+        group['verified'] += row['status'] == 'verified'
+        group['statuses'][row['status']] = group['statuses'].get(row['status'], 0) + 1
+    return groups
 
 
 def _temporary_directory(value):
@@ -161,6 +201,7 @@ def main(argv=None):
     parser.add_argument('--timeout', type=float, default=8)
     parser.add_argument('--deadline', type=float, default=20)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--progress', action='store_true', help='Print one progress line per case and checkpoint --output')
     args = parser.parse_args(argv)
     if args.download and (not args.live or args.download_dir is None):
         parser.error('--download requires --live and --download-dir')
@@ -181,7 +222,19 @@ def main(argv=None):
             parser.error('Unknown or empty provider list')
         service = RecentOpenAccessDiscovery(providers=providers, email=args.email,
                                              timeout=args.timeout, deadline=args.deadline)
-        report = run_cases(cases, service, download=args.download, download_dir=args.download_dir)
+        completed = []
+        def progress(row):
+            completed.append(row)
+            print(f"[{len(completed)}/{len(cases)}] {row['doi']} {row['status']} "
+                  f"{row['elapsed_seconds']}s {row['pdf_bytes']} bytes", file=sys.stderr, flush=True)
+            if args.output:
+                args.output.write_text(json.dumps({'partial': True, 'cases': completed}, indent=2, ensure_ascii=False) + '\n')
+        report = run_cases(cases, service, download=args.download, download_dir=args.download_dir,
+                           on_case=progress if args.progress else None)
+        report['providers'] = list(providers)
+        report['publisher_fallback'] = True
+        report['cohort_file'] = args.cases.name
+        report['cohort_sha256'] = hashlib.sha256(args.cases.read_bytes()).hexdigest()
     encoded = json.dumps(report, indent=2, ensure_ascii=False) + '\n'
     if args.output:
         args.output.write_text(encoded)

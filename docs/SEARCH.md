@@ -82,7 +82,7 @@ Without `--select`, acquisition proceeds only for a strong match. Ambiguous refe
 
 By default, `acquire` checks current full-text locations first for DOI records, then tries classified copies and eligible URLs from the selected record before the remaining acquisition adapters. Use `--skip-recent-sources` to omit the current-copy stage. `--email CONTACT` supplies the Unpaywall address for that stage. Available published or accepted manuscript locations can be tried automatically; submitted versions and version conflicts remain alternatives. Embargoed and closed locations are not promoted to downloadable copies. If known preprint or conflicting-version alternatives exist and no eligible copy verifies, recent mode stops for inspection rather than invoking legacy sources that cannot preserve version evidence. Otherwise legacy copies can remain version-unknown even when their identity verifies. Every retrieved PDF still passes the same identity checks.
 
-`--config FILE` uses a YAML configuration file; the default is `config.yaml` when present. Output paths accept `~`. CLI progress goes to stderr, keeping `--json` stdout parseable. The CLI captures document links instead of opening a browser automatically.
+`--config FILE` uses a YAML configuration file; the default is `config.yaml` when present. Output paths accept `~`. CLI progress goes to stderr, keeping `--json` stdout parseable. Ordinary acquisition captures document links instead of opening a browser. The explicit `--watch-downloads` mode opens the selected publisher or configured library proxy in your default browser.
 
 Results distinguish:
 
@@ -97,14 +97,40 @@ A link alone is not reported as a successful download. Verification evidence is 
 
 ## Finish a browser download
 
-If the publisher opens in your normal browser, download the PDF there. In the web app, select the matching paper, expand **Finish a browser download**, upload the PDF, and click **Verify and save browser PDF**. The selected title and identifier remain the verification target. The app accepts files up to 100 MB, verifies a temporary copy, and saves only matching documents. Original files are preserved and existing output files are never overwritten.
+In the web app, select the matching paper, expand **Finish a browser download**, confirm the browser download folder, and click **Watch for browser PDF** before opening the publisher and saving its PDF. The page checks for new stable PDFs every two seconds and displays progress; **Stop watching** cancels. Keep the page open. A new search or selection cancels the previous watch. For an existing file or a browser on another computer, upload the PDF and click **Verify and save browser PDF** instead. The selected title and identifier remain the verification target. The app accepts files up to 100 MB, verifies a temporary copy, and saves only matching documents. Original files are preserved and existing output files are never overwritten.
 
-In the desktop app, the result panel has **Open publisher** and **Import browser PDF**. For an ambiguous search, the chooser also has **Use browser / import instead**, so you can select the intended identity without starting another download attempt.
+In the desktop app, **Watch browser download** asks for your download folder, opens the publisher and waits for a matching PDF. **Stop** cancels. The result panel also retains **Open publisher** and **Import browser PDF**. For an ambiguous search, the chooser also has **Use browser / import instead**, so you can select the intended identity without starting another download attempt.
 
 ```bash
 python3 main.py acquire --from-results results.json --select 1 \
   --local-pdf ~/Downloads/article.pdf --output downloads --json
 ```
+
+Start the browser and watch its download folder directly from the CLI:
+
+```bash
+python3 main.py acquire --from-results results.json --select 1 \
+  --watch-downloads ~/Downloads --watch-timeout 300 --output downloads --json
+```
+
+The watcher snapshots the folder before opening the browser, checks only new or changed stable PDFs, and ignores incomplete, oversized and nonmatching files. It never deletes browser downloads. `Ctrl+C` cancels; timeout and cancellation are reported as unsuccessful results. `--watch-downloads` and `--local-pdf` are mutually exclusive. Progress goes to stderr and JSON stays on stdout.
+
+### Institutional browser access
+
+Use your institution's sign-in on the publisher page or its official VPN. SWITCH edu-ID is one supported browser sign-in system; Paper Finder does not integrate with or store university credentials. Eduroam is network access, not a journal subscription service.
+
+In the web sidebar, **University / library access** provides optional official login and proxy URLs. Desktop has **Institution settings** and **Open library login**. Session edits stay in the app; persistent defaults can be set in the `institutional` section of `config.yaml`:
+
+```yaml
+institutional:
+  label: "University Library"
+  login_url: "https://library.example/access"
+  proxy_template: "https://proxy.example/login?url={url}"
+```
+
+Replace these example addresses with your library's published URLs, or leave them empty. `PAPER_FINDER_LIBRARY_LABEL`, `PAPER_FINDER_LIBRARY_LOGIN` and `PAPER_FINDER_LIBRARY_PROXY` override config defaults. The web app also reads configured defaults; sidebar edits apply to the current session. `{url}` must occur exactly once in the proxy's path or query and is replaced with the encoded article URL. Credentials in URLs and non-HTTP(S) URLs are rejected.
+
+With CLI watching, `--proxy-template` overrides the template for that operation, and `--open-library-login` also opens the configured access page. The normal browser handles affiliation checks and sign-in. The tool cannot guarantee subscription access, and successful institutional login has not been tested against a university account.
 
 The snapshot form makes no network requests. Without a snapshot, the reference still needs metadata identification before importing. `Browser/local PDF` is the reported source; identity verification does not by itself establish the manuscript version. Incorrect and unverifiable files are not added to the library.
 

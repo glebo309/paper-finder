@@ -265,7 +265,7 @@ class RecentOpenAccessDiscovery:
             else:
                 from src.acquisition.publisher_access import discover_publisher_access
                 publisher = discover_publisher_access(normalized, session=self.session,
-                    timeout=min(self.timeout, remaining), max_requests=3)
+                    timeout=min(self.timeout, remaining), max_requests=5)
                 result['publisher_access'] = publisher
                 messages = {
                     'blocked': 'Publisher blocked automated access. This does not establish that the article is closed.',

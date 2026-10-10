@@ -7,11 +7,13 @@ import tempfile
 import uuid
 
 
-def import_local_pdf(record, source_path, output_dir, max_size_mb=100):
+def import_local_pdf(record, source_path, output_dir, max_size_mb=100, *, cancel_check=None):
     """Verify a private staging copy and publish only a matching document.
 
     No network access or acquisition engine is started. The original stays in
     place. A browser download alone does not establish its manuscript version.
+    Optional cancel_check is consulted during staging and immediately before
+    publication, so a cancelled verification never publishes its staged copy.
     """
     from paper_finder import DownloadResult
     from src.core.validation import verify_document_identity
@@ -22,7 +24,15 @@ def import_local_pdf(record, source_path, output_dir, max_size_mb=100):
     destination = Path(output_dir).expanduser()
     temporary = None
     verification = None
+    def cancelled():
+        return bool(cancel_check is not None and cancel_check())
+    def cancellation_result():
+        return DownloadResult(False, source='Browser/local PDF', status='cancelled',
+                              error='PDF import cancelled before publication; original file preserved.',
+                              metadata=metadata, verification=verification)
     try:
+        if cancelled():
+            return cancellation_result()
         limit = int(float(max_size_mb) * 1024 * 1024)
         if limit <= 0 or not source.is_file():
             raise ValueError('Choose an existing PDF file within the size limit.')
@@ -34,11 +44,17 @@ def import_local_pdf(record, source_path, output_dir, max_size_mb=100):
         size = 0
         with os.fdopen(fd, 'wb') as target, source.open('rb') as original:
             while chunk := original.read(65536):
+                if cancelled():
+                    return cancellation_result()
                 size += len(chunk)
                 if size > limit:
                     raise ValueError('PDF exceeds the configured size limit.')
                 target.write(chunk)
+        if cancelled():
+            return cancellation_result()
         verification = verify_document_identity(temporary, metadata)
+        if cancelled():
+            return cancellation_result()
         status = verification['status']
         if status != 'verified':
             return DownloadResult(False, source='Browser/local PDF', status=status,
@@ -49,6 +65,8 @@ def import_local_pdf(record, source_path, output_dir, max_size_mb=100):
         output = destination / (stem + '.pdf')
         for attempt in range(5):
             try:
+                if cancelled():
+                    return cancellation_result()
                 os.link(temporary, output)
                 break
             except FileExistsError:

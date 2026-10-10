@@ -256,3 +256,42 @@ def test_local_pdf_snapshot_import_never_initializes_acquisition(monkeypatch, se
     module.import_local_pdf.assert_called_once_with(RECORD, str(source), str(tmp_path))
     factory.assert_not_called()
     discovery.search.assert_not_called()
+
+
+def test_watch_downloads_opens_browser_after_snapshot_without_downloader(monkeypatch, services, capsys, tmp_path):
+    from types import SimpleNamespace
+    import src.acquisition.browser_handoff as handoff
+    import webbrowser
+    discovery, factory, _ = services
+    snapshot = tmp_path / 'results.json'
+    snapshot.write_text(json.dumps({'version': 1, 'result': discovery.search.return_value}))
+    outcome = SimpleNamespace(success=True, status='verified', filepath=tmp_path/'verified.pdf', source='Browser/local PDF', error='', metadata=RECORD, verification={})
+    watcher = Mock(finished=False, message='Waiting', poll=Mock(return_value=outcome))
+    events = []
+    watcher_factory = Mock(side_effect=lambda *a, **k: events.append('snapshot') or watcher)
+    monkeypatch.setattr(handoff, 'BrowserDownloadWatcher', watcher_factory)
+    opened = Mock(side_effect=lambda url: events.append('open'))
+    monkeypatch.setattr(webbrowser, 'open', opened)
+    assert invoke(monkeypatch, ['acquire', '--from-results', str(snapshot), '--watch-downloads', str(tmp_path), '--watch-timeout', '20', '--output', str(tmp_path), '--json']) == 0
+    assert json.loads(capsys.readouterr().out)['status'] == 'verified'
+    assert events == ['snapshot', 'open']
+    assert opened.call_args.args[0] == 'https://doi.org/' + RECORD['doi']
+    assert watcher_factory.call_args.kwargs['timeout'] == 20
+    factory.assert_not_called()
+    discovery.search.assert_not_called()
+
+
+def test_watch_and_manual_import_are_mutually_exclusive(monkeypatch, services, capsys):
+    assert invoke(monkeypatch, ['acquire', 'alphafold', '--watch-downloads', '/tmp', '--local-pdf', '/tmp/paper.pdf']) == 2
+
+
+def test_watch_keyboard_interrupt_becomes_cancelled_json(monkeypatch, services, capsys, tmp_path):
+    import src.acquisition.browser_handoff as handoff
+    import webbrowser
+    cancelled = SimpleNamespace(success=False, status='cancelled', filepath=None, source='watcher', error='Cancelled', metadata=RECORD, verification=None)
+    watcher = Mock(finished=False, message='Waiting', poll=Mock(side_effect=[KeyboardInterrupt(), cancelled]))
+    monkeypatch.setattr(handoff, 'BrowserDownloadWatcher', Mock(return_value=watcher))
+    monkeypatch.setattr(webbrowser, 'open', Mock())
+    assert invoke(monkeypatch, ['acquire', 'alphafold', '--watch-downloads', str(tmp_path), '--json']) == 1
+    assert json.loads(capsys.readouterr().out)['status'] == 'cancelled'
+    watcher.cancel.assert_called_once()

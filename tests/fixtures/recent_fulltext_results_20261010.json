@@ -1,0 +1,2478 @@
+{
+  "generated_at": "2026-10-10T15:33:49.984789+00:00",
+  "download_requested": true,
+  "scope": "Recent curated full-text smoke test; not a representative success-rate estimate.",
+  "summary": {
+    "cases": 26,
+    "verified": 4,
+    "automated_verified": 4,
+    "browser_verified": 0,
+    "cohorts": {
+      "hard": {
+        "cases": 21,
+        "verified": 0,
+        "statuses": {
+          "not_found": 21
+        }
+      },
+      "available_control": {
+        "cases": 5,
+        "verified": 4,
+        "statuses": {
+          "not_found": 1,
+          "verified": 4
+        }
+      }
+    },
+    "domains": {
+      "chemistry_biocatalysis": {
+        "cases": 9,
+        "verified": 1,
+        "statuses": {
+          "not_found": 8,
+          "verified": 1
+        }
+      },
+      "enzyme_engineering": {
+        "cases": 9,
+        "verified": 2,
+        "statuses": {
+          "not_found": 7,
+          "verified": 2
+        }
+      },
+      "structural_molecular_biology": {
+        "cases": 8,
+        "verified": 1,
+        "statuses": {
+          "not_found": 7,
+          "verified": 1
+        }
+      }
+    },
+    "failure_categories": {
+      "publisher_http_blocked": 10,
+      "no_verified_pdf_observed": 11,
+      "pdf_http_blocked": 1
+    },
+    "pdf_bytes": 25626291,
+    "provider_errors": 11,
+    "statuses": {
+      "not_found": 22,
+      "verified": 4
+    }
+  },
+  "cases": [
+    {
+      "id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1002/adma.75120",
+      "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+      "publication_date": "2026-09-24",
+      "age_days": 16,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1002/adma.75120",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://advanced.onlinelibrary.wiley.com/doi/10.1002/adma.75120"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.621,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/adma.75120",
+          "url": "https://doi.org/10.1002/adma.75120",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/adma.75120",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/adma.75120",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.621,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-02",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1002/anie.9389619",
+      "title": "Bifunctional Core-Shell Architecture of nFe0@CNT Enables Efficient Biocatalytic Reduction.",
+      "publication_date": "2026-09-08",
+      "age_days": 32,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1002/anie.9389619",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://onlinelibrary.wiley.com/doi/10.1002/anie.9389619"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.238,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/anie.9389619",
+          "url": "https://doi.org/10.1002/anie.9389619",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/anie.9389619",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/anie.9389619",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.238,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1016/j.copbio.2026.103584",
+      "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+      "publication_date": "2026-09-22",
+      "age_days": 18,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.copbio.2026.103584",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0958166926001497"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.832,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.copbio.2026.103584",
+          "url": "https://doi.org/10.1016/j.copbio.2026.103584",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.copbio.2026.103584",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.copbio.2026.103584",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.832,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1021/acsami.6c11728",
+      "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1021/acsami.6c11728",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://pubs.acs.org/aamick/article/18/36/49847/5397298/Living-Whole-Cell-Biocatalysis-for-Sustainable-and"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.242,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1021/acsami.6c11728",
+          "url": "https://doi.org/10.1021/acsami.6c11728",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1021/acsami.6c11728",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1021/acsami.6c11728",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.242,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-05",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1039/d6ob00991c",
+      "title": "Thiamine diphosphate-dependent enzymes: mechanistic principles, stereoselective C-C bond formation, and synthetic biocatalytic applications.",
+      "publication_date": "2026-09-16",
+      "age_days": 24,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1039/d6ob00991c",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://pubs.rsc.org/OB/article-lookup/doi/10.1039/D6OB00991C"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.37,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1039/d6ob00991c",
+          "url": "https://doi.org/10.1039/d6ob00991c",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1039/d6ob00991c",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1039/d6ob00991c",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.37,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-06",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1021/jacs.6c08848",
+      "title": "Ground-State Flavin-Dependent Enzymatic Catalysis for Formal Hydrophosphinylation of Alkenes.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1021/jacs.6c08848",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://pubs.acs.org/jacsat/article/148/34/36842/5282465/Ground-State-Flavin-Dependent-Enzymatic-Catalysis"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.333,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1021/jacs.6c08848",
+          "url": "https://doi.org/10.1021/jacs.6c08848",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1021/jacs.6c08848",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1021/jacs.6c08848",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.333,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-available_control-01",
+      "cohort": "available_control",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1002/cbic.70492",
+      "title": "Sustainable Biocatalytic Cascades: A Versatile Tool in the Synthesis of Natural Products With Therapeutic Potential.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "found",
+      "publisher_access": null,
+      "provider_errors": {},
+      "metadata_seconds": 0.066,
+      "download_seconds": 0.204,
+      "locations": [
+        {
+          "doi": "10.1002/cbic.70492",
+          "url": "https://europepmc.org/articles/PMC13529271?pdf=render",
+          "pdf_url": "https://europepmc.org/articles/PMC13529271?pdf=render",
+          "landing_page_url": null,
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70492",
+              "version": "unknown",
+              "license": null,
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.1002/cbic.70492",
+          "url": "https://europepmc.org/articles/PMC13529271",
+          "pdf_url": null,
+          "landing_page_url": "https://europepmc.org/articles/PMC13529271",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70492",
+              "version": "unknown",
+              "license": null,
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.1002/cbic.70492",
+          "url": "https://doi.org/10.1002/cbic.70492",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/cbic.70492",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70492",
+              "version": "unknown",
+              "license": null,
+              "availability": "open"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/cbic.70492",
+          "url": "https://doi.org/10.1002/cbic.70492",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/cbic.70492",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70492",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {
+        "https://europepmc.org/articles/PMC13529271?pdf=render": "HTTP 403"
+      },
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [
+        {
+          "url": "https://europepmc.org/articles/PMC13529271",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        },
+        {
+          "url": "https://doi.org/10.1002/cbic.70492",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        }
+      ],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [
+        "https://europepmc.org/articles/PMC13529271?pdf=render"
+      ],
+      "download_error": "Discovered full-text locations did not yield a verified paper",
+      "elapsed_seconds": 0.618,
+      "failure_category": "pdf_http_blocked"
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-07",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.1016/j.bioorg.2026.110521",
+      "title": "In vitro enzymatic synthesis of long-acting therapeutic proteins and peptides.",
+      "publication_date": "2026-09-18",
+      "age_days": 22,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.bioorg.2026.110521",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0045206826010576"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.338,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.bioorg.2026.110521",
+          "url": "https://doi.org/10.1016/j.bioorg.2026.110521",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.bioorg.2026.110521",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.bioorg.2026.110521",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.338,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "chemistry_biocatalysis-available_control-02",
+      "cohort": "available_control",
+      "domain": "chemistry_biocatalysis",
+      "doi": "10.3390/biology15181652",
+      "title": "Sequential Conversion of D-Xylose to Furfuryl Alcohol by Bet:FA:MA-Water Dehydration and EutG-GDH Whole-Cell Bioreduction.",
+      "publication_date": "2026-09-18",
+      "age_days": 22,
+      "metadata_status": "found",
+      "publisher_access": null,
+      "provider_errors": {},
+      "metadata_seconds": 0.851,
+      "download_seconds": 3.579,
+      "locations": [
+        {
+          "doi": "10.3390/biology15181652",
+          "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+          "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+          "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13604293/",
+          "version": "publishedVersion",
+          "license": "CC BY",
+          "host_type": "repository",
+          "source": "pmc_cloud",
+          "sources": [
+            "pmc_cloud"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "pmc_cloud",
+              "doi": "10.3390/biology15181652",
+              "version": "publishedVersion",
+              "license": "CC BY",
+              "availability": "open",
+              "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13604293.1.json",
+              "attribution": "US National Library of Medicine, PMC Article Datasets"
+            }
+          ],
+          "pmcid": "PMC13604293",
+          "pmc_version": 1
+        },
+        {
+          "doi": "10.3390/biology15181652",
+          "url": "https://europepmc.org/articles/PMC13604293?pdf=render",
+          "pdf_url": "https://europepmc.org/articles/PMC13604293?pdf=render",
+          "landing_page_url": null,
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3390/biology15181652",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.3390/biology15181652",
+          "url": "https://europepmc.org/articles/PMC13604293",
+          "pdf_url": null,
+          "landing_page_url": "https://europepmc.org/articles/PMC13604293",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3390/biology15181652",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.3390/biology15181652",
+          "url": "https://doi.org/10.3390/biology15181652",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.3390/biology15181652",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3390/biology15181652",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 18364747,
+      "verification": {
+        "status": "verified",
+        "reasons": [
+          "Title matches the first-page heading with author corroboration"
+        ],
+        "title_similarity": 1.0,
+        "compact_title_match": true,
+        "matched_authors": [
+          "ma"
+        ],
+        "front_matter_dois": [],
+        "identifier_match": false,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      },
+      "attempts": {
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a": "verified"
+      },
+      "verified_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+      "verified_location": {
+        "doi": "10.3390/biology15181652",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+        "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+        "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13604293/",
+        "version": "publishedVersion",
+        "license": "CC BY",
+        "host_type": "repository",
+        "source": "pmc_cloud",
+        "sources": [
+          "pmc_cloud"
+        ],
+        "availability": "open",
+        "available_from": null,
+        "requires_selection": false,
+        "downloadable": true,
+        "provenance": [
+          {
+            "provider": "pmc_cloud",
+            "doi": "10.3390/biology15181652",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "availability": "open",
+            "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13604293.1.json",
+            "attribution": "US National Library of Medicine, PMC Article Datasets"
+          }
+        ],
+        "pmcid": "PMC13604293",
+        "pmc_version": 1
+      },
+      "landing_attempts": [
+        {
+          "url": "https://europepmc.org/articles/PMC13604293",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        }
+      ],
+      "download_requested": true,
+      "status": "verified",
+      "eligible_pdf_urls": [
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13604293.1/PMC13604293.1.pdf?md5=2e153236e6fd3ae0be350250569ab64a",
+        "https://europepmc.org/articles/PMC13604293?pdf=render"
+      ],
+      "download_error": "",
+      "elapsed_seconds": 4.508,
+      "failure_category": null,
+      "artifact_audit": {
+        "sha256": "8de4289186f37be79b6237fbe0ce961ee861ad983a1c280e4a3dad189732df96",
+        "pages": 18,
+        "bytes": 18364747
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-01",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1002/cbic.70508",
+      "title": "Realization of a Manufacturing-Scale Synthesis of Niraparib Using an Evolved Transaminase.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1002/cbic.70508",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/cbic.70508"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.394,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/cbic.70508",
+          "url": "https://doi.org/10.1002/cbic.70508",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/cbic.70508",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70508",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.394,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "enzyme_engineering-hard-02",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1016/j.foodchem.2026.150886",
+      "title": "Tailoring lipases as versatile food biocatalysts to enhance their comprehensive performance: A state-of-the-art review.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.foodchem.2026.150886",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0308814626030463"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.431,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.foodchem.2026.150886",
+          "url": "https://doi.org/10.1016/j.foodchem.2026.150886",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.foodchem.2026.150886",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.foodchem.2026.150886",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.431,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "enzyme_engineering-hard-03",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1021/acs.jafc.6c08020",
+      "title": "Structural and Functional Perspectives of α-L-Rhamnosidase in Glycoside Biotransformation, Therapeutic Applications, and Enzyme Engineering.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1021/acs.jafc.6c08020",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://pubs.acs.org/jafcau/article/74/35/27346/5347214/Structural-and-Functional-Perspectives-of-L"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.301,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1021/acs.jafc.6c08020",
+          "url": "https://doi.org/10.1021/acs.jafc.6c08020",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1021/acs.jafc.6c08020",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1021/acs.jafc.6c08020",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.301,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "enzyme_engineering-hard-04",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1021/acs.jafc.6c09373",
+      "title": "An Engineered Fusion Enzyme-MOF Platform for Enhanced Biotransformation of Ginsenoside Rd to Rare Ginsenoside Rh2.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1021/acs.jafc.6c09373",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://pubs.acs.org/jafcau/article/74/35/27795/5347425/An-Engineered-Fusion-Enzyme-MOF-Platform-for"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.313,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1021/acs.jafc.6c09373",
+          "url": "https://doi.org/10.1021/acs.jafc.6c09373",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1021/acs.jafc.6c09373",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1021/acs.jafc.6c09373",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.313,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "domain": "enzyme_engineering",
+      "doi": "10.1002/advs.77789",
+      "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+      "publication_date": "2026-09-27",
+      "age_days": 13,
+      "metadata_status": "found",
+      "publisher_access": null,
+      "provider_errors": {},
+      "metadata_seconds": 0.432,
+      "download_seconds": 4.644,
+      "locations": [
+        {
+          "doi": "10.1002/advs.77789",
+          "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+          "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+          "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13616300/",
+          "version": "publishedVersion",
+          "license": "CC BY",
+          "host_type": "repository",
+          "source": "pmc_cloud",
+          "sources": [
+            "pmc_cloud"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "pmc_cloud",
+              "doi": "10.1002/advs.77789",
+              "version": "publishedVersion",
+              "license": "CC BY",
+              "availability": "open",
+              "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13616300.1.json",
+              "attribution": "US National Library of Medicine, PMC Article Datasets"
+            }
+          ],
+          "pmcid": "PMC13616300",
+          "pmc_version": 1
+        },
+        {
+          "doi": "10.1002/advs.77789",
+          "url": "https://europepmc.org/articles/PMC13616300?pdf=render",
+          "pdf_url": "https://europepmc.org/articles/PMC13616300?pdf=render",
+          "landing_page_url": null,
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/advs.77789",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.1002/advs.77789",
+          "url": "https://europepmc.org/articles/PMC13616300",
+          "pdf_url": null,
+          "landing_page_url": "https://europepmc.org/articles/PMC13616300",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/advs.77789",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/advs.77789",
+          "url": "https://doi.org/10.1002/advs.77789",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/advs.77789",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/advs.77789",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 3020084,
+      "verification": {
+        "status": "verified",
+        "reasons": [
+          "Title matches the first-page heading with author corroboration"
+        ],
+        "title_similarity": 1.0,
+        "compact_title_match": true,
+        "matched_authors": [
+          "wang",
+          "liu"
+        ],
+        "front_matter_dois": [
+          "10.1002/advs.77789"
+        ],
+        "identifier_match": true,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      },
+      "attempts": {
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320": "verified"
+      },
+      "verified_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+      "verified_location": {
+        "doi": "10.1002/advs.77789",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+        "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+        "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13616300/",
+        "version": "publishedVersion",
+        "license": "CC BY",
+        "host_type": "repository",
+        "source": "pmc_cloud",
+        "sources": [
+          "pmc_cloud"
+        ],
+        "availability": "open",
+        "available_from": null,
+        "requires_selection": false,
+        "downloadable": true,
+        "provenance": [
+          {
+            "provider": "pmc_cloud",
+            "doi": "10.1002/advs.77789",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "availability": "open",
+            "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13616300.1.json",
+            "attribution": "US National Library of Medicine, PMC Article Datasets"
+          }
+        ],
+        "pmcid": "PMC13616300",
+        "pmc_version": 1
+      },
+      "landing_attempts": [
+        {
+          "url": "https://europepmc.org/articles/PMC13616300",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        }
+      ],
+      "download_requested": true,
+      "status": "verified",
+      "eligible_pdf_urls": [
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13616300.1/PMC13616300.1.pdf?md5=ad1131aa5c699f11c768b1fbff253320",
+        "https://europepmc.org/articles/PMC13616300?pdf=render"
+      ],
+      "download_error": "",
+      "elapsed_seconds": 5.193,
+      "failure_category": null,
+      "artifact_audit": {
+        "sha256": "95e6a1f1cbc90bbca7d78d6144e91edf4b1bf401e93e4b77e943471c97eea42b",
+        "pages": 17,
+        "bytes": 3020084
+      }
+    },
+    {
+      "id": "enzyme_engineering-available_control-02",
+      "cohort": "available_control",
+      "domain": "enzyme_engineering",
+      "doi": "10.1002/cbic.70537",
+      "title": "Unspecific Peroxygenase-Based Chemo-Enzymatic Synthesis of Amino Alcohols for Pharmaceutical Preparation.",
+      "publication_date": "2026-09-01",
+      "age_days": 39,
+      "metadata_status": "found",
+      "publisher_access": null,
+      "provider_errors": {},
+      "metadata_seconds": 0.481,
+      "download_seconds": 1.699,
+      "locations": [
+        {
+          "doi": "10.1002/cbic.70537",
+          "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+          "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+          "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13591206/",
+          "version": "publishedVersion",
+          "license": "CC BY",
+          "host_type": "repository",
+          "source": "pmc_cloud",
+          "sources": [
+            "pmc_cloud"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "pmc_cloud",
+              "doi": "10.1002/cbic.70537",
+              "version": "publishedVersion",
+              "license": "CC BY",
+              "availability": "open",
+              "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13591206.1.json",
+              "attribution": "US National Library of Medicine, PMC Article Datasets"
+            }
+          ],
+          "pmcid": "PMC13591206",
+          "pmc_version": 1
+        },
+        {
+          "doi": "10.1002/cbic.70537",
+          "url": "https://europepmc.org/articles/PMC13591206?pdf=render",
+          "pdf_url": "https://europepmc.org/articles/PMC13591206?pdf=render",
+          "landing_page_url": null,
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70537",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.1002/cbic.70537",
+          "url": "https://europepmc.org/articles/PMC13591206",
+          "pdf_url": null,
+          "landing_page_url": "https://europepmc.org/articles/PMC13591206",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70537",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/cbic.70537",
+          "url": "https://doi.org/10.1002/cbic.70537",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/cbic.70537",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/cbic.70537",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 845964,
+      "verification": {
+        "status": "verified",
+        "reasons": [
+          "Title matches the first-page heading with author corroboration"
+        ],
+        "title_similarity": 1.0,
+        "compact_title_match": false,
+        "matched_authors": [
+          "langermann"
+        ],
+        "front_matter_dois": [
+          "10.1002/cbic.70537"
+        ],
+        "identifier_match": true,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      },
+      "attempts": {
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba": "verified"
+      },
+      "verified_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+      "verified_location": {
+        "doi": "10.1002/cbic.70537",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+        "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+        "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13591206/",
+        "version": "publishedVersion",
+        "license": "CC BY",
+        "host_type": "repository",
+        "source": "pmc_cloud",
+        "sources": [
+          "pmc_cloud"
+        ],
+        "availability": "open",
+        "available_from": null,
+        "requires_selection": false,
+        "downloadable": true,
+        "provenance": [
+          {
+            "provider": "pmc_cloud",
+            "doi": "10.1002/cbic.70537",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "availability": "open",
+            "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13591206.1.json",
+            "attribution": "US National Library of Medicine, PMC Article Datasets"
+          }
+        ],
+        "pmcid": "PMC13591206",
+        "pmc_version": 1
+      },
+      "landing_attempts": [
+        {
+          "url": "https://europepmc.org/articles/PMC13591206",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        }
+      ],
+      "download_requested": true,
+      "status": "verified",
+      "eligible_pdf_urls": [
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13591206.1/PMC13591206.1.pdf?md5=da8b3c225aec9a116a11b5cdbed4a9ba",
+        "https://europepmc.org/articles/PMC13591206?pdf=render"
+      ],
+      "download_error": "",
+      "elapsed_seconds": 2.271,
+      "failure_category": null,
+      "artifact_audit": {
+        "sha256": "8cd6745241eb68b5c86754f2bf79a32290035aa332bec2371a9b8180c1226f6c",
+        "pages": 8,
+        "bytes": 845964
+      }
+    },
+    {
+      "id": "enzyme_engineering-hard-05",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1016/j.tibtech.2026.08.011",
+      "title": "Engineering biosensors to enhance monoterpene indole alkaloid production in yeast.",
+      "publication_date": "2026-09-09",
+      "age_days": 31,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.tibtech.2026.08.011",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S016777992600346X"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.37,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.tibtech.2026.08.011",
+          "url": "https://doi.org/10.1016/j.tibtech.2026.08.011",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.tibtech.2026.08.011",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.tibtech.2026.08.011",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.37,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "enzyme_engineering-hard-06",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1016/j.micres.2026.128741",
+      "title": "From oxygen detoxification to peroxide supply: Microbial NADH oxidases in redox physiology and H₂O₂-coupled biocatalysis.",
+      "publication_date": "2026-09-23",
+      "age_days": 17,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.micres.2026.128741",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0944501326003058"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.33,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.micres.2026.128741",
+          "url": "https://doi.org/10.1016/j.micres.2026.128741",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.micres.2026.128741",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.micres.2026.128741",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.33,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "enzyme_engineering-hard-07",
+      "cohort": "hard",
+      "domain": "enzyme_engineering",
+      "doi": "10.1002/smll.75979",
+      "title": "Regioselective C-H Oxyfunctionalization of Aliphatic Acids Through a Consecutive Biosolar Cascade.",
+      "publication_date": "2026-09-27",
+      "age_days": 13,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1002/smll.75979",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://onlinelibrary.wiley.com/doi/10.1002/smll.75979"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.274,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1002/smll.75979",
+          "url": "https://doi.org/10.1002/smll.75979",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1002/smll.75979",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1002/smll.75979",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.274,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "structural_molecular_biology-hard-01",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1128/jvi.01168-26",
+      "title": "Low-pH-induced conformational changes in the spike protein promote porcine deltacoronavirus infection by enhancing viral binding efficiency to the porcine aminopeptidase receptor.",
+      "publication_date": "2026-09-09",
+      "age_days": 31,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1128/jvi.01168-26",
+        "status": "blocked",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "http",
+            "status": 403
+          }
+        },
+        "landing_page_url": "https://journals.asm.org/doi/10.1128/jvi.01168-26"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "http",
+          "status": 403,
+          "message": "Publisher blocked automated access. This does not establish that the article is closed."
+        }
+      },
+      "metadata_seconds": 0.38,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1128/jvi.01168-26",
+          "url": "https://doi.org/10.1128/jvi.01168-26",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1128/jvi.01168-26",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1128/jvi.01168-26",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.38,
+      "failure_category": "publisher_http_blocked"
+    },
+    {
+      "id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1038/s41586-026-11021-5",
+      "title": "Transcriptional activation of plant immunity by salicylic acid.",
+      "publication_date": "2026-09-16",
+      "age_days": 24,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1038/s41586-026-11021-5",
+        "status": "unavailable",
+        "locations": [],
+        "errors": {
+          "publisher": {
+            "kind": "redirect_budget"
+          }
+        },
+        "landing_page_url": "https://idp.nature.com/authorize?response_type=cookie&client_id=grover&redirect_uri=https%3A%2F%2Fwww.nature.com%2Farticles%2Fs41586-026-11021-5"
+      },
+      "provider_errors": {
+        "publisher": {
+          "kind": "redirect_budget",
+          "message": "Publisher access metadata could not be retrieved within this request."
+        }
+      },
+      "metadata_seconds": 0.81,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1038/s41586-026-11021-5",
+          "url": "https://doi.org/10.1038/s41586-026-11021-5",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1038/s41586-026-11021-5",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1038/s41586-026-11021-5",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.81,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-hard-03",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1016/j.jbc.2026.113599",
+      "title": "SCRIB inhibits PP1 phosphatase activity without blocking or structurally altering its active site.",
+      "publication_date": "2026-09-23",
+      "age_days": 17,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.jbc.2026.113599",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0021925826024713"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.355,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.jbc.2026.113599",
+          "url": "https://doi.org/10.1016/j.jbc.2026.113599",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.jbc.2026.113599",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.jbc.2026.113599",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.355,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-hard-04",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1038/s41594-026-01890-9",
+      "title": "Structure-guided discovery and engineering of miniature CRISPR-Cas12m for epigenome editing.",
+      "publication_date": "2026-09-16",
+      "age_days": 24,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1038/s41594-026-01890-9",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://www.nature.com/articles/s41594-026-01890-9"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.667,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1038/s41594-026-01890-9",
+          "url": "https://doi.org/10.1038/s41594-026-01890-9",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1038/s41594-026-01890-9",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1038/s41594-026-01890-9",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.667,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-hard-05",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1016/j.jsb.2026.108378",
+      "title": "Cryo-EM structure of human TMEM45A with a bound 2-Hydroxypalmitate.",
+      "publication_date": "2026-09-26",
+      "age_days": 14,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.jsb.2026.108378",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S1047847726000948"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.32,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.jsb.2026.108378",
+          "url": "https://doi.org/10.1016/j.jsb.2026.108378",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.jsb.2026.108378",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.jsb.2026.108378",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.32,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-hard-06",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1016/j.str.2026.08.016",
+      "title": "Structures of distinct human acetylcholinesterase tetramer forms in complex with synaptic anchoring proteins.",
+      "publication_date": "2026-09-22",
+      "age_days": 18,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.str.2026.08.016",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0969212626002856"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.336,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.str.2026.08.016",
+          "url": "https://doi.org/10.1016/j.str.2026.08.016",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.str.2026.08.016",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.str.2026.08.016",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.336,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-hard-07",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1016/j.bbrc.2026.154679",
+      "title": "Structural heterogeneity of CTE Type I tau filaments with an interface-shifted polymorph.",
+      "publication_date": "2026-10-01",
+      "age_days": 9,
+      "metadata_status": "not_found",
+      "publisher_access": {
+        "doi": "10.1016/j.bbrc.2026.154679",
+        "status": "unknown",
+        "locations": [],
+        "errors": {},
+        "landing_page_url": "https://linkinghub.elsevier.com/retrieve/pii/S0006291X26014440"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 0.379,
+      "download_seconds": 0.0,
+      "locations": [],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1016/j.bbrc.2026.154679",
+          "url": "https://doi.org/10.1016/j.bbrc.2026.154679",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1016/j.bbrc.2026.154679",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1016/j.bbrc.2026.154679",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {},
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [],
+      "elapsed_seconds": 0.379,
+      "failure_category": "no_verified_pdf_observed"
+    },
+    {
+      "id": "structural_molecular_biology-available_control-01",
+      "cohort": "available_control",
+      "domain": "structural_molecular_biology",
+      "doi": "10.3389/fmicb.2026.1873698",
+      "title": "Investigating the survival mechanisms of Lactiplantibacillus plantarum QZW5 under repeated freeze-thaw stress: an integrated study using biochemical assays, environmental cryo-electron microscopy, and multi-omics approaches.",
+      "publication_date": "2026-09-16",
+      "age_days": 24,
+      "metadata_status": "found",
+      "publisher_access": null,
+      "provider_errors": {},
+      "metadata_seconds": 0.792,
+      "download_seconds": 1.701,
+      "locations": [
+        {
+          "doi": "10.3389/fmicb.2026.1873698",
+          "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+          "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+          "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13625046/",
+          "version": "publishedVersion",
+          "license": "CC BY",
+          "host_type": "repository",
+          "source": "pmc_cloud",
+          "sources": [
+            "pmc_cloud"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "pmc_cloud",
+              "doi": "10.3389/fmicb.2026.1873698",
+              "version": "publishedVersion",
+              "license": "CC BY",
+              "availability": "open",
+              "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13625046.1.json",
+              "attribution": "US National Library of Medicine, PMC Article Datasets"
+            }
+          ],
+          "pmcid": "PMC13625046",
+          "pmc_version": 1
+        },
+        {
+          "doi": "10.3389/fmicb.2026.1873698",
+          "url": "https://europepmc.org/articles/PMC13625046?pdf=render",
+          "pdf_url": "https://europepmc.org/articles/PMC13625046?pdf=render",
+          "landing_page_url": null,
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3389/fmicb.2026.1873698",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        },
+        {
+          "doi": "10.3389/fmicb.2026.1873698",
+          "url": "https://europepmc.org/articles/PMC13625046",
+          "pdf_url": null,
+          "landing_page_url": "https://europepmc.org/articles/PMC13625046",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3389/fmicb.2026.1873698",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "open"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.3389/fmicb.2026.1873698",
+          "url": "https://doi.org/10.3389/fmicb.2026.1873698",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.3389/fmicb.2026.1873698",
+          "version": "unknown",
+          "license": "cc by",
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.3389/fmicb.2026.1873698",
+              "version": "unknown",
+              "license": "cc by",
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 3395496,
+      "verification": {
+        "status": "verified",
+        "reasons": [
+          "Title matches the first-page heading with author corroboration"
+        ],
+        "title_similarity": 1.0,
+        "compact_title_match": false,
+        "matched_authors": [
+          "zhang",
+          "wen",
+          "zhang",
+          "tenakwa",
+          "akufo",
+          "pang",
+          "wang",
+          "wu",
+          "ansah",
+          "lei",
+          "cai",
+          "tan"
+        ],
+        "front_matter_dois": [
+          "10.3389/fmicb.2026.1873698"
+        ],
+        "identifier_match": true,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      },
+      "attempts": {
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1": "verified"
+      },
+      "verified_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+      "verified_location": {
+        "doi": "10.3389/fmicb.2026.1873698",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+        "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+        "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13625046/",
+        "version": "publishedVersion",
+        "license": "CC BY",
+        "host_type": "repository",
+        "source": "pmc_cloud",
+        "sources": [
+          "pmc_cloud"
+        ],
+        "availability": "open",
+        "available_from": null,
+        "requires_selection": false,
+        "downloadable": true,
+        "provenance": [
+          {
+            "provider": "pmc_cloud",
+            "doi": "10.3389/fmicb.2026.1873698",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "availability": "open",
+            "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13625046.1.json",
+            "attribution": "US National Library of Medicine, PMC Article Datasets"
+          }
+        ],
+        "pmcid": "PMC13625046",
+        "pmc_version": 1
+      },
+      "landing_attempts": [
+        {
+          "url": "https://europepmc.org/articles/PMC13625046",
+          "result": {
+            "status": "not_found",
+            "pdf_urls": [],
+            "location": null
+          }
+        }
+      ],
+      "download_requested": true,
+      "status": "verified",
+      "eligible_pdf_urls": [
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13625046.1/PMC13625046.1.pdf?md5=14e8bcd314b74972c9ff793c67b3c5e1",
+        "https://europepmc.org/articles/PMC13625046?pdf=render"
+      ],
+      "download_error": "",
+      "elapsed_seconds": 2.575,
+      "failure_category": null,
+      "artifact_audit": {
+        "sha256": "fbaf73335df068f284b480e0b4f7433248d907d3a5378412a08e3471854f80f7",
+        "pages": 12,
+        "bytes": 3395496
+      }
+    }
+  ],
+  "providers": [
+    "europepmc"
+  ],
+  "publisher_fallback": true,
+  "cohort_file": "recent_fulltext_cohort_20261010.json",
+  "cohort_sha256": "872ccaaf4a625ad7c706e679c7e0606372b2716a011255a466790a6497fb2e61",
+  "evidence_note": "Baseline frozen-cohort automated run. Local file paths removed for publication; PDF audits appended after reading the downloaded files. No PDFs, browser cookies, or credentials are included."
+}

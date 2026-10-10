@@ -54,3 +54,40 @@ def test_import_clears_previous_download_version_claim(tmp_path):
     assert result.success
     assert 'fulltext_location' not in result.metadata
     assert rec['fulltext_location']['version'] == 'publishedVersion'
+
+
+def test_cancellation_during_verification_prevents_publication(tmp_path, monkeypatch):
+    from src.acquisition.local_import import import_local_pdf
+    cancelled = [False]
+    source = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nAbstract')
+    output = tmp_path/'library'
+    output.mkdir()
+    existing = output/'existing.pdf'
+    existing.write_bytes(b'user document')
+    def verify(*args):
+        cancelled[0] = True
+        return {'status':'verified', 'reasons':['Matching DOI']}
+    monkeypatch.setattr('src.core.validation.verify_document_identity', verify)
+    result = import_local_pdf(record(), source, output, cancel_check=lambda:cancelled[0])
+    assert not result.success and result.status == 'cancelled'
+    assert list(output.iterdir()) == [existing]
+    assert existing.read_bytes() == b'user document'
+    assert source.exists()
+
+
+def test_cancel_guard_is_checked_immediately_before_atomic_publish(tmp_path, monkeypatch):
+    from src.acquisition.local_import import import_local_pdf
+    source = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nAbstract')
+    state = {'verified':False, 'checks':0}
+    def verify(*args):
+        state['verified'] = True
+        return {'status':'verified', 'reasons':['Matching DOI']}
+    def cancel_check():
+        if state['verified']:
+            state['checks'] += 1
+        return state['checks'] >= 2
+    monkeypatch.setattr('src.core.validation.verify_document_identity', verify)
+    result = import_local_pdf(record(), source, tmp_path/'library', cancel_check=cancel_check)
+    assert result.status == 'cancelled'
+    assert not list((tmp_path/'library').glob('*.pdf'))
+    assert not list((tmp_path/'library').glob('.paperfinder-*'))

@@ -36,7 +36,15 @@ def search_reference(query, limit=10, mode="identify", refresh=False):
     return DiscoveryService(refresh=refresh).search(query, limit=limit, mode=mode)
 
 
+def stop_browser_watch(state):
+    watcher = state.get("browser_watch")
+    if watcher is not None:
+        watcher.cancel()
+    state["browser_watch"] = None
+
+
 def begin_search(state, query):
+    stop_browser_watch(state)
     state["query"] = query
     for key in ("search_result", "selected_record", "result", "browser_url", "access_options"):
         state[key] = None
@@ -44,6 +52,7 @@ def begin_search(state, query):
 
 
 def select_candidate(state, index):
+    stop_browser_watch(state)
     state["selected_record"] = state["search_result"]["candidates"][index]
     state["access_options"] = None
     state["result"] = None

@@ -209,3 +209,108 @@ def test_browser_download_import_is_reachable_and_uses_selected_identity(monkeyp
     assert importer.call_args.args[0]['doi'] == selected['doi']
     assert any('does not match' in e.value for e in app.error)
     assert any(e.proto.url == 'https://doi.org/10.1234/recent' for e in app.get('link_button'))
+
+
+def test_search_change_cancels_active_browser_watch():
+    from src.cli.search_helpers import begin_search
+    watcher = Mock()
+    state = {'browser_watch': watcher}
+    begin_search(state, 'different paper')
+    watcher.cancel.assert_called_once()
+    assert state['browser_watch'] is None
+
+
+def test_candidate_change_cancels_active_browser_watch():
+    from src.cli.search_helpers import select_candidate
+    watcher = Mock()
+    state = {'browser_watch': watcher, 'search_result': {'candidates': [{'title': 'New'}]}}
+    select_candidate(state, 0)
+    watcher.cancel.assert_called_once()
+    assert state['browser_watch'] is None
+
+
+def test_browser_watch_controls_start_poll_and_cancel(monkeypatch, tmp_path):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    from types import SimpleNamespace
+    selected = {'title': 'Recent paper', 'doi': '10.1234/recent', 'identifier': {'type': 'doi', 'value': '10.1234/recent'}}
+    watcher = Mock(finished=False, status='waiting', message='Waiting for a new PDF.')
+    watcher.poll.return_value = None
+    factory = Mock(return_value=watcher)
+    # Inject the contract so this UI test is independent of filesystem polling.
+    import sys
+    monkeypatch.setitem(sys.modules, 'src.acquisition.browser_handoff', SimpleNamespace(BrowserDownloadWatcher=factory))
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = selected
+    app.run()
+    start = next((b for b in app.button if b.label == 'Watch for browser PDF'), None)
+    assert start is not None
+    app.text_input(key='browser_download_dir').input(str(tmp_path))
+    start.click().run()
+    assert not app.exception
+    assert factory.call_args.args[0]['doi'] == selected['doi']
+    assert Path(factory.call_args.args[1]) == tmp_path
+    watcher.poll.assert_called()
+    next(b for b in app.button if b.label == 'Stop watching').click().run()
+    watcher.cancel.assert_called_once()
+    assert app.session_state['browser_watch'] is None
+
+
+def test_browser_watch_success_displays_verified_result(monkeypatch, tmp_path):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    from types import SimpleNamespace
+    selected = {'title': 'Recent paper', 'doi': '10.1234/recent', 'identifier': {'type': 'doi', 'value': '10.1234/recent'}}
+    pdf = tmp_path / 'verified.pdf'
+    pdf.write_bytes(b'%PDF-test')
+    result = SimpleNamespace(success=True, filepath=pdf, source='Browser/local PDF', status='verified', error=None, verification={'status': 'verified'}, metadata=selected)
+    watcher = Mock(finished=True, status='verified', message='Verified and saved.')
+    watcher.poll.return_value = result
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = selected
+    app.session_state['browser_watch'] = watcher
+    app.run()
+    assert not app.exception
+    assert app.session_state['result'] is result
+    assert app.session_state['browser_watch'] is None
+    assert any('verified' in item.value for item in app.success)
+
+
+def test_institution_settings_build_proxy_and_login_links(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    monkeypatch.delenv('PAPER_FINDER_LIBRARY_PROXY', raising=False)
+    monkeypatch.delenv('PAPER_FINDER_LIBRARY_LOGIN', raising=False)
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = {'title': 'Test', 'doi': '10.1234/test', 'identifier': {'type': 'doi', 'value': '10.1234/test'}}
+    app.run()
+    proxy = next((t for t in app.text_input if t.label == 'Library proxy template (optional)'), None)
+    assert proxy is not None
+    proxy.input('https://library.example/login?url={url}').run()
+    app.text_input(key='library_login').input('https://library.example/access').run()
+    assert not app.exception
+    urls = [b.proto.url for b in app.get('link_button')]
+    assert 'https://library.example/login?url=https%3A%2F%2Fdoi.org%2F10.1234%2Ftest' in urls
+    assert 'https://library.example/access' in urls
+    app.text_input(key='library_proxy').input('javascript:alert(1)').run()
+    assert not app.exception
+    assert any('proxy' in e.value.lower() for e in app.sidebar.error)
+    assert all(not b.proto.url.startswith('javascript:') for b in app.get('link_button'))
+
+
+def test_web_institution_defaults_honor_config_and_invalid_proxy_has_no_handoff(monkeypatch):
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    from types import SimpleNamespace
+    monkeypatch.delenv('PAPER_FINDER_LIBRARY_PROXY', raising=False)
+    monkeypatch.delenv('PAPER_FINDER_LIBRARY_LOGIN', raising=False)
+    monkeypatch.setattr('src.core.config.get_config', lambda: SimpleNamespace(institutional={'proxy_template': 'https://library.example/proxy?url={url}', 'login_url': 'https://library.example/login'}))
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['selected_record'] = {'title': 'Test', 'doi': '10.1234/test', 'identifier': {'type': 'doi', 'value': '10.1234/test'}}
+    app.run()
+    assert app.text_input(key='library_proxy').value == 'https://library.example/proxy?url={url}'
+    assert app.text_input(key='library_login').value == 'https://library.example/login'
+    app.text_input(key='library_proxy').input('broken').run()
+    assert not app.exception
+    assert not any(b.proto.label == 'Open publisher in browser' for b in app.get('link_button'))
+    assert any('proxy' in e.value.lower() for e in app.sidebar.error)

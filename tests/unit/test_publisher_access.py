@@ -153,3 +153,56 @@ def test_recent_publisher_fallback_respects_shared_request_deadline(monkeypatch)
     result = client.discover(DOI)
     assert calls == []
     assert result['errors']['publisher']['kind'] == 'deadline'
+
+
+def test_declared_html_meta_refresh_follows_exact_advertised_redirect():
+    hub = 'https://hub.example/retrieve/article'
+    refresh = Response('<meta http-equiv="REFRESH" content="2; url=\'/retrieve/select?Redirect=declared&amp;key=example\'">', url=hub)
+    target = 'https://publisher.example/article/recent'
+    session = Session(Response(status=302, headers={'Location': hub}), refresh,
+                      Response(status=302, headers={'Location': target}), Response(page(), url=target))
+    result = discover_publisher_access(DOI, session=session)
+    assert result['status'] == 'found'
+    assert session.calls[2][0] == 'https://hub.example/retrieve/select?Redirect=declared&key=example'
+    assert len(session.calls) == 4
+
+
+def test_refresh_loops_stop_at_explicit_request_ceiling():
+    refresh = '<meta http-equiv="refresh" content="0; url=https://publisher.example/loop">'
+    session = Session(*(Response(refresh) for _ in range(6)))
+    result = discover_publisher_access(DOI, session=session, max_requests=50)
+    assert result['status'] == 'unavailable'
+    assert result['errors']['publisher']['kind'] == 'redirect_budget'
+    assert len(session.calls) == 5
+
+
+def test_refresh_cannot_invoke_script_or_credential_url():
+    for target in ('javascript:alert(1)', 'https://user:password@publisher.example/article', 'file:///etc/passwd'):
+        session = Session(Response('<meta http-equiv="refresh" content="0; url=' + target + '">'))
+        result = discover_publisher_access(DOI, session=session)
+        assert result['locations'] == []
+        assert len(session.calls) == 1
+
+
+def test_malformed_refresh_does_not_guess_url():
+    session = Session(Response('<meta http-equiv="refresh" content="not a URL">'))
+    assert discover_publisher_access(DOI, session=session)['status'] == 'unknown'
+    assert len(session.calls) == 1
+
+
+def test_webpage_main_entity_article_access_is_recognized_without_inheriting_page_flag():
+    article = {'@type': 'ScholarlyArticle', 'sameAs': 'https://doi.org/' + DOI,
+               'isAccessibleForFree': True, 'license': 'https://creativecommons.org/licenses/by/4.0/'}
+    payload = {'@context': 'https://schema.org', '@type': 'WebPage', 'mainEntity': article}
+    html = '<meta name="citation_doi" content="' + DOI + '"><meta name="citation_pdf_url" content="/paper.pdf"><script type="application/ld+json">' + json.dumps(payload) + '</script>'
+    result = discover_publisher_access(DOI, session=Session(Response(html)))
+    assert result['status'] == 'found'
+    assert result['locations'][0]['license'] == 'https://creativecommons.org/licenses/by/4.0/'
+
+
+def test_article_jsonld_traversal_has_depth_budget():
+    from src.acquisition.publisher_access import _articles
+    data = {'@type': 'ScholarlyArticle', 'isAccessibleForFree': True, 'identifier': DOI}
+    for _ in range(20):
+        data = {'@type': 'WebPage', 'mainEntity': data}
+    assert list(_articles(data)) == []

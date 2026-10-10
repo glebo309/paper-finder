@@ -145,3 +145,49 @@ def test_verified_copy_identifies_actual_source_version_and_license(tmp_path):
     assert row['verified_url'] == 'https://repository.org/paper.pdf'
     assert row['verified_location']['version'] == 'acceptedVersion'
     assert row['verified_location']['license'] == 'cc-by'
+
+
+def test_expanded_frozen_cohort_has_distinct_recent_cases_and_separate_controls():
+    module = harness()
+    cases = module.load_cases(module.ROOT / 'tests/fixtures/recent_fulltext_cohort_20261010.json')
+    assert len(cases) == 26
+    assert len({c['record']['doi'] for c in cases}) == 26
+    assert sum(c['cohort'] == 'hard' for c in cases) == 21
+    assert sum(c['cohort'] == 'available_control' for c in cases) == 5
+    assert len({c['domain'] for c in cases}) == 3
+    assert all('2026-09-01' <= c['record']['publication_date'] <= '2026-10-10' for c in cases)
+    assert all(c['sampling']['main_pdf_count'] == 0 for c in cases if c['cohort'] == 'hard')
+
+
+def test_summary_separates_cohorts_browser_and_actual_verified_pdf(tmp_path):
+    hard = case()
+    hard['domain'] = 'enzymes'
+    control = case()
+    control.update(id='control', cohort='available_control', domain='chemistry')
+    def download(record, urls, directory):
+        path = directory / 'verified.pdf'
+        path.write_bytes(b'%PDF-fixture')
+        return SimpleNamespace(status='verified', success=True, filepath=path,
+                               verification={'status': 'verified'}, attempts={urls[0]: 'verified'}, error='')
+    report = harness().run_cases([hard, control], Service([location()]), download=True,
+                                 download_dir=tmp_path, downloader=download)
+    assert report['summary']['cohorts']['hard']['verified'] == 1
+    assert report['summary']['cohorts']['available_control']['cases'] == 1
+    assert report['summary']['browser_verified'] == 0
+    assert report['summary']['automated_verified'] == 2
+    assert report['cases'][0]['domain'] == 'enzymes'
+
+
+def test_publisher_block_evidence_and_failure_diagnosis_preserved():
+    publisher = {'status': 'blocked', 'errors': {'publisher': {'kind': 'http', 'status': 403}}}
+    service = Service(status='not_found', publisher_access=publisher,
+                      errors={'publisher': {'kind': 'http', 'status': 403, 'message': 'Publisher blocked automated access.'}})
+    row = harness().run_cases([case()], service)['cases'][0]
+    assert row['publisher_access'] == publisher
+    assert row['failure_category'] == 'publisher_http_blocked'
+
+
+def test_case_progress_callback_does_not_require_download():
+    observed = []
+    report = harness().run_cases([case()], Service(), on_case=observed.append)
+    assert observed == report['cases']

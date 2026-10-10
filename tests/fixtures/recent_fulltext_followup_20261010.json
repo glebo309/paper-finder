@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-10-10T15:38:35.731815+00:00",
+  "download_requested": true,
+  "scope": "Recent curated full-text smoke test; not a representative success-rate estimate.",
+  "summary": {
+    "cases": 1,
+    "verified": 0,
+    "automated_verified": 0,
+    "browser_verified": 0,
+    "cohorts": {
+      "hard": {
+        "cases": 1,
+        "verified": 0,
+        "statuses": {
+          "not_found": 1
+        }
+      }
+    },
+    "domains": {
+      "structural_molecular_biology": {
+        "cases": 1,
+        "verified": 0,
+        "statuses": {
+          "not_found": 1
+        }
+      }
+    },
+    "failure_categories": {
+      "pdf_not_verified": 1
+    },
+    "pdf_bytes": 0,
+    "provider_errors": 0,
+    "statuses": {
+      "not_found": 1
+    }
+  },
+  "cases": [
+    {
+      "id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "doi": "10.1038/s41586-026-11021-5",
+      "title": "Transcriptional activation of plant immunity by salicylic acid.",
+      "publication_date": "2026-09-16",
+      "age_days": 24,
+      "metadata_status": "found",
+      "publisher_access": {
+        "doi": "10.1038/s41586-026-11021-5",
+        "status": "found",
+        "locations": [
+          {
+            "doi": "10.1038/s41586-026-11021-5",
+            "url": "https://www.nature.com/articles/s41586-026-11021-5.pdf",
+            "pdf_url": "https://www.nature.com/articles/s41586-026-11021-5.pdf",
+            "landing_page_url": "https://www.nature.com/articles/s41586-026-11021-5",
+            "version": "unknown",
+            "license": "http://creativecommons.org/licenses/by/4.0/",
+            "host_type": "publisher",
+            "source": "publisher",
+            "sources": [
+              "publisher"
+            ],
+            "availability": "open",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": true,
+            "provenance": [
+              {
+                "provider": "publisher",
+                "doi": "10.1038/s41586-026-11021-5",
+                "version": "unknown",
+                "license": "http://creativecommons.org/licenses/by/4.0/",
+                "availability": "open",
+                "evidence": "DOI-confirmed article isAccessibleForFree"
+              }
+            ]
+          }
+        ],
+        "errors": {},
+        "landing_page_url": "https://www.nature.com/articles/s41586-026-11021-5"
+      },
+      "provider_errors": {},
+      "metadata_seconds": 1.481,
+      "download_seconds": 45.056,
+      "locations": [
+        {
+          "doi": "10.1038/s41586-026-11021-5",
+          "url": "https://www.nature.com/articles/s41586-026-11021-5.pdf",
+          "pdf_url": "https://www.nature.com/articles/s41586-026-11021-5.pdf",
+          "landing_page_url": "https://www.nature.com/articles/s41586-026-11021-5",
+          "version": "unknown",
+          "license": "http://creativecommons.org/licenses/by/4.0/",
+          "host_type": "publisher",
+          "source": "publisher",
+          "sources": [
+            "publisher"
+          ],
+          "availability": "open",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": true,
+          "provenance": [
+            {
+              "provider": "publisher",
+              "doi": "10.1038/s41586-026-11021-5",
+              "version": "unknown",
+              "license": "http://creativecommons.org/licenses/by/4.0/",
+              "availability": "open",
+              "evidence": "DOI-confirmed article isAccessibleForFree"
+            }
+          ]
+        }
+      ],
+      "alternatives": [],
+      "embargoed": [],
+      "closed": [
+        {
+          "doi": "10.1038/s41586-026-11021-5",
+          "url": "https://doi.org/10.1038/s41586-026-11021-5",
+          "pdf_url": null,
+          "landing_page_url": "https://doi.org/10.1038/s41586-026-11021-5",
+          "version": "unknown",
+          "license": null,
+          "host_type": "unknown",
+          "source": "europepmc",
+          "sources": [
+            "europepmc"
+          ],
+          "availability": "closed",
+          "available_from": null,
+          "requires_selection": false,
+          "downloadable": false,
+          "provenance": [
+            {
+              "provider": "europepmc",
+              "doi": "10.1038/s41586-026-11021-5",
+              "version": "unknown",
+              "license": null,
+              "availability": "closed"
+            }
+          ]
+        }
+      ],
+      "pdf_bytes": 0,
+      "verification": null,
+      "attempts": {
+        "https://www.nature.com/articles/s41586-026-11021-5.pdf": "TimeoutError"
+      },
+      "verified_url": null,
+      "verified_location": null,
+      "landing_attempts": [],
+      "download_requested": true,
+      "status": "not_found",
+      "eligible_pdf_urls": [
+        "https://www.nature.com/articles/s41586-026-11021-5.pdf"
+      ],
+      "download_error": "Discovered full-text locations did not yield a verified paper",
+      "elapsed_seconds": 46.537,
+      "failure_category": "pdf_not_verified"
+    }
+  ],
+  "providers": [
+    "europepmc"
+  ],
+  "publisher_fallback": true,
+  "cohort_file": "recent_fulltext_cohort_20261010.json",
+  "cohort_sha256": "872ccaaf4a625ad7c706e679c7e0606372b2716a011255a466790a6497fb2e61",
+  "evidence_note": "Targeted follow-up after adding five-request redirects and WebPage.mainEntity article metadata. This is benchmark-informed development evidence, not a replacement for the frozen baseline. PDF download timed out and no verified artifact was saved."
+}

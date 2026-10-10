@@ -130,3 +130,25 @@ def test_local_import_worker_only_invokes_offline_importer(monkeypatch):
     module.import_local_pdf.assert_called_once_with(record, '/tmp/browser.pdf', '/tmp/papers')
     assert not app.finder.mock_calls
     assert app.root.after.called
+
+
+def test_stop_cancels_browser_watch_without_cancelling_downloader():
+    app = gui()
+    app._browser_watcher = Mock(finished=False)
+    app.finder = Mock()
+    app.stop_search()
+    app._browser_watcher.cancel.assert_called_once()
+    app.finder.request_cancel.assert_not_called()
+
+
+def test_browser_watch_worker_updates_verified_result(monkeypatch):
+    app = gui()
+    result = DownloadResult(True, status='verified')
+    watcher = Mock(poll=Mock(return_value=result), message='Verified')
+    app.root = Mock()
+    app._search_id = 7
+    app._update_results = Mock()
+    app._watch_browser_thread(watcher, 7)
+    callback = app.root.after.call_args.args[1]
+    callback()
+    app._update_results.assert_called_once_with(result)

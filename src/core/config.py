@@ -12,6 +12,14 @@ from dataclasses import dataclass
 
 
 @dataclass
+class InstitutionalConfig:
+    """User-supplied official library browser access, without credentials."""
+    label: str = ''
+    login_url: str = ''
+    proxy_template: str = ''
+
+
+@dataclass
 class NetworkConfig:
     """Network-related settings."""
     timeout_short: int = 15  # For API calls
@@ -147,6 +155,7 @@ class Config:
     """
     
     def __init__(self):
+        self.institutional = InstitutionalConfig()
         self.network = NetworkConfig()
         self.validation = ValidationConfig()
         self.cache = CacheConfig()
@@ -185,6 +194,11 @@ class Config:
             with open(config_file) as f:
                 data = yaml.safe_load(f)
             
+            if isinstance(data, dict) and isinstance(data.get('institutional'), dict):
+                for key, value in data['institutional'].items():
+                    if hasattr(config.institutional, key):
+                        setattr(config.institutional, key, value)
+
             # Update config from file
             if 'network' in data:
                 for key, value in data['network'].items():
@@ -224,6 +238,7 @@ class Config:
     def to_dict(self) -> Dict:
         """Export configuration as dictionary."""
         return {
+            'institutional': self.institutional.__dict__,
             'network': self.network.__dict__,
             'validation': self.validation.__dict__,
             'cache': {k: str(v) if isinstance(v, Path) else v 
