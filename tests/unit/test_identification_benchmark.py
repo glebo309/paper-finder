@@ -48,3 +48,26 @@ def test_case_fixture_has_clear_labels_and_provenance():
     for case in cases:
         assert case.get("expected_ids") or case.get("must_abstain")
         assert case.get("source") or case.get("synthetic")
+
+
+def test_canonical_arxiv_urls_and_multiple_ids_count_without_accepting_mirror_dois():
+    expected = ['arxiv:1706.03762']
+    assert benchmark.matches({'identifier': {'type': 'url', 'value': 'https://arxiv.org/abs/1706.03762v7?context=cs#paper'}}, expected)
+    assert benchmark.matches({'arxiv_ids': ['1706.03762v5'], 'doi': '10.65215/2q58a426'}, expected)
+    assert benchmark.matches({'url': 'https://arxiv.org/pdf/cond-mat/0410550v3.pdf'}, ['arxiv:cond-mat/0410550'])
+    assert not benchmark.matches({'doi': '10.65215/2q58a426', 'title': 'Attention Is All You Need'}, expected)
+    assert not benchmark.matches({'url': 'https://example.org/?reference=https://arxiv.org/abs/1706.03762'}, expected)
+    assert not benchmark.matches({'url': 'https://arxiv.org.evil.example/abs/1706.03762'}, expected)
+
+
+def test_benchmark_reports_independent_cohorts_separately():
+    class Service:
+        def search(self, query, **kwargs):
+            candidate = {'doi': '10.1000/right' if query == 'development' else '10.1000/wrong'}
+            return {'status': 'ambiguous', 'candidates': [candidate]}
+    cases = [{'id': 'dev', 'query': 'development', 'expected_ids': ['10.1000/right']},
+             {'id': 'heldout', 'query': 'heldout', 'expected_ids': ['10.1000/right'], 'cohort': 'heldout-2026-10-10'}]
+    report = benchmark.run_benchmark(Service(), cases)
+    assert report['summary_by_cohort']['development']['top1_correct'] == 1
+    assert report['summary_by_cohort']['heldout-2026-10-10']['top1_correct'] == 0
+    assert report['summary_by_cohort']['heldout-2026-10-10']['target_cases'] == 1

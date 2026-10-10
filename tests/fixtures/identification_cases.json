@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Curated smoke benchmark, not held-out or representative. Targets checked against primary bibliographic records; synthetic abstention cases explicitly marked. No PDFs required.",
+  "description": "Curated smoke benchmark, not representative. Original development cases plus an independently authored cross-domain holdout added 2026-10-10 before running retrieval against it. Report cohorts separately; holdout cases become regression cases if used to tune the engine. Primary records provide target identifiers, including explicitly listed published/preprint aliases. No PDFs required.",
   "cases": [
     {
       "id": "alphafold-exact",
@@ -146,6 +146,97 @@
       "expected_ids": [],
       "source": "https://www.nature.com/articles/s41586-021-03819-2",
       "must_abstain": true
+    },
+    {
+      "id": "dna-exact",
+      "cohort": "heldout-2026-10-10",
+      "domain": "biology",
+      "category": "exact",
+      "query": "Molecular Structure of Nucleic Acids: A Structure for Deoxyribose Nucleic Acid",
+      "expected_ids": [
+        "doi:10.1038/171737a0"
+      ],
+      "source": "https://www.nature.com/articles/171737a0"
+    },
+    {
+      "id": "pcr-citation",
+      "cohort": "heldout-2026-10-10",
+      "domain": "biology",
+      "category": "citation",
+      "query": "Mullis et al. 1986. Specific enzymatic amplification of DNA in vitro: the polymerase chain reaction. Cold Spring Harbor Symposia on Quantitative Biology 51, 263-273.",
+      "expected_ids": [
+        "doi:10.1101/sqb.1986.051.01.032"
+      ],
+      "source": "https://symposium.cshlp.org/content/51/263"
+    },
+    {
+      "id": "ligo-description",
+      "cohort": "heldout-2026-10-10",
+      "domain": "physics",
+      "category": "description",
+      "query": "Abbott LIGO 2016 paper reporting the first observation of gravitational waves from two merging black holes GW150914",
+      "expected_ids": [
+        "doi:10.1103/PhysRevLett.116.061102",
+        "arxiv:1602.03837"
+      ],
+      "source": "https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.116.061102"
+    },
+    {
+      "id": "graphene-exact",
+      "cohort": "heldout-2026-10-10",
+      "domain": "physics",
+      "category": "exact",
+      "query": "Electric Field Effect in Atomically Thin Carbon Films",
+      "expected_ids": [
+        "doi:10.1126/science.1102896",
+        "arxiv:cond-mat/0410550"
+      ],
+      "source": "https://arxiv.org/abs/cond-mat/0410550"
+    },
+    {
+      "id": "silicon-description",
+      "cohort": "heldout-2026-10-10",
+      "domain": "chemistry",
+      "category": "description",
+      "query": "Frances Arnold 2016 engineered cytochrome c enzyme making carbon silicon bonds in bacteria",
+      "expected_ids": [
+        "doi:10.1126/science.aah6219"
+      ],
+      "source": "https://www.science.org/doi/10.1126/science.aah6219"
+    },
+    {
+      "id": "click-citation",
+      "cohort": "heldout-2026-10-10",
+      "domain": "chemistry",
+      "category": "citation",
+      "query": "Kolb, Finn, Sharpless (2001). Click Chemistry: Diverse Chemical Function from a Few Good Reactions. Angewandte Chemie International Edition 40, 2004-2021.",
+      "expected_ids": [
+        "doi:10.1002/1521-3773(20010601)40:11<2004::AID-ANIE2004>3.0.CO;2-5",
+        "doi:10.1002/1521-3773(20010601)40:11<2004::AID-ANIE2004>3.3.CO;2-X"
+      ],
+      "source": "https://onlinelibrary.wiley.com/doi/10.1002/1521-3773%2820010601%2940%3A11%3C2004%3A%3AAID-ANIE2004%3E3.0.CO%3B2-5"
+    },
+    {
+      "id": "prospect-citation",
+      "cohort": "heldout-2026-10-10",
+      "domain": "social-science",
+      "category": "citation",
+      "query": "Kahneman and Tversky 1979. Prospect Theory: An Analysis of Decision under Risk. Econometrica 47, 263-291.",
+      "expected_ids": [
+        "doi:10.2307/1914185"
+      ],
+      "source": "https://www.jstor.org/stable/1914185"
+    },
+    {
+      "id": "contagion-description",
+      "cohort": "heldout-2026-10-10",
+      "domain": "social-science",
+      "category": "description",
+      "query": "Kramer Guillory Hancock 2014 Facebook experiment changing emotional content of news feeds to test emotional contagion",
+      "expected_ids": [
+        "doi:10.1073/pnas.1320040111"
+      ],
+      "source": "https://doi.org/10.1073/pnas.1320040111"
     }
   ]
 }

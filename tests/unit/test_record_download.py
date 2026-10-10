@@ -111,3 +111,43 @@ def test_concurrent_destination_creation_is_never_overwritten(finder, tmp_path, 
     result = finder._download_record_urls(record(), ['https://example.org/main.pdf'], tmp_path)
     assert created[0].read_bytes() == b'other download'
     assert result.success and result.filepath != created[0]
+
+
+def test_doi_fallback_preserves_direct_mismatch_evidence(finder, tmp_path):
+    finder._download_record_urls = Mock(return_value=DownloadResult(
+        False, attempts={'https://example.org/wrong.pdf': 'mismatch'}, status='not_found'))
+    finder._execute_pipeline = Mock(return_value=DownloadResult(
+        False, attempts={'repository': 'No PDF'}, status='not_found'))
+    candidate = dict(record(), pdf_urls=['https://example.org/wrong.pdf'])
+    result = finder.find_record(candidate, tmp_path)
+    assert result.status == 'mismatch'
+    assert result.attempts == {'https://example.org/wrong.pdf': 'mismatch', 'repository': 'No PDF'}
+
+
+def test_verified_fallback_removes_only_own_unverified_download(finder, tmp_path):
+    retained = tmp_path / 'own.unverified.pdf'
+    retained.write_bytes(b'%PDF-unreadable')
+    preexisting = tmp_path / 'previous.unverified.pdf'
+    preexisting.write_bytes(b'keep this')
+    verified = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nAbstract\nResults')
+    finder._download_record_urls = Mock(return_value=DownloadResult(
+        False, filepath=retained, attempts={'direct': 'unverifiable'}, status='unverifiable'))
+    finder._execute_pipeline = Mock(return_value=DownloadResult(
+        True, filepath=verified, attempts={'repository': 'verified'}, status='verified'))
+    result = finder.find_record(dict(record(), pdf_urls=['https://example.org/paper.pdf']), tmp_path)
+    assert result.success
+    assert not retained.exists()
+    assert preexisting.read_bytes() == b'keep this'
+    assert result.attempts == {'direct': 'unverifiable', 'repository': 'verified'}
+
+
+def test_failed_fallback_keeps_unverified_file_and_all_attempts(finder, tmp_path):
+    retained = tmp_path / 'own.unverified.pdf'
+    retained.write_bytes(b'%PDF-unreadable')
+    finder._download_record_urls = Mock(return_value=DownloadResult(
+        False, filepath=retained, attempts={'direct': 'unverifiable'}, status='unverifiable'))
+    finder._execute_pipeline = Mock(return_value=DownloadResult(
+        False, attempts={'repository': 'No PDF'}, status='not_found'))
+    result = finder.find_record(dict(record(), pdf_urls=['https://example.org/paper.pdf']), tmp_path)
+    assert result.filepath == retained and retained.exists()
+    assert result.attempts == {'direct': 'unverifiable', 'repository': 'No PDF'}

@@ -69,11 +69,21 @@ if search:
             st.caption(" · ".join(str(value) for value in (record.get("year"), record.get("journal")) if value) or "Publication details unavailable")
             identifier = record.get("identifier") or {}
             st.text(record.get("doi") or identifier.get("value", "No identifier available"))
+            if record.get("arxiv_ids"):
+                st.caption("Repository identifiers: " + ", ".join("arXiv:" + value for value in record["arxiv_ids"]))
+            for warning in record.get("metadata_warnings", []):
+                st.warning(warning)
+            repository_urls = [value for value in record.get("record_urls", [])
+                               if urlparse(value).scheme in ("http", "https")]
+            if repository_urls:
+                with st.expander("Inspect indexed repository records"):
+                    for location in dict.fromkeys(repository_urls):
+                        st.link_button(location, location)
             st.caption("Sources: " + ", ".join(record.get("sources") or [record.get("metadata_source") or "unknown"]))
             if record.get("match_reasons"):
                 st.write("Why it appeared: " + "; ".join(record["match_reasons"]))
             if record.get("score") is not None:
-                st.caption(f"Ranking score: {record['score']:.1f}/100. This is a heuristic, not a probability.")
+                st.caption(f"Bibliographic match score: {record['score']:.1f}/100. This is a heuristic, not a probability.")
             if record.get("abstract"):
                 with st.expander("Abstract"):
                     st.text(record["abstract"])

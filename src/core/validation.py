@@ -110,8 +110,19 @@ def _title_similarity(a: str, b: str) -> float:
 
 def _dois(text: str) -> set:
     import re
-    return {value.casefold().rstrip(".,;:)]}>") for value in
-            re.findall(r"10\.\d{4,9}/[^\s<>\"]+", str(text), re.IGNORECASE)}
+    values = set()
+    for value in re.findall(r"10\.\d{4,9}/[^\s\"]+", str(text), re.IGNORECASE):
+        value = value.casefold().rstrip(".,;:")
+        # Parentheses can belong to a DOI. Remove only unmatched wrapping
+        # punctuation, preserving distinct identifiers such as example(a).
+        while value and value[-1] in ")]}>":
+            closing = value[-1]
+            opening = {")": "(", "]": "[", "}": "{", ">": "<"}[closing]
+            if value.count(closing) <= value.count(opening):
+                break
+            value = value[:-1].rstrip(".,;:")
+        values.add(value)
+    return values
 
 
 def _front_matter(text: str) -> str:
@@ -146,7 +157,9 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     arxiv = record.get("arxiv_id") or (identifier.get("value") if identifier.get("type") == "arxiv" else "")
     if not arxiv and doi and "10.48550/arxiv." in doi.lower():
         arxiv = doi.lower().split("10.48550/arxiv.", 1)[1]
-    arxiv = re.sub(r"v\d+$", "", str(arxiv).lower())
+    arxiv = str(arxiv).lower()
+    arxiv_base = re.sub(r"v\d+$", "", arxiv)
+    requested_version = bool(re.search(r"v\d+$", arxiv))
     if not (title or wanted_dois or arxiv):
         return result("unverifiable", "No target title or supported identifier was provided")
     try:
@@ -190,12 +203,27 @@ def verify_document_identity(path: Path, record: Dict) -> Dict:
     strong_title = bool(title_words) and score >= .92 and (len(title_words) >= 4 or bool(matched_authors))
     plausible_title = score >= .78 and bool(matched_authors)
     doi_match = bool(wanted_dois & found_dois)
-    arxiv_values = {re.sub(r"v\d+$", "", item.lower()) for item in re.findall(
-        r"arxiv\s*:\s*((?:\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?)", front, re.I)}
-    arxiv_match = bool(arxiv and arxiv in arxiv_values)
+    arxiv_pattern = r"arxiv\s*:\s*((?:\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?)"
+    arxiv_values = {item.lower() for item in re.findall(arxiv_pattern, front, re.I)}
+    # arXiv's margin stamp often extracts after the abstract and body. Its
+    # category/date format distinguishes that stamp from ordinary body citations.
+    stamps = re.findall(arxiv_pattern + r"\s*\[[a-z][a-z0-9.-]*\]\s*\d{1,2}\s+[a-z]{3}\s+\d{4}\b",
+                        page_text, re.I)
+    arxiv_values.update(item.lower() for item in stamps)
+    arxiv_bases = {re.sub(r"v\d+$", "", item) for item in arxiv_values}
+    arxiv_match = bool(arxiv and (arxiv in arxiv_values if requested_version else arxiv_base in arxiv_bases))
     evidence = {"title_similarity": round(score, 3), "matched_authors": matched_authors,
                 "front_matter_dois": sorted(found_dois), "identifier_match": doi_match or arxiv_match,
+                "front_matter_arxiv_ids": sorted(arxiv_values),
                 "text_extracted": bool(norm_front)}
+
+    if arxiv and arxiv_values and arxiv_base not in arxiv_bases:
+        return result("mismatch", "Front-matter arXiv identifier conflicts with the selected record", **evidence)
+    if requested_version and not arxiv_match:
+        explicit_versions = {item for item in arxiv_values if re.search(r"v\d+$", item)}
+        if explicit_versions:
+            return result("mismatch", "Front-matter arXiv version differs from the selected version", **evidence)
+        return result("unverifiable", "The explicitly requested arXiv version is not corroborated", **evidence)
 
     if strong_title or plausible_title:
         if names and not matched_authors and not (doi_match or arxiv_match):

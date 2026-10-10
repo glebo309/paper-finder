@@ -142,3 +142,72 @@ def test_title_alone_cannot_override_missing_expected_authors(tmp_path):
     target = {"title": "A new method for protein structure prediction", "authors": ["Jane Smith"]}
     path = pdf(tmp_path, target["title"] + "\nJohn Jones and Sarah Miller\nAbstract\nA different paper with the same title.")
     assert verify(path, target)["status"] == "unverifiable"
+
+
+def test_conflicting_arxiv_id_cannot_be_overridden_by_title_and_authors(tmp_path):
+    record = {'identifier': {'type': 'arxiv', 'value': '1706.03762'},
+              'title': 'Attention Is All You Need', 'authors': ['Ashish Vaswani']}
+    path = pdf(tmp_path, record['title'] + '\nAshish Vaswani\narXiv:9999.12345v1\nAbstract\nResults')
+    assert verify(path, record)['status'] == 'mismatch'
+
+
+@pytest.mark.parametrize('requested, found, expected', [
+    ('1706.03762v2', '1706.03762v3', 'mismatch'),
+    ('1706.03762v2', '1706.03762v2', 'verified'),
+    ('1706.03762', '1706.03762v3', 'verified'),
+    ('1706.03762v2', '1706.03762', 'unverifiable'),
+])
+def test_explicit_arxiv_version_is_part_of_selected_identity(tmp_path, requested, found, expected):
+    record = {'identifier': {'type': 'arxiv', 'value': requested},
+              'title': 'Attention Is All You Need', 'authors': ['Ashish Vaswani']}
+    path = pdf(tmp_path, record['title'] + '\nAshish Vaswani\narXiv:' + found + '\nAbstract\nResults')
+    assert verify(path, record)['status'] == expected
+
+
+def test_balanced_doi_parenthesis_is_significant(tmp_path):
+    path = pdf(tmp_path, 'Research Article\nDOI: 10.1000/example(a)\nAbstract\nDetails')
+    assert verify(path, {'doi': '10.1000/example(a'})['status'] == 'mismatch'
+    assert verify(path, {'doi': '10.1000/example(a)'})['status'] == 'verified'
+
+
+def test_doi_parenthetical_wrapping_is_not_part_of_identifier(tmp_path):
+    path = pdf(tmp_path, 'Research Article\n(DOI: 10.1000/example(a)).\nAbstract\nDetails')
+    result = verify(path, {'doi': '10.1000/example(a)'})
+    assert result['status'] == 'verified'
+    assert result['front_matter_dois'] == ['10.1000/example(a)']
+
+
+def test_arxiv_margin_stamp_verifies_explicit_version_after_abstract(tmp_path):
+    record = {'identifier': {'type': 'arxiv', 'value': '1706.03762v7'},
+              'title': 'Attention Is All You Need', 'authors': ['Ashish Vaswani']}
+    path = pdf(tmp_path, record['title'] + '\nAshish Vaswani\nAbstract\nOur findings.\n'
+               'Conference proceedings.arXiv:1706.03762v7  [cs.CL]  2 Aug 2023')
+    assert verify(path, record)['status'] == 'verified'
+
+
+def test_arxiv_citation_in_abstract_does_not_confirm_requested_version(tmp_path):
+    record = {'identifier': {'type': 'arxiv', 'value': '1706.03762v7'},
+              'title': 'Attention Is All You Need', 'authors': ['Ashish Vaswani']}
+    path = pdf(tmp_path, record['title'] + '\nAshish Vaswani\nAbstract\n'
+               'We discuss arXiv:1706.03762v7 among related papers.')
+    assert verify(path, record)['status'] == 'unverifiable'
+
+
+def test_legacy_doi_angle_brackets_are_significant(tmp_path):
+    doi = '10.1002/(SICI)1099-0844(199912)17:4<290::AID-CBF849>3.0.CO;2-1'
+    path = pdf(tmp_path, 'Research Article\nDOI: ' + doi + '\nAbstract\nResults')
+    result = verify(path, {'doi': doi})
+    assert result['status'] == 'verified'
+    assert result['front_matter_dois'] == [doi.lower()]
+
+
+def test_doi_angle_suffix_is_not_stripped_to_match_another_identifier(tmp_path):
+    path = pdf(tmp_path, 'Research Article\nDOI: 10.1000/example<component>\nAbstract\nResults')
+    assert verify(path, {'doi': '10.1000/example'})['status'] == 'mismatch'
+
+
+def test_angle_wrapped_doi_preserves_internal_balanced_brackets(tmp_path):
+    path = pdf(tmp_path, 'Research Article\n<10.1000/example<component>>\nAbstract\nResults')
+    result = verify(path, {'doi': '10.1000/example<component>'})
+    assert result['status'] == 'verified'
+    assert result['front_matter_dois'] == ['10.1000/example<component>']

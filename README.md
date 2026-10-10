@@ -55,9 +55,9 @@ See [the usage guide](docs/SEARCH.md) for JSON output, exit codes, configuration
 
 1. **Retrieve candidates.** OpenAlex and Crossref provide metadata; Semantic Scholar provides an additional search path. ISBNs and arXiv IDs retain dedicated resolvers.
 2. **Compare evidence.** Candidate records retain identifiers, title, authors, publication year, provenance and available full-text locations. Matching uses bibliographic evidence, handles punctuation and accents, and checks author/year conflicts.
-3. **Search by meaning when useful.** Uncertain descriptions and topic discovery can use OpenAlex semantic search. Provider ranks are combined to keep meaning-based matches visible even when wording differs.
+3. **Search by meaning when useful.** Uncertain descriptions and topic discovery can use OpenAlex semantic search. A bounded citation fallback searches an explicitly supplied title separately while retaining the original author/year checks. Provider ranks are combined with bibliographic evidence; citations and popularity alone never establish identity.
 4. **Keep uncertainty visible.** Close alternatives, vague queries and semantic-only evidence require selection. Displayed scores are heuristic evidence scores, not calibrated confidence percentages.
-5. **Preserve identity.** Different DOIs remain separate, including preprints and journal versions. A failed explicit DOI lookup never silently changes into another work.
+5. **Preserve identity.** Different DOIs remain separate, including preprints and journal versions. A failed explicit DOI lookup never silently changes into another work. Canonical arXiv links remain available when an index groups a paper with later reposts; metadata conflicts and retracted records require review.
 
 Provider timeouts, rate limits and malformed responses are reported separately from an empty search. Search has a shared request budget. Optional credentials are read from the environment:
 
@@ -123,12 +123,12 @@ python tools/benchmark_identification.py
 python tools/benchmark_identification.py --live --output benchmark.json
 ```
 
-It includes 16 curated title, citation, typo, description, ambiguous and impossible cases. Reports distinguish top-one/top-five retrieval, correct and wrong automatic selections, abstentions, provider outages and latency. It never downloads papers. These smoke cases are not a representative accuracy estimate.
+It includes 24 curated title, citation, typo, description, ambiguous and impossible cases across several disciplines. The report separates development cases from eight independently authored cases first run after the initial ranking changes. Reports distinguish top-one/top-five retrieval, correct and wrong automatic selections, abstentions, provider outages and latency. It never downloads papers. These smoke cases are not a representative accuracy estimate.
 
 The older scripts under `tests/` outside `tests/unit/` are manual integration/download experiments and are not included in the default test run.
 
 ## Development status
 
-This is an early-stage project. The identification and acquisition boundaries have deterministic regression coverage; broad live-provider accuracy and download coverage still need measurement. The development environment's live checks encountered network failures, so no accuracy percentage is claimed for this revision. Existing screenshots in `resources/` show the earlier interfaces.
+This is an early-stage project with offline regression tests, live metadata checks, real open-access PDF acquisition checks and CI on Python 3.11 and 3.13. See [the validation record](docs/VALIDATION.md) for measured results and limitations. These small curated checks do not establish broad retrieval accuracy or universal download coverage. Existing screenshots in `resources/` show the earlier interfaces.
 
 Use configured sources in accordance with their terms and the access rights available to you. Local configuration, credentials, sessions, generated PDFs and benchmark outputs should not be committed.

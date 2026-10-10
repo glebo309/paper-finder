@@ -121,3 +121,66 @@ def test_conflicting_dois_do_not_choose_first_tag():
 def test_malformed_explicit_doi_is_not_replaced_by_title_identity():
     resolver, _ = make_resolver(f'<meta name="citation_title" content="{TITLE}"><meta name="citation_doi" content="malformed">')
     assert resolver.resolve(URL)['status'] == 'not_found'
+
+
+def test_legacy_arxiv_reference_and_urls_preserve_explicit_version():
+    resolver, _ = make_resolver()
+    for reference in ('arXiv:hep-th/9901001v2',
+                      'https://arxiv.org/abs/hep-th/9901001v2',
+                      'https://arxiv.org/pdf/hep-th/9901001v2.pdf',
+                      'arXiv:math.GT/0309136v1'):
+        expected = 'math.GT/0309136v1' if 'math.GT' in reference else 'hep-th/9901001v2'
+        resolver._resolve_arxiv = Mock(return_value={'identifier': {'type': 'arxiv', 'value': expected}})
+        resolver.resolve(reference)
+        resolver._resolve_arxiv.assert_called_once_with(expected)
+
+
+def arxiv_response(identifier):
+    return Mock(status_code=200, content=f'''<feed xmlns="http://www.w3.org/2005/Atom"><entry>
+       <id>http://arxiv.org/abs/{identifier}</id><title>Original paper title</title>
+       <author><name>Alice Smith</name></author><published>1999-01-01T00:00:00Z</published>
+       <summary>Original abstract</summary></entry></feed>'''.encode())
+
+
+def test_requested_legacy_arxiv_version_survives_metadata_resolution():
+    session = Mock(headers={})
+    session.get.return_value = arxiv_response('hep-th/9901001v2')
+    result = IdentityResolver(session=session).resolve('arXiv:hep-th/9901001v2')
+    assert result['identifier']['value'] == 'hep-th/9901001v2'
+    assert result['arxiv_id'] == 'hep-th/9901001v2'
+    assert result['pdf_url'] == 'https://arxiv.org/pdf/hep-th/9901001v2.pdf'
+    assert result['metadata_source'] == 'arxiv'
+    assert result['title'] == 'Original paper title'
+
+
+def test_other_arxiv_version_metadata_does_not_replace_requested_version():
+    session = Mock(headers={})
+    session.get.return_value = arxiv_response('hep-th/9901001v3')
+    result = IdentityResolver(session=session).resolve('arXiv:hep-th/9901001v2')
+    assert result['identifier']['value'] == 'hep-th/9901001v2'
+    assert result['pdf_url'].endswith('hep-th/9901001v2.pdf')
+    assert result['metadata_source'] == 'manual'
+    assert result['title'] is None
+
+
+def test_unversioned_arxiv_can_use_latest_matching_entry():
+    session = Mock(headers={})
+    session.get.return_value = arxiv_response('hep-th/9901001v3')
+    result = IdentityResolver(session=session).resolve('arXiv:hep-th/9901001')
+    assert result['identifier']['value'] == 'hep-th/9901001'
+    assert result['metadata_source'] == 'arxiv'
+
+
+def test_bare_modern_and_legacy_arxiv_ids_resolve_without_search():
+    resolver, _ = make_resolver()
+    for reference in ('1706.03762', '1706.03762v2', 'hep-th/9901001v2', 'math.GT/0309136'):
+        resolver._resolve_arxiv = Mock(return_value={'identifier': {'type': 'arxiv', 'value': reference}})
+        resolver.resolve(reference)
+        resolver._resolve_arxiv.assert_called_once_with(reference)
+
+
+def test_bare_arxiv_pattern_must_match_entire_input():
+    resolver, _ = make_resolver()
+    assert resolver._extract_arxiv_id('Results from 1706.03762 in our study') is None
+    assert resolver._extract_arxiv_id('1706.03762v2extra') is None
+    assert resolver._extract_arxiv_id('hep-th/9901001v2extra') is None

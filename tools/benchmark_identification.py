@@ -6,7 +6,8 @@ Run from any directory:
   python tools/benchmark_identification.py --live --output /tmp/paper-benchmark.json
 
 This small curated smoke benchmark is not a representative accuracy estimate.
-Add held-out, domain-specific queries before calibrating ranking thresholds.
+Independent cross-domain cases are labeled by cohort and scored separately.
+Once a cohort informs ranking changes, treat it as development data.
 """
 import argparse
 from datetime import datetime, timezone
@@ -16,6 +17,7 @@ import re
 import statistics
 import sys
 import time
+from urllib.parse import urlsplit, unquote
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CASES = ROOT / "tests" / "fixtures" / "identification_cases.json"
@@ -38,6 +40,14 @@ def load_cases(path):
 
 def normalize_id(value):
     value = str(value).strip().lower()
+    if value.startswith(("http://", "https://")):
+        parsed = urlsplit(value)
+        if parsed.hostname in {"arxiv.org", "www.arxiv.org", "export.arxiv.org"}:
+            match = re.fullmatch(r"/(?:abs|pdf)/((?:[a-z.-]+/)?\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?(?:\.pdf)?", parsed.path)
+            if match:
+                return "arxiv:" + match.group(1)
+        if parsed.hostname in {"doi.org", "dx.doi.org"}:
+            value = "doi:" + unquote(parsed.path.lstrip("/"))
     value = re.sub(r"^https?://(?:dx\.)?doi\.org/", "doi:", value)
     value = re.sub(r"^https?://arxiv\.org/(?:abs|pdf)/", "arxiv:", value).removesuffix(".pdf")
     if value.startswith("10."):
@@ -56,7 +66,14 @@ def candidate_ids(candidate):
         values.add(normalize_id(candidate["doi"]))
     if candidate.get("arxiv_id"):
         values.add(normalize_id("arxiv:" + candidate["arxiv_id"]))
+    for value in candidate.get("arxiv_ids") or []:
+        values.add(normalize_id("arxiv:" + value))
     identifier = candidate.get("identifier") or {}
+    for url in (candidate.get("url"), identifier.get("value") if identifier.get("type") == "url" else None):
+        if url:
+            normalized = normalize_id(url)
+            if normalized.startswith("arxiv:"):
+                values.add(normalized)
     if identifier.get("type") in {"doi", "arxiv", "pmid", "isbn"} and identifier.get("value"):
         values.add(normalize_id(identifier["type"] + ":" + identifier["value"]))
     for kind, value in (candidate.get("ids") or {}).items():
@@ -87,6 +104,7 @@ def run_benchmark(service, cases):
         correct = automatic and matches(selected, expected) and not case.get("must_abstain", False)
         rows.append({
             "id": case["id"], "category": case.get("category", "unspecified"), "query": case["query"],
+            "cohort": case.get("cohort", "development"),
             "expected_ids": expected, "must_abstain": case.get("must_abstain", False),
             "status": response.get("status"), "latency_seconds": round(elapsed, 3),
             "top1_correct": bool(candidates and expected and matches(candidates[0], expected)),
@@ -100,6 +118,19 @@ def run_benchmark(service, cases):
                             "score": item.get("score"), "match_reasons": item.get("match_reasons", [])}
                            for item in candidates[:5]],
         })
+    summary = summarize(rows)
+    cohorts = sorted({row["cohort"] for row in rows})
+    return {"generated_at": datetime.now(timezone.utc).isoformat(), "mode": "metadata-only",
+            "note": "Curated smoke cases, not a general accuracy estimate. Unavailable APIs are not counted as correct abstentions.",
+            "summary": summary,
+            "summary_by_cohort": {
+                cohort: summarize([row for row in rows if row["cohort"] == cohort])
+                for cohort in cohorts
+            },
+            "cases": rows}
+
+
+def summarize(rows):
     summary = {key: sum(bool(row[key]) for row in rows) for key in
                ("top1_correct", "top5_correct", "correct_automatic", "wrong_automatic",
                 "abstained", "correct_abstention", "unavailable")}
@@ -109,9 +140,7 @@ def run_benchmark(service, cases):
                     "api_errors": sum(len(row["errors"]) for row in rows),
                     "median_latency_seconds": statistics.median(latencies) if latencies else None,
                     "max_latency_seconds": max(latencies) if latencies else None})
-    return {"generated_at": datetime.now(timezone.utc).isoformat(), "mode": "metadata-only",
-            "note": "Curated smoke cases, not a general accuracy estimate. Unavailable APIs are not counted as correct abstentions.",
-            "summary": summary, "cases": rows}
+    return summary
 
 
 def main(argv=None):

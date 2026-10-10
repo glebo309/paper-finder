@@ -84,7 +84,8 @@ def test_work_without_doi_retains_real_identifier():
 def test_rate_limit_is_visible_and_falls_back_without_sleep():
     session = Session(openalex=Response({}, 429, {'Retry-After': '120'}), crossref={'message': {'items': [cr()]}})
     result = DiscoveryService(session=session).search(TITLE)
-    assert result['status'] == 'matched'
+    assert result['status'] == 'ambiguous'
+    assert result['candidates'][0]['doi'] == DOI
     assert result['errors']['openalex']['kind'] == 'rate_limited'
     assert result['errors']['openalex']['retry_after'] == '120'
     assert len([url for url, _ in session.calls if 'openalex' in url]) == 1
@@ -132,7 +133,8 @@ def test_year_and_author_disambiguate_same_titles():
 def test_malformed_provider_does_not_abort_other_results():
     session = Session(openalex={'results': 'broken'}, crossref={'message': {'items': [cr()]}})
     result = DiscoveryService(session=session).search(TITLE)
-    assert result['selected']['doi'] == DOI
+    assert result['selected'] is None
+    assert result['candidates'][0]['doi'] == DOI
     assert result['errors']['openalex']['kind'] == 'invalid_response'
 
 
@@ -283,3 +285,219 @@ def test_conflicting_author_after_title_requires_review():
 def test_citation_journal_after_title_is_not_mistaken_for_wrong_author():
     result = DiscoveryService(session=Session(crossref={'message': {'items': [cr()]}})).search(TITLE + '. Nature (2021)')
     assert result['selected']['doi'] == DOI
+
+
+def test_semantic_rank_cannot_bury_strong_partial_citation(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    related = oa('Protein structure predictions to atomic accuracy with AlphaFold', '10.1234/commentary')
+    related['publication_year'] = 2022
+    related['authorships'] = [{'author': {'display_name': 'Other Author'}}]
+    session = SemanticSession({'results': [related]}, openalex={'results': [oa()]})
+    result = DiscoveryService(session=session).search('protein structure prediction AlphaFold Jumper 2021')
+    assert result['selected'] is None
+    assert result['candidates'][0]['doi'] == DOI
+
+
+def test_exact_homonyms_keep_lexical_first_hit_visible_without_automatic_choice(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    original = oa('Attention Is All You Need', '10.1234/original')
+    unrelated = oa('Attentionlet Is All You Need', '10.1234/commentary')
+    homonym = oa('Attention Is All You Need', '10.1234/homonym')
+    session = SemanticSession({'results': [unrelated, homonym]}, openalex={'results': [original, homonym]})
+    result = DiscoveryService(session=session).search('Attention Is All You Need')
+    assert result['selected'] is None
+    assert result['candidates'][0]['doi'] == '10.1234/original'
+
+
+def test_openalex_preserves_arxiv_locations_and_flags_unattributed_doi_cluster():
+    record = oa('Attention Is All You Need', '10.1234/mirror')
+    record['primary_location'] = {'source': None, 'landing_page_url': 'https://doi.org/10.1234/mirror'}
+    record['locations'] = [
+        {'doi': 'https://doi.org/10.1234/mirror'},
+        {'doi': 'https://doi.org/10.1234/other-mirror'},
+        {'landing_page_url': 'http://arxiv.org/abs/1706.03762v5', 'pdf_url': 'https://arxiv.org/pdf/1706.03762'},
+    ]
+    result = DiscoveryService(session=Session(openalex={'results': [record]}), providers=['openalex']).search('Attention Is All You Need')
+    candidate = result['candidates'][0]
+    assert candidate['arxiv_ids'] == ['1706.03762']
+    assert candidate['metadata_warnings']
+    assert 'http://arxiv.org/abs/1706.03762v5' in candidate['record_urls']
+    assert result['selected'] is None
+
+
+def test_preprint_submission_year_supports_citation_without_replacing_publication_year(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    title = 'Attention Is All You Need'
+    original = oa(title, '10.1234/indexed-mirror')
+    original.update(publication_year=2025, authorships=[{'author': {'display_name': 'Ashish Vaswani'}}],
+                    locations=[{'landing_page_url': 'https://arxiv.org/abs/1706.03762'}])
+    mirror = cr(title, '10.1234/other-mirror', year=2025, author='Vaswani')
+    result = DiscoveryService(session=Session(openalex={'results': [original]}, crossref={'message': {'items': [mirror]}})).search('Vaswani 2017. ' + title)
+    candidate = result['candidates'][0]
+    assert candidate['doi'] == '10.1234/indexed-mirror'
+    assert candidate['year'] == 2025
+    assert candidate['preprint_years'] == [2017]
+    assert 'Preprint submission year matches' in candidate['match_reasons']
+    assert result['selected'] is None
+
+
+def test_balanced_angle_brackets_in_structured_doi_are_not_truncated():
+    doi = '10.1002/(SICI)1099-0690(199812)1998:12<2501::AID-EJOC2501>3.0.CO;2-X'
+    result = DiscoveryService(session=Session(crossref={'message': cr(doi=doi)}), providers=['crossref']).search('https://doi.org/' + doi)
+    assert result['selected']['doi'] == doi.lower()
+
+
+def test_descriptive_ranking_uses_bounded_citation_prior_without_automatic_identification(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    original = oa()
+    original['cited_by_count'] = 40000
+    related = oa('Applying and improving AlphaFold at CASP14', '10.1234/related')
+    related['cited_by_count'] = 400
+    query = 'DeepMind paper by Jumper in 2021 that predicted protein structures at near experimental accuracy in CASP14'
+    session = SemanticSession({'results': [related]}, openalex={'results': [original]})
+    result = DiscoveryService(session=session).search(query)
+    assert result['candidates'][0]['doi'] == DOI
+    assert result['selected'] is None
+
+
+class CitationSession(Session):
+    def __init__(self, title, rows, **kwargs):
+        super().__init__(**kwargs)
+        self.title, self.rows = title, rows
+    def get(self, url, **kwargs):
+        if 'openalex' in url and kwargs.get('params', {}).get('search') == self.title:
+            self.calls.append((url, kwargs))
+            return Response({'results': self.rows})
+        return super().get(url, **kwargs)
+
+
+def test_citation_relaxation_extracts_title_and_retains_original_evidence():
+    title = 'Structural rules governing selective enzyme catalysis'
+    item = oa(title, '10.1234/catalysis')
+    item.update(publication_year=2019, authorships=[{'author': {'display_name': 'Jane Smith'}}])
+    session = CitationSession(title, [item])
+    result = DiscoveryService(session=session, providers=['openalex']).search(
+        'Smith et al. (2019). Structural rules governing selective enzyme catalysis. Journal of Catalysis 80, 12-18.')
+    assert result['selected']['doi'] == '10.1234/catalysis'
+    assert result['selected']['source_ranks']['openalex_citation'] == 1
+    assert 'Publication year matches' in result['selected']['match_reasons']
+    assert len(session.calls) == 2
+
+
+def test_quoted_title_relaxation_does_not_discard_conflicting_author():
+    session = CitationSession(TITLE, [oa()])
+    result = DiscoveryService(session=session, providers=['openalex']).search('Smith (2021). "' + TITLE + '".')
+    assert result['selected'] is None
+    assert result['candidates'][0]['doi'] == DOI
+    assert any('author conflicts' in reason for reason in result['candidates'][0]['match_reasons'])
+    assert len([call for _, call in session.calls if call['params'].get('search') == TITLE]) == 1
+
+
+def test_citation_relaxation_uses_shared_deadline(monkeypatch):
+    moments = iter([0, 0, 5])
+    monkeypatch.setattr('src.core.discovery.time.monotonic', lambda: next(moments))
+    session = CitationSession(TITLE, [oa()])
+    result = DiscoveryService(session=session, providers=['openalex'], deadline=3).search('Jumper (2021). ' + TITLE + '.')
+    assert len(session.calls) == 1
+    assert result['errors']['openalex_citation']['kind'] == 'deadline'
+
+
+def test_description_without_clear_citation_does_not_guess_a_title():
+    query = 'DeepMind paper by Jumper in 2021 that predicted protein structures'
+    session = CitationSession('that predicted protein structures', [oa()])
+    DiscoveryService(session=session, providers=['openalex']).search(query)
+    assert all(call['params'].get('search', query) == query for _, call in session.calls)
+
+
+def test_exact_doi_retracted_work_still_requires_manual_review():
+    item = oa()
+    item['is_retracted'] = True
+    result = DiscoveryService(session=Session(openalex={'results': [item]}), providers=['openalex']).search(DOI)
+    assert result['selected'] is None
+    assert 'Retracted work: manual review required' in result['candidates'][0]['match_reasons']
+
+
+def test_exact_doi_retains_metadata_conflict_warnings():
+    item = oa()
+    item['locations'] = [{'doi': 'https://doi.org/' + DOI}, {'doi': 'https://doi.org/10.1234/mirror'},
+                         {'landing_page_url': 'https://arxiv.org/abs/1706.03762'}]
+    result = DiscoveryService(session=Session(openalex={'results': [item]}), providers=['openalex']).search(DOI)
+    assert result['selected'] is None
+    assert result['candidates'][0]['metadata_warnings'][0] in result['candidates'][0]['match_reasons']
+
+
+def test_component_exact_title_is_not_automatically_a_paper():
+    item = cr('Neural network architecture with recurrent attention', '10.1234/article/fig1')
+    item['type'] = 'component'
+    result = DiscoveryService(session=Session(crossref={'message': {'items': [item]}}), providers=['crossref']).search(item['title'][0])
+    assert result['selected'] is None
+    assert result['candidates'][0]['record_type'] == 'component'
+    assert any('standalone paper' in reason for reason in result['candidates'][0]['match_reasons'])
+
+
+def test_components_do_not_crowd_out_papers_in_descriptive_results(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    component = oa('Protein structure prediction diagram', '10.1234/article/fig1')
+    component['type'] = 'paratext'
+    session = SemanticSession({'results': [component, oa()]})
+    result = DiscoveryService(session=session).search('paper about protein folding')
+    assert result['candidates'][0]['doi'] == DOI
+    assert result['selected'] is None
+
+
+def test_citation_rate_limit_does_not_trigger_another_openalex_request(monkeypatch):
+    monkeypatch.setattr('src.core.discovery._SEMANTIC_NEXT_ALLOWED', 0)
+    class LimitedCitationSession(Session):
+        def get(self, url, **kwargs):
+            if kwargs.get('params', {}).get('search') == TITLE:
+                self.calls.append((url, kwargs))
+                return Response({}, 429, {'Retry-After': '30'})
+            return super().get(url, **kwargs)
+    session = LimitedCitationSession()
+    result = DiscoveryService(session=session, providers=['openalex']).search('Jumper (2021). ' + TITLE + '.')
+    assert result['errors']['openalex_citation']['kind'] == 'rate_limited'
+    assert len(session.calls) == 2
+
+
+def test_degraded_independent_providers_cannot_auto_select_text_match():
+    session = Session(openalex=Response({}, 429), crossref={'message': {'items': [cr()]}},
+                      scholar=Response({}, 429))
+    result = DiscoveryService(session=session).search(TITLE)
+    assert result['selected'] is None
+    assert result['status'] == 'ambiguous'
+    assert result['candidates'][0]['doi'] == DOI
+    assert any('semanticscholar' in url for url, _ in session.calls)
+
+
+def test_exact_doi_can_resolve_despite_independent_provider_outage():
+    session = Session(openalex=Response({}, 429), crossref={'message': cr()})
+    result = DiscoveryService(session=session).search(DOI)
+    assert result['selected']['doi'] == DOI
+    assert result['errors']['openalex']['kind'] == 'rate_limited'
+
+
+def test_three_word_topic_title_is_not_automatic_identification():
+    item = cr('Protein structure prediction', '10.1234/reference-entry')
+    result = DiscoveryService(session=Session(crossref={'message': {'items': [item]}}), providers=['crossref']).search('protein structure prediction')
+    assert result['status'] == 'ambiguous'
+    assert result['selected'] is None
+
+
+def test_short_title_can_be_identified_with_matching_author_and_year():
+    item = cr('Protein structure prediction', '10.1234/reference-entry')
+    result = DiscoveryService(session=Session(crossref={'message': {'items': [item]}}), providers=['crossref']).search('Jumper (2021). Protein structure prediction.')
+    assert result['selected']['doi'] == '10.1234/reference-entry'
+
+
+def test_provider_cooldown_shared_across_services_without_retrying_http(monkeypatch):
+    from src.core.provider_limits import ProviderCooldowns
+    import src.core.discovery as discovery
+    monkeypatch.setattr(discovery, 'provider_cooldowns', ProviderCooldowns(), raising=False)
+    monkeypatch.setattr(discovery.time, 'monotonic', lambda: 100)
+    session = Session(openalex=Response({}, 429, {'Retry-After': '40000'}))
+    first = DiscoveryService(session=session, providers=['openalex']).search(TITLE)
+    second = DiscoveryService(session=session, providers=['openalex']).search(TITLE)
+    assert len(session.calls) == 1
+    assert first['status'] == second['status'] == 'unavailable'
+    assert second['errors']['openalex']['retry_after'] == '40000'
+    assert 'cooling down' in second['errors']['openalex']['message']

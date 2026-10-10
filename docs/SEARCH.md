@@ -17,7 +17,7 @@ For the web interface:
 python3 -m streamlit run streamlit_app.py
 ```
 
-Enter a title, author/year citation, description, DOI, ISBN, arXiv ID, or URL. Choose **One particular paper** to identify a work, or **Papers about a topic** to browse related work. The candidate cards show publication details, provenance, and match reasons. Ranking scores are heuristics, not confidence probabilities.
+Enter a title, author/year citation, description, DOI, ISBN, arXiv ID, or URL. Choose **One particular paper** to identify a work, or **Papers about a topic** to browse related work. The candidate cards show publication details, provenance, and match reasons. Bibliographic match scores are heuristics, not confidence probabilities. Conflicting index metadata is highlighted. Expand **Inspect indexed repository records** to inspect original locations, including arXiv, when the primary DOI or publication year appears questionable.
 
 Click **Select this paper**, review the selected title, then **Download selected paper**. Merely searching or selecting never starts acquisition. A new search clears the previous selection and download result.
 
@@ -34,7 +34,7 @@ python3 main.py search "arXiv:1706.03762"
 
 `--limit` accepts 1–50 candidates. `identify` is the default mode. Topic discovery returns a candidate list for the user to assess rather than automatically identifying one paper.
 
-Text searches combine provider candidates, remove duplicate records for the same identity, and rank the bibliographic evidence. Books, preprints, and URLs retain their dedicated metadata resolvers. Available providers and response times depend on API access, rate limits, and network conditions. An unavailable provider is reported separately from a successful empty search; available providers can still contribute results.
+Text searches combine provider candidates, remove duplicate records for the same identity, and rank the bibliographic evidence. If any attempted provider fails, free-text results require selection instead of silently becoming an automatic match. Quota responses start a shared in-memory cooldown for that provider; other providers can still return candidates. An exact supplied DOI remains an identity constraint. Books, preprints, and URLs retain their dedicated metadata resolvers. Available providers and response times depend on API access, rate limits, and network conditions. An unavailable provider is reported separately from a successful empty search; available providers can still contribute results.
 
 JSON contains `query`, `status`, `candidates`, `selected`, and `errors`. Candidate records carry title, authors, year, identifiers, sources, and match reasons. Errors remain visible when a provider fails. `selected` is only populated when the resolver has enough evidence for a strong match.
 

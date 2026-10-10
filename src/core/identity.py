@@ -214,18 +214,16 @@ class IdentityResolver:
     
     def _extract_arxiv_id(self, text: str) -> Optional[str]:
         """Extract arXiv ID from various formats."""
-        # Pattern 1: arXiv:YYMM.NNNNN or arXiv:YYMM.NNNNNvN
-        match = re.search(r'arxiv[:\s]*(\d{4}\.\d{4,5}(?:v\d+)?)', text, re.IGNORECASE)
+        # Both modern numeric and legacy subject identifiers may specify a
+        # version. Preserve it through metadata lookup and PDF acquisition.
+        identifier = r'((?:\d{4}\.\d{4,5}|[a-z][a-z.\-]*/\d{7})(?:v\d+)?)(?!\w)'
+        match = re.fullmatch(identifier, text.strip(), re.IGNORECASE)
         if match:
             return match.group(1)
-        
-        # Pattern 2: arxiv.org/abs/YYMM.NNNNN
-        match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)', text, re.IGNORECASE)
+        match = re.search(r'arxiv[:\s]*' + identifier, text, re.IGNORECASE)
         if match:
             return match.group(1)
-        
-        # Pattern 3: Old format arXiv:subject/YYMMNNN
-        match = re.search(r'arxiv[:\s]*([a-z\-]+/\d{7})', text, re.IGNORECASE)
+        match = re.search(r'arxiv\.org/(?:abs|pdf)/' + identifier, text, re.IGNORECASE)
         if match:
             return match.group(1)
         
@@ -347,6 +345,18 @@ class IdentityResolver:
                 
                 # Find entry
                 entry = root.find('atom:entry', ns)
+                if entry is not None:
+                    entry_id = entry.findtext('atom:id', default='', namespaces=ns)
+                    returned_id = self._extract_arxiv_id(entry_id)
+                    requested = arxiv_id.lower()
+                    returned = (returned_id or '').lower()
+                    explicit_version = bool(re.search(r'v\d+$', requested))
+                    same_identity = (returned == requested if explicit_version else
+                                     re.sub(r'v\d+$', '', returned) == requested)
+                    if not same_identity:
+                        # Retain the user's exact identifier and PDF URL, but
+                        # never attach another paper/version's metadata to it.
+                        entry = None
                 if entry is not None:
                     title_elem = entry.find('atom:title', ns)
                     title = title_elem.text.strip() if title_elem is not None else None

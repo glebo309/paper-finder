@@ -19,6 +19,8 @@ from urllib.parse import quote, unquote, urlsplit
 
 import requests
 
+from .provider_limits import provider_cooldowns
+
 
 _STOP = set('a an and as at by for from in into is of on or the to using via with'.split())
 _SEMANTIC_LOCK = threading.Lock()
@@ -41,11 +43,18 @@ def _normal(value):
 def _doi(value):
     if isinstance(value, str) and value.startswith(('https://doi.org/', 'http://doi.org/', 'https://dx.doi.org/', 'http://dx.doi.org/')):
         value = urlsplit(value).path
-    match = _DOI.search(unquote(value)) if isinstance(value, str) else None
+    decoded = unquote(value).strip().lstrip('/') if isinstance(value, str) else ''
+    # DOI suffixes are opaque: legacy publisher identifiers legitimately contain
+    # balanced angle brackets. Preserve these for explicit DOI values/URLs; the
+    # conservative free-text extractor still stops at HTML delimiters.
+    match = (re.fullmatch(r'10\.\d{4,9}/[^\s\"]+', decoded, re.I)
+             if decoded.startswith('10.') else None) or _DOI.search(decoded)
     if not match:
         return None
     result = match.group(0).rstrip('.,;')
     while result.endswith(')') and result.count(')') > result.count('('):
+        result = result[:-1]
+    while result.endswith('>') and result.count('>') > result.count('<'):
         result = result[:-1]
     return result.lower()
 
@@ -68,6 +77,8 @@ def _record(source, title, doi=None, identifier=None, **fields):
               'abstract': '', 'metadata_source': source, 'sources': [source], 'score': 0.0,
               'match_reasons': [], 'url': 'https://doi.org/' + doi if doi else '', 'pdf_urls': []}
     record.update(fields)
+    if record.get('record_type') in ('component', 'paratext'):
+        record.setdefault('metadata_warnings', []).append('Supporting component; not a standalone paper. Manual review required.')
     return record
 
 
@@ -88,7 +99,7 @@ def _crossref(item):
                for a in item.get('author', []) if isinstance(a, dict)]
     return _record('crossref', title, _doi(item.get('DOI')), authors=[a for a in authors if a], year=year,
                    journal=_first(item.get('container-title')), abstract=_text(item.get('abstract')),
-                   publisher=_text(item.get('publisher')))
+                   publisher=_text(item.get('publisher')), record_type=_text(item.get('type')))
 
 
 def _openalex(item):
@@ -104,7 +115,25 @@ def _openalex(item):
         if isinstance(item.get(key), dict):
             locations.append(item[key])
     pdfs = list(dict.fromkeys(_http(loc.get('pdf_url')) for loc in locations if isinstance(loc, dict) and _http(loc.get('pdf_url'))))
+    record_urls = list(dict.fromkeys(_http(loc.get('landing_page_url')) for loc in locations
+                                    if isinstance(loc, dict) and _http(loc.get('landing_page_url'))))
+    arxiv_ids = []
+    for url in record_urls + pdfs:
+        parsed = urlsplit(url)
+        if parsed.hostname in ('arxiv.org', 'www.arxiv.org', 'export.arxiv.org'):
+            match = re.fullmatch(r'/(?:abs|pdf)/(\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?(?:\.pdf)?/?', parsed.path, re.I)
+            if match and match.group(1) not in arxiv_ids:
+                arxiv_ids.append(match.group(1))
+    preprint_years = sorted({2000 + int(identifier[:2]) for identifier in arxiv_ids
+                            if re.fullmatch(r'\d{4}\.\d{4,5}', identifier) and 1 <= int(identifier[2:4]) <= 12})
+    citation_count = item.get('cited_by_count', 0)
+    if not isinstance(citation_count, int) or isinstance(citation_count, bool) or citation_count < 0:
+        citation_count = 0
     primary = item.get('primary_location') or {}
+    location_dois = {_doi(loc.get('doi') or loc.get('landing_page_url')) for loc in locations if isinstance(loc, dict)} - {None}
+    warnings = []
+    if arxiv_ids and not primary.get('source') and len(location_dois) > 1:
+        warnings.append('Unattributed primary DOI with multiple DOI locations; inspect the original repository record.')
     source = primary.get('source') or {}
     abstract = ''
     inverted = item.get('abstract_inverted_index')
@@ -117,7 +146,9 @@ def _openalex(item):
                    authors=[a for a in authors if a], year=_year(item.get('publication_year')),
                    journal=_text(source.get('display_name')), abstract=abstract,
                    url=_http(primary.get('landing_page_url')) or _http(item.get('doi')) or _http(item.get('id')),
-                   pdf_urls=pdfs, is_retracted=bool(item.get('is_retracted')))
+                   pdf_urls=pdfs, record_urls=record_urls, arxiv_ids=arxiv_ids, preprint_years=preprint_years,
+                   cited_by_count=citation_count, metadata_warnings=warnings, record_type=_text(item.get('type')),
+                   is_retracted=bool(item.get('is_retracted')))
 
 
 def _scholar(item):
@@ -145,20 +176,24 @@ def _deduplicate(records):
             merged[key] = record
             continue
         target = merged[key]
-        for name in ('sources', 'pdf_urls'):
-            target[name] = list(dict.fromkeys(target[name] + record[name]))
+        for name in ('sources', 'pdf_urls', 'record_urls', 'arxiv_ids', 'preprint_years', 'metadata_warnings'):
+            target[name] = list(dict.fromkeys(target.get(name, []) + record.get(name, [])))
         for source, rank in record.get('source_ranks', {}).items():
             target.setdefault('source_ranks', {})[source] = min(rank, target.get('source_ranks', {}).get(source, rank))
-        for name in ('authors', 'year', 'journal', 'abstract', 'url', 'publisher'):
+        for name in ('authors', 'year', 'journal', 'abstract', 'url', 'publisher', 'record_type'):
             if not target.get(name) and record.get(name):
                 target[name] = record[name]
+        target['cited_by_count'] = max(target.get('cited_by_count', 0), record.get('cited_by_count', 0))
         target['is_retracted'] = target.get('is_retracted', False) or record.get('is_retracted', False)
     return list(merged.values())
 
 
 def _rank(query, record, exact_doi=None):
     if exact_doi:
-        record.update(score=100.0, match_reasons=['Exact DOI match'], _identity=True)
+        warnings = list(record.get('metadata_warnings') or [])
+        if record.get('is_retracted'):
+            warnings.append('Retracted work: manual review required')
+        record.update(score=100.0, match_reasons=['Exact DOI match'] + warnings, _identity=not warnings)
         return
     query_norm, title = _normal(query), _normal(record['title'])
     query_words, title_words = set(query_norm.split()) - _STOP, set(title.split()) - _STOP
@@ -169,10 +204,10 @@ def _rank(query, record, exact_doi=None):
     reasons = []
     identity = False
     if query_norm == title:
-        score, identity = 98.0, len(title_words) >= 3
+        score, identity = 98.0, len(title_words) >= 4
         reasons.append('Exact normalized title')
-    elif len(title_words) >= 4 and (' ' + title + ' ') in (' ' + query_norm + ' '):
-        score, identity = 90.0, True
+    elif len(title_words) >= 3 and (' ' + title + ' ') in (' ' + query_norm + ' '):
+        score, identity = 90.0, len(title_words) >= 4
         reasons.append('Full title occurs in citation')
     else:
         score = 65 * (2 * precision * recall / max(precision + recall, 0.001)) + 25 * similarity
@@ -186,9 +221,13 @@ def _rank(query, record, exact_doi=None):
             score += 4
             reasons.append('Publication year matches')
         else:
-            score -= 20
             identity = False
             reasons.append('Publication year conflicts')
+            if years & set(record.get('preprint_years', [])):
+                score += 4
+                reasons.append('Preprint submission year matches')
+            else:
+                score -= 20
     surnames = {_normal(a).split()[-1] for a in record['authors'] if _normal(a)}
     # Bibliographic text around a full title can carry authors before or after
     # the title. Known venue words and citation markers are not author claims.
@@ -204,6 +243,11 @@ def _rank(query, record, exact_doi=None):
     if surnames & query_words:
         score += 5
         reasons.append('Author name matches')
+    if (len(title_words) == 3 and title in query_norm and 'Publication year matches' in reasons
+            and 'Author name matches' in reasons and not any('conflicts' in reason for reason in reasons)):
+        identity = True
+        score = max(score, 90)
+        reasons.append('Short title corroborated by author and year')
     abstract_words = set(_normal(record.get('abstract', '')).split()) - _STOP
     if abstract_words and not identity:
         score += min(8, 8 * len(query_words & abstract_words) / max(len(query_words), 1))
@@ -215,10 +259,38 @@ def _rank(query, record, exact_doi=None):
     if set(record.get('source_ranks', {})) == {'openalex_semantic'}:
         identity = False
         reasons.append('Semantic retrieval alone requires candidate selection')
+    if record.get('metadata_warnings'):
+        identity = False
+        reasons.extend(record['metadata_warnings'])
     if record.get('is_retracted'):
         identity = False
         reasons.append('Retracted work: manual review required')
     record.update(score=round(max(0, min(score, 100)), 2), match_reasons=reasons, _identity=identity)
+
+
+def _citation_title(query):
+    """Recover one explicit title, never invent keywords from descriptive prose.
+
+    This only widens retrieval; all returned records are still scored against the
+    complete original citation, including contradictory authors and years.
+    """
+    quoted = re.search(r'["“]([^"”]{20,300})["”]', query)
+    if quoted:
+        title = quoted.group(1).strip(' .')
+    else:
+        citation = re.match(r'^([^\d]{2,180}?)\s*\(?(?:18|19|20)\d{2}\)?[.:]?\s+(.+)$', query)
+        if not citation:
+            return None
+        authors, remainder = citation.groups()
+        words = _normal(authors).split()
+        if any(word in {'paper', 'papers', 'study', 'studies', 'remember', 'find', 'about', 'that', 'by', 'in'} for word in words):
+            return None
+        if len(words) > 4 and not re.search(r'\bet\s+al\b|[,;]', authors, re.I):
+            return None
+        title = re.split(r'\.\s+', remainder, maxsplit=1)[0].strip(' ."“”')
+    if len(_normal(title).split()) < 4 or _normal(title) == _normal(query):
+        return None
+    return title
 
 
 class DiscoveryService:
@@ -238,9 +310,13 @@ class DiscoveryService:
         if any(p not in self.PROVIDERS for p in self.providers):
             raise ValueError('Unknown discovery provider')
 
-    def _fetch(self, provider, query, count, exact_doi, remaining):
+    def _fetch(self, provider, query, count, exact_doi, remaining, now=None):
+        cooldown = provider_cooldowns.remaining(provider, now=now)
+        if cooldown > 0:
+            return [], {'kind': 'rate_limited', 'message': 'Metadata provider is cooling down; respect the retry interval.',
+                        'retry_after': str(math.ceil(cooldown))}
         headers = {'User-Agent': 'PaperFinder/2 (scholarly metadata discovery)', 'Accept': 'application/json'}
-        if provider in ('openalex', 'openalex_semantic'):
+        if provider in ('openalex', 'openalex_semantic', 'openalex_citation'):
             url = 'https://api.openalex.org/works'
             params = {'per_page': count, 'filter': 'doi:https://doi.org/' + exact_doi} if exact_doi else {'per_page': count, 'search': query}
             if provider == 'openalex_semantic':
@@ -269,6 +345,7 @@ class DiscoveryService:
         except requests.RequestException:
             return [], {'kind': 'network_error', 'message': 'Metadata provider could not be reached.'}
         if response.status_code == 429:
+            provider_cooldowns.record_limit(provider, response.headers.get('Retry-After'))
             return [], {'kind': 'rate_limited', 'message': 'Metadata provider rate limit reached.',
                         'retry_after': response.headers.get('Retry-After')}
         if response.status_code == 404 and exact_doi:
@@ -318,14 +395,14 @@ class DiscoveryService:
                 for record in ranked:
                     _rank(query, record, exact_doi)
                 ranked.sort(key=lambda r: r['score'], reverse=True)
-                if self._match(ranked):
+                if self._match(ranked) and (exact_doi or not result['errors']):
                     records = ranked
                     break
             remaining = self.deadline - (time.monotonic() - start)
             if remaining <= 0:
                 result['errors'][provider] = {'kind': 'deadline', 'message': 'Search request budget exhausted.'}
                 continue
-            found, error = self._fetch(provider, query, max(10, limit), exact_doi, remaining)
+            found, error = self._fetch(provider, query, max(10, limit), exact_doi, remaining, now=start + self.deadline - remaining)
             if error:
                 result['errors'][provider] = error
             else:
@@ -335,7 +412,24 @@ class DiscoveryService:
         for record in records:
             _rank(query, record, exact_doi)
         records.sort(key=lambda r: -r['score'])
+        relaxed_title = _citation_title(query) if not exact_doi and not self._match(records) else None
+        if relaxed_title and 'openalex' in self.providers and 'openalex' not in result['errors']:
+            remaining = self.deadline - (time.monotonic() - start)
+            if remaining <= 0:
+                result['errors']['openalex_citation'] = {'kind': 'deadline', 'message': 'Search request budget exhausted.'}
+            else:
+                found, error = self._fetch('openalex_citation', relaxed_title, max(10, limit), None, remaining, now=start + self.deadline - remaining)
+                if error:
+                    result['errors']['openalex_citation'] = error
+                else:
+                    successes += 1
+                    records.extend(found)
+                    records = _deduplicate(records)
+                    for record in records:
+                        _rank(query, record, exact_doi)
+                    records.sort(key=lambda r: -r['score'])
         if (not exact_doi and 'openalex' in self.providers and 'openalex' not in result['errors']
+                and result['errors'].get('openalex_citation', {}).get('kind') not in ('rate_limited', 'authentication')
                 and remaining > 0 and (mode == 'discover' or not self._match(records))):
             # A single additional semantic call, with a process-wide 1 rps guard.
             # Never sleep or immediately retry after exhausting a provider quota.
@@ -348,7 +442,7 @@ class DiscoveryService:
                     if allowed:
                         _SEMANTIC_NEXT_ALLOWED = now + 1.0
                 if allowed:
-                    found, error = self._fetch('openalex_semantic', query, max(10, limit), None, remaining)
+                    found, error = self._fetch('openalex_semantic', query, max(10, limit), None, remaining, now=start + self.deadline - remaining)
                     if error:
                         result['errors']['openalex_semantic'] = error
                         if error.get('kind') == 'rate_limited':
@@ -377,9 +471,34 @@ class DiscoveryService:
             record['retrieval_score'] = round(sum((4 if source == 'openalex_semantic' else 1) / (1 + rank)
                 for source, rank in record.get('source_ranks', {}).items()), 6)
         records.sort(key=lambda r: (-r['score'], r['title'].casefold(), str(r['identifier']['value'])))
-        matched = mode == 'identify' and self._match(records)
+        matched = mode == 'identify' and self._match(records) and (bool(exact_doi) or not result['errors'])
+        if not exact_doi and result['errors']:
+            for record in records:
+                if record.get('_identity'):
+                    record['match_reasons'].append('Provider coverage incomplete; manual selection required.')
         if not matched and any('openalex_semantic' in r.get('source_ranks', {}) for r in records):
-            records.sort(key=lambda r: (-r['retrieval_score'], -r['score']))
+            # Bibliographic evidence must survive semantic expansion. Meaning-only
+            # ranking is useful for topic descriptions but cannot displace a close
+            # title or the explicitly supplied author/year with a tangential hit.
+            strong_title = any(r['score'] >= 70 for r in records)
+            dated_query = bool(re.search(r'\b(?:18|19|20)\d{2}\b', query))
+            def lexical_rank(record):
+                return min((rank for source, rank in record.get('source_ranks', {}).items()
+                            if source != 'openalex_semantic'), default=1000)
+            if strong_title:
+                records.sort(key=lambda r: (-r['score'], lexical_rank(r), -r['retrieval_score']))
+            elif dated_query:
+                records.sort(key=lambda r: (-(r['score'] + 12 * ('Author name matches' in r['match_reasons'])
+                                                + 4 * ('Publication year matches' in r['match_reasons'])
+                                                + min(12, 2 * math.log10(1 + r.get('cited_by_count', 0)))),
+                                            lexical_rank(r), -r['retrieval_score']))
+            else:
+                records.sort(key=lambda r: (-r['retrieval_score'], -r['score']))
+        if not matched:
+            # Retain components for inspection, after standalone publications.
+            # Do this after the identity decision so a figure's exact title never
+            # makes a different, lower-scoring article an automatic selection.
+            records.sort(key=lambda r: r.get('record_type') in ('component', 'paratext'))
         if records:
             result['status'] = 'matched' if matched else 'ambiguous'
             result['selected'] = records[0] if matched else None

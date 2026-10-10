@@ -755,9 +755,18 @@ class PaperFinder:
                 output_file = self._available_output(output_dir, doi)
                 fallback = self._execute_pipeline(doi, output_file, meta_callback=None,
                                                   oa_callback=capture_link, metadata=record)
-                # Preserve a readable location of an unverified file if other sources failed.
-                if fallback.success or result is None or not result.filepath:
+                fallback = self._verify_result(fallback, record)
+                attempts = {**(result.attempts or {} if result else {}), **(fallback.attempts or {})}
+                # Remove only the review copy created by this operation, after a
+                # verified replacement exists. Keep evidence from every source.
+                if fallback.success and result and result.filepath and result.filepath != fallback.filepath:
+                    try:
+                        Path(result.filepath).unlink(missing_ok=True)
+                    except OSError:
+                        attempts["review_copy_cleanup"] = "Could not remove superseded review copy"
+                if fallback.success or fallback.status == "cancelled" or result is None or not result.filepath:
                     result = fallback
+                result.attempts = attempts
         if result is None:
             result = DownloadResult(False, error="No downloadable full-text location found", metadata=record, status="not_found")
         final = self._verify_result(result, record)

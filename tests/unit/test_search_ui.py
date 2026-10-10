@@ -129,3 +129,21 @@ def test_book_date_normalized_for_snapshot_roundtrip(monkeypatch, tmp_path):
     snapshot = tmp_path / "book.json"
     save_results(snapshot, result)
     assert load_results(snapshot)["selected"]["publication_date"] == "January 1, 2013"
+
+
+def test_streamlit_exposes_repository_identity_and_metadata_conflicts():
+    from streamlit.testing.v1 import AppTest
+    from pathlib import Path
+    record = {
+        'title': 'Original paper', 'identifier': {'type': 'doi', 'value': '10.1234/repost'},
+        'doi': '10.1234/repost', 'arxiv_ids': ['1706.03762'],
+        'metadata_warnings': ['Indexed DOI conflicts with repository metadata'],
+        'record_urls': ['https://arxiv.org/abs/1706.03762'],
+    }
+    app = AppTest.from_file(str(Path(__file__).resolve().parents[2] / 'streamlit_app.py'))
+    app.session_state['search_result'] = {'query': 'original paper', 'status': 'ambiguous', 'candidates': [record]}
+    app.run()
+    assert not app.exception
+    assert any('Indexed DOI conflicts' in item.value for item in app.warning)
+    assert any('1706.03762' in item.value for item in app.caption)
+    assert any(item.proto.url == 'https://arxiv.org/abs/1706.03762' for item in app.get('link_button'))
