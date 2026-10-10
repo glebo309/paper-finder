@@ -44,7 +44,7 @@ class PaperFinderGUI:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Paper Finder - Academic PDF Download")
-        self.root.geometry("600x300")  # Start with only search section visible (enough room for both toggles)
+        self.root.geometry("600x340")  # Start with only search section visible (enough room for both toggles)
         
         # Configure style
         self.setup_style()
@@ -150,9 +150,14 @@ class PaperFinderGUI:
         )
         browse_btn.grid(row=1, column=2, padx=(6, 0), pady=(10, 0))
         
+        self.recent_sources = tk.BooleanVar(value=True)
+        ttk.Checkbutton(input_frame, text="Prioritize recent full-text sources",
+                        variable=self.recent_sources).grid(
+                            row=2, column=0, columnspan=3, sticky=tk.W, pady=(12, 0))
+
         # Search button with status indicator
         button_frame = ttk.Frame(input_frame)
-        button_frame.grid(row=2, column=0, columnspan=3, pady=(20, 0))
+        button_frame.grid(row=3, column=0, columnspan=3, pady=(12, 0))
         
         self.search_button = ttk.Button(
             button_frame, 
@@ -241,6 +246,17 @@ class PaperFinderGUI:
             else:
                 ttk.Label(output_frame, textvariable=var).grid(row=i, column=1, sticky=(tk.W, tk.E), pady=2)
     
+        handoff = ttk.Frame(output_frame)
+        handoff.grid(row=5, column=0, columnspan=2, sticky=tk.W, pady=(12, 0))
+        self.publisher_button = ttk.Button(handoff, text="Open publisher", command=self.open_publisher, state='disabled')
+        self.publisher_button.grid(row=0, column=0)
+        self.import_pdf_button = ttk.Button(handoff, text="Import browser PDF", command=self.import_browser_pdf, state='disabled')
+        self.import_pdf_button.grid(row=0, column=1, padx=(10, 0))
+        self.watch_download_button = ttk.Button(handoff, text='Watch browser download', command=self.watch_browser_download, state='disabled')
+        self.watch_download_button.grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(8, 0))
+        ttk.Button(handoff, text='Institution settings', command=self.institution_settings).grid(row=2, column=0, sticky=tk.W, pady=(8, 0))
+        ttk.Button(handoff, text='Open library login', command=self.open_library_login).grid(row=2, column=1, padx=(10, 0), pady=(8, 0))
+
     def build_log_section(self, parent):
         """Build the log section (content only, header is in toggle bar)"""
         # Wrapper frame for log content
@@ -345,16 +361,16 @@ class PaperFinderGUI:
         
         if not result_shown and not log_shown:
             # Only search section (both toggles visible)
-            self.root.geometry("600x300")
+            self.root.geometry("600x340")
         elif result_shown and not log_shown:
             # Search + Result
-            self.root.geometry("600x480")
+            self.root.geometry("600x650")
         elif not result_shown and log_shown:
             # Search + Log
-            self.root.geometry("600x550")
+            self.root.geometry("600x590")
         else:
             # All sections
-            self.root.geometry("600x800")
+            self.root.geometry("600x970")
     
     def center_window(self):
         """Center the window on screen"""
@@ -380,11 +396,15 @@ class PaperFinderGUI:
         The engine (paper_finder) controls if/when the browser is opened,
         based on whether the paper is actually Open Access.
         """
+        if getattr(self, "_search_active", False):
+            return
         ref = self.doi_var.get().strip()
         if not ref:
             messagebox.showwarning("Input Required", "Please enter a DOI, title, or URL")
             return
         
+        self._search_active = True
+        self._search_id = getattr(self, "_search_id", 0) + 1
         self.logging_silenced = False
         # Clear previous results
         self.clear_results()
@@ -404,13 +424,19 @@ class PaperFinderGUI:
         # Pass raw reference - finder.find() will handle DOI extraction/resolution
         thread = threading.Thread(
             target=self._search_thread,
-            args=(ref, Path(self.output_var.get())),
+            args=(ref, Path(self.output_var.get()), self.recent_sources.get()),
             daemon=True
         )
         thread.start()
     
-    def _search_thread(self, ref: str, output_dir: Path):
+    def _search_thread(self, ref: str, output_dir: Path, recent_sources=True):
         """Background thread for searching"""
+        request_id = getattr(self, "_search_id", 0)
+        def post(callback, *args):
+            def dispatch():
+                if getattr(self, "_search_id", 0) == request_id:
+                    callback(*args)
+            self.root.after(0, dispatch)
         redirector: Optional[_TextRedirector] = None
         old_stdout = None
         old_stderr = None
@@ -418,7 +444,7 @@ class PaperFinderGUI:
         
         try:
             # Log start of search on the main thread
-            self.root.after(0, self.log, f"Searching for: {ref}")
+            post(self.log, f"Searching for: {ref}")
 
             # Verbose logging: stream stdout/stderr to the Activity Log in real time
             if self.verbose_logging.get():
@@ -426,27 +452,9 @@ class PaperFinderGUI:
                 old_stdout, old_stderr = sys.stdout, sys.stderr
                 sys.stdout, sys.stderr = redirector, redirector
 
-            # Define OA callback that opens browser immediately when OA is detected
-            def on_oa_detected(doi: str, oa_url: str):
-                def _open():
-                    self.log(f"Paper is Open Access (fast check). Opening in browser: {oa_url}")
-                    self.status_var.set("Opening Open Access paper in browser...")
-                    try:
-                        webbrowser.open(oa_url)
-                        # Update status and result immediately
-                        self.result_fields['status'].set("✓ Opened in browser")
-                        self.result_fields['source'].set("Open Access (Browser)")
-                        # Show green checkmark immediately
-                        self.status_indicator.configure(text="✓")
-                        # Auto-show result section
-                        if not self.result_visible.get():
-                            self.toggle_result()
-                        self.status_var.set("Continuing deep search...")
-                        browser_opened[0] = True  # Mark that we opened the browser
-                    except Exception as e:
-                        self.log(f"Browser open failed: {e}")
-                        self.status_var.set("Browser open failed")
-                self.root.after(0, _open)
+            # A located article is not a verified download. Keep its URL in the log.
+            def on_oa_detected(identifier: str, url: str):
+                post(self.log, f"Article link found: {url}")
 
             # Metadata callback: update title/author in Results section as soon as paper is identified
             def on_meta(meta: dict):
@@ -475,15 +483,20 @@ class PaperFinderGUI:
                     if author_str:
                         self.result_fields['author'].set(author_str)
 
-                self.root.after(0, _set)
+                post(_set)
 
-            result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
+            if isinstance(ref, dict):
+                result = self.finder.find_record(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta,
+                                                      recent_sources=recent_sources)
+            else:
+                result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta,
+                                                      recent_sources=recent_sources)
 
             # Update UI in main thread, passing the browser_opened flag
-            self.root.after(0, self._update_results, result, browser_opened[0])
+            post(self._update_results, result, browser_opened[0])
 
         except Exception as e:
-            self.root.after(0, self._search_error, str(e))
+            post(self._search_error, str(e))
         finally:
             # Restore original stdout/stderr
             if redirector is not None and old_stdout is not None and old_stderr is not None:
@@ -491,6 +504,7 @@ class PaperFinderGUI:
     
     def _update_results(self, result: DownloadResult, browser_already_opened: bool = False):
         """Update UI with search results"""
+        self._search_active = False
         # Re-enable search button, disable Stop
         self.search_button.configure(state='normal')
         self.stop_button.configure(state='disabled')
@@ -502,6 +516,7 @@ class PaperFinderGUI:
         
         # Extract metadata
         meta = result.metadata or {}
+        self._set_handoff_record(meta if getattr(result, "status", "") != "ambiguous" else None)
         title = meta.get('title', '')
         authors = meta.get('authors', [])
         is_oa = bool(meta.get('is_oa'))
@@ -526,56 +541,96 @@ class PaperFinderGUI:
                 author_str = str(authors)
             self.result_fields['author'].set(author_str)
         
-        if result.success:
-            # Check if this is a browser-only success (no PDF file)
-            if result.filepath is None:
-                self.status_var.set("✓ Paper opened in browser")
-                self.result_fields['status'].set("✓ Opened in browser")
-                self.result_fields['source'].set(result.source)
-                self.result_fields['file'].set("(Opened in browser)")
-                self.log(f"✓ Paper successfully opened in browser via {result.source}")
-            else:
-                self.status_var.set("✓ Download successful")
-                self.result_fields['status'].set("✓ Success")
-                self.result_fields['source'].set(result.source)
-                self.result_fields['file'].set(str(result.filepath))
-                self.log(f"✓ Successfully downloaded from {result.source}")
-                self.log(f"Saved to: {result.filepath}")
-            
-            # Show green checkmark
-            self.status_indicator.configure(text="✓")
-            
-        else:
-            if result.error == "Cancelled by user":
-                # Graceful cancellation: don't treat as hard failure
-                self.status_var.set("Search cancelled")
-                self.result_fields['status'].set("Cancelled")
-                self.result_fields['source'].set("None")
-                self.log("Search cancelled by user.")
+        candidates = meta.get('candidates', [])
+        if getattr(result, 'status', '') == 'ambiguous' and candidates:
+            self.status_var.set("Choose the paper you meant")
+            self.result_fields['status'].set("Needs selection")
+            self._show_candidates(candidates)
+            return
+        status = getattr(result, 'status', '') or ('verified' if result.success else 'not_found')
+        labels = {
+            'verified': 'Verified download', 'unverifiable': 'Saved, identity unverified' if result.filepath else 'Document identity unverified',
+            'mismatch': 'Document does not match', 'located': 'Article link found, no verified download',
+            'cancelled': 'Search cancelled', 'unavailable': 'Search providers unavailable',
+            'not_found': 'No verified download found',
+        }
+        label = labels.get(status, status.replace('_', ' ').capitalize())
+        self.status_var.set(label)
+        self.result_fields['status'].set(label)
+        self.result_fields['source'].set(result.source or "None")
+        self.result_fields['file'].set(str(result.filepath) if result.filepath else "")
+        self.status_indicator.configure(text="OK" if result.success else "")
+        self.log(label)
+        if result.error:
+            self.log(result.error)
+        if result.filepath:
+            self.log(f"Saved to: {result.filepath}")
+
+    def _show_candidates(self, candidates):
+        """Offer real records for explicit selection on the Tk main thread."""
+        window = tk.Toplevel(self.root)
+        window.title("Choose a paper")
+        window.geometry("900x480")
+        window.transient(self.root)
+        ttk.Label(window, text="Several papers may match. Select the one you want to download.",
+                  padding=12).pack(anchor='w')
+        columns = ('title', 'authors', 'year', 'source')
+        table = ttk.Treeview(window, columns=columns, show='headings', selectmode='browse')
+        for key, width in zip(columns, (420, 220, 65, 140)):
+            table.heading(key, text=key.capitalize())
+            table.column(key, width=width, minwidth=50)
+        for index, record in enumerate(candidates):
+            table.insert('', 'end', iid=str(index), values=(record.get('title', ''),
+                         ', '.join(record.get('authors', [])[:3]), record.get('year') or '',
+                         ', '.join(record.get('sources', []))))
+        table.pack(fill='both', expand=True, padx=12)
+        details = tk.StringVar(value="Select a result to see the match evidence.")
+        ttk.Label(window, textvariable=details, wraplength=850, padding=12).pack(anchor='w')
+        def select(_event=None):
+            selection = table.selection()
+            if selection:
+                record = candidates[int(selection[0])]
+                details.set(record.get('title', '') + "\n" + '; '.join(record.get('match_reasons', []))
+                            + "\n" + str((record.get('identifier') or {}).get('value', '')))
+                download.configure(state='normal')
+                browser_handoff.configure(state='normal')
+        def acquire():
+            selection = table.selection()
+            if not selection:
                 return
-            
-            # Download failed; decide whether to open in browser based on OA status
-            if is_oa:
-                # Paper was already opened in browser via fast OA check
-                # Don't say "failed" - the user got access to the paper!
-                self.status_var.set("✓ Paper opened in browser (Open Access)")
-                # Show green checkmark
-                self.status_indicator.configure(text="✓")
-                # Status and source were already set by on_oa_detected callback
-                if not browser_already_opened:
-                    # This shouldn't happen, but just in case the fast check failed
-                    self.result_fields['status'].set("✓ Opened in browser")
-                    self.result_fields['source'].set("Open Access (Browser)")
-                    self.log(f"PDF download not available, but paper is accessible via Open Access.")
-            else:
-                # Not Open Access and download failed – truly failed
-                self.status_var.set("✗ Download failed")
-                self.result_fields['status'].set("✗ Failed")
-                self.result_fields['source'].set("None")
-                self.log(f"Download failed: {result.error}")
-    
+            record = candidates[int(selection[0])]
+            window.destroy()
+            self._search_active = True
+            self._search_id = getattr(self, "_search_id", 0) + 1
+            self.clear_results()
+            self.search_button.configure(state='disabled')
+            self.stop_button.configure(state='normal')
+            self.status_var.set("Downloading selected paper...")
+            self.start_spinner()
+            threading.Thread(target=self._search_thread,
+                             args=(record, Path(self.output_var.get()), self.recent_sources.get()), daemon=True).start()
+        def use_browser():
+            selection = table.selection()
+            if not selection:
+                return
+            record = candidates[int(selection[0])]
+            window.destroy()
+            self.clear_results()
+            self._update_results(DownloadResult(False, status='located', metadata=record,
+                error='Open the publisher page, download through your browser access, then import the PDF for verification.'))
+        buttons = ttk.Frame(window, padding=12)
+        buttons.pack(fill='x')
+        download = ttk.Button(buttons, text="Download selected paper", command=acquire, state='disabled')
+        download.pack(side='right')
+        browser_handoff = ttk.Button(buttons, text='Use browser / import instead', command=use_browser, state='disabled')
+        browser_handoff.pack(side='right', padx=8)
+        ttk.Button(buttons, text="Cancel", command=window.destroy).pack(side='right', padx=8)
+        table.bind('<<TreeviewSelect>>', select)
+        window.grab_set()
+
     def _search_error(self, error: str):
         """Handle search error"""
+        self._search_active = False
         self.search_button.configure(state='normal')
         self.stop_button.configure(state='disabled')
         self.stop_spinner()
@@ -583,8 +638,152 @@ class PaperFinderGUI:
         self.log(f"Error: {error}")
         messagebox.showerror("Search Error", f"An error occurred:\n{error}")
     
+    def _set_handoff_record(self, record):
+        valid = isinstance(record, dict) and bool(record.get('title')) and bool((record.get('identifier') or {}).get('value'))
+        self._handoff_record = dict(record) if valid else None
+        state = 'normal' if valid and not getattr(self, '_search_active', False) else 'disabled'
+        for name in ('publisher_button', 'import_pdf_button', 'watch_download_button'):
+            button = getattr(self, name, None)
+            if button is not None:
+                button.configure(state=state)
+
+    def _institutional_settings(self):
+        from src.acquisition.institutional_access import load_institutional_settings
+        settings = getattr(self, '_institution_settings', None)
+        return settings if settings is not None else load_institutional_settings(getattr(getattr(self, 'finder', None), 'config', None))
+
+    def institution_settings(self):
+        from src.acquisition.institutional_access import InstitutionalAccessSettings, validate_proxy_template, validate_login_url
+        try:
+            current = self._institutional_settings()
+        except ValueError as exc:
+            messagebox.showerror('Institution settings', str(exc))
+            current = InstitutionalAccessSettings()
+        window = tk.Toplevel(self.root)
+        window.title('Institution settings')
+        window.geometry('650x260')
+        window.transient(self.root)
+        fields = {}
+        for row, (key, label) in enumerate((('label', 'Library name'), ('login_url', 'Official sign-in URL'), ('proxy_template', 'Official proxy template ({url})'))):
+            ttk.Label(window, text=label).grid(row=row, column=0, sticky=tk.W, padx=12, pady=8)
+            fields[key] = tk.StringVar(value=getattr(current, key))
+            ttk.Entry(window, textvariable=fields[key], width=48).grid(row=row, column=1, padx=12, pady=8, sticky=(tk.W, tk.E))
+        ttk.Label(window, text='Use your library’s published URLs. Sign in in the browser. Settings apply to this session; no passwords or cookies are stored.', wraplength=610).grid(row=3, column=0, columnspan=2, padx=12, pady=8)
+        def save():
+            try:
+                self._institution_settings = InstitutionalAccessSettings(label=fields['label'].get().strip(),
+                    login_url=validate_login_url(fields['login_url'].get()),
+                    proxy_template=validate_proxy_template(fields['proxy_template'].get()))
+            except ValueError as exc:
+                messagebox.showerror('Institution settings', str(exc), parent=window)
+                return
+            window.destroy()
+        ttk.Button(window, text='Apply', command=save).grid(row=4, column=1, sticky=tk.E, padx=12, pady=8)
+        window.columnconfigure(1, weight=1)
+        window.grab_set()
+
+    def open_library_login(self):
+        try:
+            settings = self._institutional_settings()
+            if settings.login_url:
+                webbrowser.open(settings.login_url)
+            else:
+                messagebox.showinfo('Library sign-in', 'Add your library’s official sign-in URL in Institution settings.')
+        except ValueError as exc:
+            messagebox.showerror('Library sign-in', str(exc))
+
+    def open_publisher(self):
+        """Open only on an explicit click, using the record or configured proxy."""
+        from src.acquisition.institutional_access import browser_access_url
+        record = getattr(self, '_handoff_record', None)
+        if not record or getattr(self, '_search_active', False):
+            return
+        try:
+            settings = self._institutional_settings()
+            webbrowser.open(browser_access_url(record, proxy_template=settings.proxy_template))
+        except ValueError as exc:
+            messagebox.showerror('Open publisher', str(exc))
+
+    def watch_browser_download(self):
+        from src.acquisition.browser_handoff import BrowserDownloadWatcher
+        from src.acquisition.institutional_access import browser_access_url
+        record = getattr(self, '_handoff_record', None)
+        if not record or getattr(self, '_search_active', False):
+            return
+        folder = filedialog.askdirectory(title='Choose your browser download folder', initialdir=str(Path.home() / 'Downloads'))
+        if not folder:
+            return
+        try:
+            settings = self._institutional_settings()
+            url = browser_access_url(record, proxy_template=settings.proxy_template)
+            watcher = BrowserDownloadWatcher(record, folder, self.output_var.get(), timeout=300)
+        except ValueError as exc:
+            messagebox.showerror('Browser download watch', str(exc))
+            return
+        if watcher.finished:
+            self._update_results(watcher.poll())
+            return
+        self._browser_watcher = watcher
+        self._search_active = True
+        self._search_id = getattr(self, '_search_id', 0) + 1
+        self._set_handoff_record(record)
+        self.search_button.configure(state='disabled')
+        self.stop_button.configure(state='normal')
+        self.status_var.set('Waiting for browser PDF. Use Stop to cancel.')
+        webbrowser.open(url)
+        threading.Thread(target=self._watch_browser_thread, args=(watcher, self._search_id), daemon=True).start()
+
+    def _watch_browser_thread(self, watcher, request_id):
+        import time
+        previous = None
+        while True:
+            result = watcher.poll()
+            message = watcher.message
+            if result is not None:
+                def finish(result=result):
+                    if getattr(self, '_search_id', 0) == request_id:
+                        self._update_results(result)
+                self.root.after(0, finish)
+                return
+            if message != previous:
+                def update(message=message):
+                    if getattr(self, '_search_id', 0) == request_id:
+                        self.status_var.set(message)
+                self.root.after(0, update)
+                previous = message
+            time.sleep(.75)
+
+    def import_browser_pdf(self):
+        """Choose a local browser download; verification and copying stay offline."""
+        record = getattr(self, '_handoff_record', None)
+        if not record or getattr(self, '_search_active', False):
+            return
+        source = filedialog.askopenfilename(title='Import browser-downloaded PDF', filetypes=[('PDF documents', '*.pdf')])
+        if not source:
+            return
+        self._search_active = True
+        self._search_id = getattr(self, '_search_id', 0) + 1
+        self._set_handoff_record(record)
+        self.search_button.configure(state='disabled')
+        self.stop_button.configure(state='disabled')
+        self.status_var.set('Verifying browser PDF...')
+        threading.Thread(target=self._import_pdf_thread,
+            args=(dict(record), source, self.output_var.get(), self._search_id), daemon=True).start()
+
+    def _import_pdf_thread(self, record, source, output_dir, request_id):
+        from src.acquisition.local_import import import_local_pdf
+        try:
+            result = import_local_pdf(record, source, output_dir)
+        except Exception as exc:
+            result = DownloadResult(False, status='error', error=str(exc), metadata=record)
+        def finish():
+            if getattr(self, '_search_id', 0) == request_id:
+                self._update_results(result)
+        self.root.after(0, finish)
+
     def clear_results(self):
         """Clear result fields"""
+        self._set_handoff_record(None)
         for var in self.result_fields.values():
             var.set("")
         # Clear status indicator
@@ -593,6 +792,12 @@ class PaperFinderGUI:
     def stop_search(self):
         """Request cancellation of the current search"""
         try:
+            watcher = getattr(self, '_browser_watcher', None)
+            if watcher is not None and not watcher.finished:
+                watcher.cancel()
+                self.status_var.set('Cancelling browser watch...')
+                self.stop_button.configure(state='disabled')
+                return
             if hasattr(self, 'finder') and self.finder is not None:
                 # Debug log so we can verify Stop is actually being invoked
                 self.log("[GUI] Stop button pressed - calling finder.request_cancel()")

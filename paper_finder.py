@@ -120,6 +120,8 @@ class DownloadResult:
     error: str = ""
     metadata: Optional[Dict] = None
     attempts: Dict = None  # GUI expects this field
+    status: str = ""
+    verification: Optional[Dict] = None
 
 
 class PaperFinder:
@@ -128,10 +130,12 @@ class PaperFinder:
     Coordinates multiple acquisition strategies with intelligent fallback.
     """
     
-    def __init__(self, silent_init: bool = False):
+    def __init__(self, silent_init: bool = False, *, config=None):
         """Initialize the paper finder"""
         # Get configuration
-        if get_config:
+        if config is not None:
+            self.config = config
+        elif get_config:
             self.config = get_config()
         else:
             self.config = None
@@ -156,29 +160,11 @@ class PaperFinder:
         else:
             self.publisher_utils = None
         
-        # Auto-update Sci-Hub domains from cache (updated daily)
-        try:
-            from src.utils.scihub_updater import load_scihub_domains
-            self.scihub_domains = load_scihub_domains(max_age_hours=24, silent=silent_init)
-        except:
-            # Fallback to hardcoded list or config
-            if self.config and hasattr(self.config, 'scihub'):
-                self.scihub_domains = self.config.scihub.domains
-            else:
-                self.scihub_domains = [
-                    "https://sci-hub.se",  # .se is very reliable - prioritize it
-                    "https://sci-hub.st",
-                    "https://sci-hub.ru",
-                    "https://sci-hub.wf",
-                    "https://sci-hub.ee",
-                    "https://sci-hub.ren",
-                    "https://sci-hub.hkvisa.net",
-                    "https://sci-hub.shop",
-                    "http://sci-hub.ru",
-                ]
-        
+        # Construction never probes sources. Use configured domains until acquisition.
+        self.scihub_domains = list(self.config.scihub.domains) if self.config else []
+
         # Initialize cache
-        self.cache = get_cache() if get_cache else None
+        self.cache = get_cache() if get_cache and self.config and self.config.cache.enabled else None
         
         # Create pipeline (if available)
         if AcquisitionPipeline and self.config:
@@ -205,116 +191,124 @@ class PaperFinder:
         """Request immediate cancellation of current search"""
         print("[CANCEL] request_cancel() called - setting _cancel_requested = True")
         self._cancel_requested = True
+        if self.pipeline is not None:
+            self.pipeline.request_cancel()
 
     def _reset_cancel(self) -> None:
         self._cancel_requested = False
         self._browser_opened = False
     
     def _handle_book(self, isbn: str, metadata: Dict, output_dir: Path, browser_callback=None, meta_callback=None) -> DownloadResult:
-        """Handle book acquisition using ISBN."""
-        # Call metadata callback for GUI
+        """Stage each book candidate separately and verify before publication."""
+        import os
+        import uuid
+        from copy import deepcopy
+        from src.acquisition.annas_archive import try_fetch_from_annas_archive
+        from src.acquisition.libgen import try_libgen_main
+        from src.core.validation import check_pdf_readable, verify_document_identity
+
         if meta_callback:
             try:
                 meta_callback(metadata)
-            except Exception as e:
-                print(f"  Metadata callback failed: {e}")
-        
-        title = metadata.get('title', '')
-        authors = metadata.get('authors', [])
-        
-        # Try to find book
-        from src.acquisition.annas_archive import try_fetch_from_annas_archive
-        from src.acquisition.libgen import try_libgen_main
-        
-        safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_'))[:50] if title else f"book_{isbn}"
-        output_file = output_dir / f"{safe_title}.pdf"
-        
-        print(f"Searching for book: {title}\n")
-        
-        # Browser callback for books
-        def book_browser_callback(url: str):
-            if browser_callback:
+            except Exception:
+                pass
+        title, authors = metadata.get('title', ''), metadata.get('authors', [])
+        safe_title = ''.join(c for c in title if c.isalnum() or c in (' ', '-', '_'))[:50].strip() or f'book_{isbn}'
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        attempts = {}
+        retained = None
+
+        def book_browser_callback(url):
+            if browser_callback and not self._cancel_requested:
                 browser_callback(isbn, url)
-        
-        # Try Anna's Archive (best for books) - use ISBN, title, AND authors
-        if try_fetch_from_annas_archive(doi=None, title=title, output_file=output_file, isbn=isbn, authors=authors, browser_callback=book_browser_callback):
-            # Check if file was actually downloaded or just opened in browser
-            if output_file.exists():
-                return DownloadResult(
-                    success=True,
-                    filepath=output_file,
-                    source="Anna's Archive (Book)",
-                    metadata=metadata,
-                    attempts={"Anna's Archive (Book, Download)": "success"}
-                )
-            else:
-                # Opened in browser (like OA papers)
-                return DownloadResult(
-                    success=True,
-                    source="Anna's Archive (Book Browser)",
-                    filepath=None,
-                    metadata=metadata,
-                    attempts={"Anna's Archive (Book, Browser)": "success"}
-                )
-        
-        # Try LibGen Books - use title + authors for better matching
-        if try_libgen_main(title, authors, output_file):
-            return DownloadResult(
-                success=True,
-                filepath=output_file,
-                source="LibGen Books",
-                metadata=metadata,
-                attempts={"LibGen Books": "success"}
-            )
-        
-        # Try Telegram bots (if enabled)
-        print(f"  [DEBUG] self.config={self.config is not None}, has_telegram={hasattr(self.config, 'telegram') if self.config else False}")
-        if self.config and hasattr(self.config, 'telegram'):
-            print(f"  [DEBUG] underground_enabled={self.config.telegram.underground_enabled}, api_id={self.config.telegram.api_id is not None}")
-            if self.config.telegram.underground_enabled and self.config.telegram.api_id:
-                print("  🤖 Trying Telegram bots for book...")
-                try:
-                    from src.acquisition.telegram_underground import TelegramUndergroundSource
-                    
-                    telegram_source = TelegramUndergroundSource(
-                        session=self.session,
-                        api_id=self.config.telegram.api_id,
-                        api_hash=self.config.telegram.api_hash,
-                        phone=self.config.telegram.phone,
-                        rate_limit_per_hour=self.config.telegram.rate_limit_per_hour
-                    )
-                    
-                    # Try with ISBN first, then title
-                    query = isbn if isbn else title
-                    print(f"    → Searching by {'ISBN' if isbn else 'title'}: {query[:60]}...")
-                    
-                    result = telegram_source.try_acquire(
-                        doi=query,
-                        output_file=output_file,
-                        metadata=metadata
-                    )
-                    
-                    if result.success:
-                        print(f"    ✓ Found via {result.source}!")
-                        return DownloadResult(
-                            success=True,
-                            filepath=output_file,
-                            source=f"{result.source} (Book)",
-                            metadata=metadata,
-                            attempts={"Telegram Bots": "success"}
-                        )
+
+        def telegram(path):
+            from src.acquisition.telegram_underground import TelegramUndergroundSource
+            config = self.config.telegram
+            source = TelegramUndergroundSource(session=self.session, api_id=config.api_id,
+                       api_hash=config.api_hash, phone=config.phone,
+                       rate_limit_per_hour=config.rate_limit_per_hour)
+            result = source.try_acquire(doi=isbn or title, output_file=path, metadata=deepcopy(metadata))
+            return bool(result.success)
+
+        sources = [("Anna's Archive (Book)", lambda path: try_fetch_from_annas_archive(
+            doi=None, title=title, output_file=path, isbn=isbn, authors=list(authors),
+            browser_callback=book_browser_callback)),
+            ("LibGen Books", lambda path: try_libgen_main(title, list(authors), path))]
+        telegram_config = getattr(self.config, 'telegram', None)
+        if telegram_config and telegram_config.underground_enabled and telegram_config.api_id:
+            sources.append(("Telegram Bots (Book)", telegram))
+
+        def discard_retained():
+            if retained and retained.filepath:
+                retained.filepath.unlink(missing_ok=True)
+
+        def cancelled():
+            discard_retained()
+            return DownloadResult(False, error='Cancelled by user', metadata=metadata,
+                                  status='cancelled', attempts=dict(attempts))
+
+        for source_name, source in sources:
+            if self._cancel_requested:
+                return cancelled()
+            try:
+                with tempfile.TemporaryDirectory(prefix='.paperfinder-book-', dir=output_dir) as staging:
+                    candidate = Path(staging) / 'candidate.pdf'
+                    claimed_success = source(candidate)
+                    if self._cancel_requested:
+                        return cancelled()
+                    if not claimed_success:
+                        attempts[source_name] = 'failed'
+                        continue
+                    if not candidate.exists() or not candidate.stat().st_size:
+                        attempts[source_name] = 'located; no downloaded PDF'
+                        continue
+                    try:
+                        verification = verify_document_identity(candidate, metadata)
+                    except Exception as exc:
+                        verification = {'status': 'unverifiable', 'reasons': [type(exc).__name__]}
+                    state = verification['status']
+                    attempts[source_name] = state
+                    if state == 'mismatch' or (state != 'verified' and not check_pdf_readable(candidate)):
+                        continue
+                    if self._cancel_requested:
+                        return cancelled()
+                    suffix = '.unverified' if state != 'verified' else ''
+                    output = output_dir / f'{safe_title}{suffix}.pdf'
+                    # Atomic same-filesystem publication, never overwrite a
+                    # pre-existing file even if another search creates it now.
+                    for collision in range(16):
+                        try:
+                            os.link(candidate, output)
+                            break
+                        except FileExistsError:
+                            output = output_dir / f'{safe_title}{suffix}_{uuid.uuid4().hex[:12]}.pdf'
                     else:
-                        print(f"    ✗ Not found via Telegram bots")
-                except Exception as e:
-                    print(f"    ✗ Telegram error: {e}")
-        
-        return DownloadResult(
-            success=False,
-            error="Book not found",
-            metadata=metadata,
-            attempts={}
-        )
-    
+                        raise FileExistsError('Could not allocate a unique output filename')
+                    if self._cancel_requested:
+                        output.unlink(missing_ok=True)
+                        return cancelled()
+                    result = DownloadResult(state == 'verified', source=source_name, filepath=output,
+                                            metadata=metadata, attempts=dict(attempts), status=state,
+                                            verification=verification)
+                    discard_retained()
+                    if state == 'verified':
+                        return result
+                    retained = result
+            except Exception as exc:
+                attempts[source_name] = 'failed: ' + type(exc).__name__
+        if self._cancel_requested:
+            return cancelled()
+        if retained:
+            retained.attempts = dict(attempts)
+            return retained
+        status = 'mismatch' if 'mismatch' in attempts.values() else 'not_found'
+        if any(value.startswith('unverifiable') for value in attempts.values()):
+            status = 'unverifiable'
+        return DownloadResult(False, error='No verified book acquired', metadata=metadata,
+                              status=status, attempts=attempts)
+
     def _handle_arxiv_direct(self, arxiv_id: str, metadata: Dict, output_dir: Path, meta_callback=None) -> DownloadResult:
         """Handle direct arXiv PDF download."""
         pdf_url = metadata.get("pdf_url") or f"https://arxiv.org/pdf/{arxiv_id}.pdf"
@@ -683,478 +677,359 @@ class PaperFinder:
         return " ".join(new_tokens)
     
     def _resolve_via_crossref(self, ref: str) -> Optional[str]:
-        """Use Crossref's /works?query= to resolve a free-form reference to a DOI.
-
-        This is best-effort: returns the DOI of the top hit if any, otherwise None.
-        """
-        try:
-            params = {"query": ref, "rows": 1}
-            resp = self._get("https://api.crossref.org/works", params=params, timeout=15)
-            data = resp.json()
-            items = (data.get("message") or {}).get("items") or []
-            if not items:
-                return None
-            top = items[0]
-            doi = top.get("DOI")
-            if isinstance(doi, str) and doi.strip():
-                doi = doi.strip()
-                print(f"  Crossref resolved reference to DOI: {doi}")
-                # Normalize SI DOIs to main article DOI
-                doi = self._normalize_doi(doi)
-                return doi
-        except Exception as e:
-            print(f"  Crossref reference lookup failed: {e}")
-        return None
+        """Compatibility entry point using the shared multi-index matching policy."""
+        from src.core.discovery import DiscoveryService
+        result = DiscoveryService(session=self.session).search(ref, mode="identify")
+        selected = result.get("selected")
+        return selected.get("doi") if result["status"] == "matched" and selected else None
 
     def resolve_reference(self, ref: str) -> Optional[str]:
-        """Resolve an arbitrary reference string to a DOI, if possible.
+        return self._resolve_via_crossref(ref)
 
-        Strategy:
-        1. Try to directly extract a DOI from the text.
-        2. If not found, ask Crossref /works?query= for the best match.
-
-        Returns a clean DOI string or None if resolution fails.
-        """
-        if not ref:
-            return None
-
-        # 1) Direct DOI extraction from the messy string
-        doi = self._extract_doi_from_text(ref)
-        if doi:
-            print(f"  Extracted DOI from reference: {doi}")
-            return doi
-
-        # 2) Crossref free-text search
-        print("  No DOI found directly in reference; trying Crossref search...")
-        doi = self._resolve_via_crossref(ref)
-        if doi:
-            return doi
-
-        # 3) Retry with normalized reference (helps with smashed camel-cased titles)
-        normalized_ref = self._normalize_reference_for_crossref(ref)
-        if normalized_ref and normalized_ref != ref:
-            print("  Crossref search with normalized reference...")
-            doi = self._resolve_via_crossref(normalized_ref)
-            if doi:
-                return doi
-
-        # Could add more resolvers here (Google Scholar, etc.)
-        print("  Reference-to-DOI resolution failed")
-        return None
-    
     def acquire(self, doi_or_ref: str, output_dir: Optional[Path] = None, oa_callback=None, meta_callback=None, browser_callback=None) -> DownloadResult:
         """Alias for find() - for compatibility with test harness and other code."""
         return self.find(doi_or_ref, output_dir, oa_callback, meta_callback, browser_callback)
 
-    def find(self, ref: str, output_dir: Optional[Path] = None, oa_callback=None, meta_callback=None, browser_callback=None) -> DownloadResult:
-        """Find and download a paper given *any* reference string.
-        
-        PHILOSOPHY: Identify first, then acquire.
-        
-        The reference can be:
-        - DOI (10.1021/jacs.3c00908)
-        - ISBN (978-0-226-458083)
-        - URL (https://doi.org/10.1021/jacs.3c00908, arxiv.org/abs/2311.12345)
-        - arXiv ID (arXiv:2311.12345)
-        - bioRxiv/medRxiv DOI (10.1101/2023.07.04.547696)
-        - Title with optional authors/year
-        - Messy citation text
-        
-        Args:
-            ref: Reference string
-            output_dir: Directory to save PDF
-            oa_callback: Optional callback(doi, oa_url) called immediately if paper is OA
-            meta_callback: Optional callback(metadata) called with resolved metadata
-        """
-        if output_dir is None:
-            output_dir = Path.cwd()
-        output_dir = Path(output_dir)
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # STEP 1: IDENTITY RESOLUTION - Figure out what we're looking for
-        print(f"[Identity Resolution] Processing reference: {ref[:100]}..." if len(ref) > 100 else f"[Identity Resolution] Processing reference: {ref}")
-        
-        if self.identity_resolver:
-            # Use the new explicit identity resolver
-            identity_record = self.identity_resolver.resolve(ref)
-            
-            # Extract key fields from identity record
-            identifier = identity_record.get("identifier", {})
-            id_type = identifier.get("type")
-            id_value = identifier.get("value")
-            metadata = identity_record  # The entire record is our metadata
-            
-            print(f"  Resolved to {id_type}: {id_value}")
-            
-            # Handle different identifier types
-            if id_type == "isbn":
-                # Book handling
-                return self._handle_book(id_value, metadata, output_dir, browser_callback, meta_callback)
-            elif id_type == "arxiv":
-                # Fast-path arXiv
-                return self._handle_arxiv_direct(id_value, metadata, output_dir, meta_callback)
-            elif id_type in ["biorxiv", "medrxiv", "doi"]:
-                # Check if it's a bioRxiv/medRxiv DOI for fast-path
-                if id_value and id_value.startswith("10.1101/"):
-                    result = self._handle_biorxiv_direct(id_value, metadata, output_dir, meta_callback)
-                    if result.success:
-                        return result
-                # Otherwise continue with DOI
-                doi = id_value
-            elif id_type == "doi":
-                # Standard DOI
-                doi = id_value
-            elif id_type == "title":
-                # Try to get a DOI from the title
-                doi = metadata.get("doi")
-                if not doi:
-                    print("  Could not resolve to DOI; will try title-based search")
-                    # Could implement title-based search here
-            else:
-                # Unknown or failed resolution
-                doi = None
-        else:
-            # Fallback to old resolution logic
-            ref_str = (ref or "").strip()
-            
-            # Fast path: direct DOI in the string
-            doi = self._extract_doi_from_text(ref_str)
-            metadata = {"original_reference": ref_str}
-            
-            # Check if it's an ISBN (for books) BEFORE trying Crossref
-            if not doi and ref_str.replace('-', '').replace(' ', '').replace('X', '').isdigit():
-                potential_isbn = ref_str.replace('-', '').replace(' ', '')
-                if len(potential_isbn) in [10, 13]:  # ISBN-10 or ISBN-13
-                    print(f"📚 Detected potential ISBN: {potential_isbn}")
-                    
-                    # Lookup metadata first
-                    from src.utils.isbn_lookup import lookup_isbn, format_book_metadata
-                    book_metadata = lookup_isbn(potential_isbn)
-                    
-                    if book_metadata:
-                        print(f"\nFound book:")
-                        print(format_book_metadata(book_metadata))
-                        print()
-                        
-                        return self._handle_book(book_metadata['isbn'], book_metadata, output_dir, browser_callback, meta_callback)
-                    else:
-                        print(f"❌ ISBN not found in book databases")
-                        return DownloadResult(
-                            success=False,
-                            error="ISBN not found in book databases",
-                            metadata={"isbn": potential_isbn},
-                            attempts={}
-                        )
-            
-            # If still no DOI and not an ISBN, try full reference resolution (Crossref, etc.)
-            if not doi:
-                doi = self.resolve_reference(ref_str)
-        
-        # STEP 2: ACQUISITION - Now that we know what we want, get it
-        if not doi:
-            if self.identity_resolver and metadata.get("title"):
-                # Try title-based search as last resort
-                print(f"No DOI found; attempting title-based search for: {metadata['title'][:100]}")
-                # Could implement title-based pipeline here
-
-            # Prefer a specific identity error message if available
-            error_msg = None
-            if self.identity_resolver and isinstance(metadata, dict):
-                error_msg = metadata.get("error")
-            if not error_msg:
-                error_msg = "Could not resolve reference to a DOI"
-
-            print(f"{error_msg}; aborting.")
-            return DownloadResult(
-                success=False,
-                error=error_msg,
-                metadata=metadata if self.identity_resolver else {"original_reference": ref},
-                attempts={}
-            )
-
+    def find(self, ref: str, output_dir: Optional[Path] = None, oa_callback=None, meta_callback=None, browser_callback=None, *, recent_sources=False, contact_email=None) -> DownloadResult:
+        """Resolve an identity before allowing any acquisition source to run."""
         self._reset_cancel()
+        if not self.identity_resolver:
+            return DownloadResult(False, error="Identity resolver is unavailable", status="unavailable")
+        record = self.identity_resolver.resolve(ref)
+        status = record.get("status", "")
+        identifier = record.get("identifier") or {}
+        if status in {"ambiguous", "not_found", "unavailable"} or record.get("error"):
+            return DownloadResult(False, error=record.get("error") or "Select a candidate before downloading",
+                                  metadata=record, status=status or "not_found", attempts={})
+        if not identifier.get("value"):
+            return DownloadResult(False, error="Could not identify the requested work", metadata=record,
+                                  status="not_found", attempts={})
+        if self._cancel_requested:
+            return DownloadResult(False, error="Cancelled by user", status="cancelled", metadata=record)
+        return self.find_record(record, output_dir, oa_callback=oa_callback, meta_callback=meta_callback,
+                                browser_callback=browser_callback, _continue_operation=True,
+                                recent_sources=recent_sources, contact_email=contact_email)
 
-        # ------------------------------------------------------------------
-        # Fast-path: Direct arXiv handling for DOIs like 10.48550/arXiv.2311.12345
-        # ------------------------------------------------------------------
-        doi_lower = doi.lower()
-        if doi_lower.startswith("10.48550/arxiv."):
-            try:
-                arxiv_id = doi_lower.split("arxiv.", 1)[1]
-            except IndexError:
-                arxiv_id = None
-            
-            if arxiv_id:
-                pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
-                print(f"Detected arXiv DOI; trying direct PDF: {pdf_url}")
-
-                if output_dir is None:
-                    output_dir = Path.cwd()
-                output_dir = Path(output_dir)
-                output_dir.mkdir(parents=True, exist_ok=True)
-
-                safe_doi = doi.replace('/', '_').replace('\\', '_')
-                output_file = output_dir / f"{safe_doi}.pdf"
-
-                try:
-                    resp = self.session.get(pdf_url, timeout=30, stream=True)
-                    if resp.status_code == 200 and resp.headers.get('content-type', '').lower().startswith('application/pdf'):
-                        with output_file.open('wb') as f:
-                            for chunk in resp.iter_content(chunk_size=1024*1024):
-                                if not chunk:
-                                    continue
-                                f.write(chunk)
-
-                        # Basic PDF validation; DOI-in-text validation is relaxed because
-                        # arXiv PDFs often only contain the arXiv ID, not the 10.48550 DOI.
-                        if validate_pdf is not None and validate_pdf(output_file):
-                            print("✓ Success via arXiv direct PDF")
-                            return DownloadResult(
-                                success=True,
-                                source="arXiv Direct",
-                                filepath=output_file,
-                                metadata={"doi": doi},
-                                attempts={"arXiv Direct": "success"}
-                            )
-                        else:
-                            output_file.unlink(missing_ok=True)
-                except Exception as e:
-                    print(f"  arXiv direct download failed: {type(e).__name__}")
-
-        # ------------------------------------------------------------------
-        # Fast-path: Direct bioRxiv/medRxiv handling for DOIs like 10.1101/*
-        # ------------------------------------------------------------------
-        if doi.startswith("10.1101/"):
-            # bioRxiv/medRxiv preprints - try direct URL construction
-            # Format: https://www.biorxiv.org/content/10.1101/YYYY.MM.DD.NNNNNN
-            # or https://www.medrxiv.org/content/10.1101/YYYY.MM.DD.NNNNNN
-            print(f"Detected bioRxiv/medRxiv DOI; trying direct access")
-            
-            if output_dir is None:
-                output_dir = Path.cwd()
-            output_dir = Path(output_dir)
-            output_dir.mkdir(parents=True, exist_ok=True)
-
-            safe_doi = doi.replace('/', '_').replace('\\', '_')
-            output_file = output_dir / f"{safe_doi}.pdf"
-
-            # Try both bioRxiv and medRxiv
-            for server in ["biorxiv", "medrxiv"]:
-                try:
-                    # Try PDF URL first
-                    pdf_url = f"https://www.{server}.org/content/{doi}.full.pdf"
-                    print(f"  Trying {server} PDF: {pdf_url}")
-                    resp = self.session.get(pdf_url, timeout=30, stream=True)
-                    
-                    if resp.status_code == 200:
-                        content_type = resp.headers.get('content-type', '').lower()
-                        if 'pdf' in content_type or resp.content[:4] == b'%PDF':
-                            with output_file.open('wb') as f:
-                                for chunk in resp.iter_content(chunk_size=1024*1024):
-                                    if chunk:
-                                        f.write(chunk)
-                            
-                            if validate_pdf and validate_pdf(output_file):
-                                print(f"✓ Success via {server} direct PDF")
-                                return DownloadResult(
-                                    success=True,
-                                    source=f"{server.title()} Direct",
-                                    filepath=output_file,
-                                    metadata={"doi": doi},
-                                    attempts={f"{server} Direct": "success"}
-                                )
-                            else:
-                                output_file.unlink(missing_ok=True)
-                        else:
-                            # Not a PDF, try HTML landing page
-                            html_url = f"https://www.{server}.org/content/{doi}"
-                            print(f"  PDF not available, trying {server} HTML: {html_url}")
-                            if self._browser_callback:
-                                self._browser_callback(html_url)
-                                self._browser_opened = True
-                                return DownloadResult(
-                                    success=True,
-                                    source=f"{server.title()} (Browser)",
-                                    filepath=None,
-                                    metadata={"doi": doi},
-                                    attempts={f"{server} Browser": "opened in browser"}
-                                )
-                except Exception as e:
-                    print(f"  {server} direct access failed: {type(e).__name__}")
-                    continue
-
-        # Check if this is a book chapter (DOI pattern: 10.xxxx/B978-...)
-        # Book chapters should be treated as books, not papers
-        is_book_chapter = bool(re.search(r'/B\d{3}-', doi))
-        if is_book_chapter:
-            print(f"📖 Detected book chapter DOI")
-            # Extract ISBN from DOI (e.g., 10.1016/B978-0-443-27475-6.00019-X → 9780443274756)
-            isbn_match = re.search(r'/B(\d{3})-([0-9\-]+)', doi)
-            if isbn_match:
-                isbn_raw = isbn_match.group(1) + isbn_match.group(2).replace('-', '')
-                # Take first 13 digits for ISBN-13
-                isbn = isbn_raw[:13] if len(isbn_raw) >= 13 else isbn_raw[:10]
-                print(f"  Extracted ISBN from chapter DOI: {isbn}")
-                
-                # Try to find the book using ISBN
-                from src.utils.isbn_lookup import lookup_isbn, format_book_metadata
-                metadata = lookup_isbn(isbn)
-                
-                if metadata:
-                    print(f"\nFound book containing this chapter:")
-                    print(format_book_metadata(metadata))
-                    print()
-                    
-                    if meta_callback:
-                        try:
-                            # Add chapter info to metadata
-                            metadata['chapter_doi'] = doi
-                            meta_callback(metadata)
-                        except Exception as e:
-                            print(f"  Metadata callback failed: {e}")
-                    
-                    title = metadata.get('title', '')
-                    authors = metadata.get('authors', [])
-                    
-                    # Try book sources
-                    from src.acquisition.annas_archive import try_fetch_from_annas_archive
-                    from src.acquisition.libgen import try_libgen_main
-                    
-                    safe_title = "".join(c for c in title if c.isalnum() or c in (' ', '-', '_'))[:50] if title else f"book_{isbn}"
-                    output_file = output_dir / f"{safe_title}.pdf"
-                    
-                    print(f"Searching for book: {title}\n")
-                    
-                    # Try Anna's Archive (best for books)
-                    if try_fetch_from_annas_archive(doi=None, title=title, output_file=output_file, isbn=isbn, authors=authors):
-                        if output_file.exists():
-                            return DownloadResult(
-                                success=True,
-                                filepath=output_file,
-                                source="Anna's Archive (Book Chapter)",
-                                metadata=metadata,
-                                attempts={"Anna's Archive": "success"}
-                            )
-                    
-                    # Try LibGen Books
-                    if try_libgen_main(title, authors, output_file):
-                        return DownloadResult(
-                            success=True,
-                            filepath=output_file,
-                            source="LibGen Books (Book Chapter)",
-                            metadata=metadata,
-                            attempts={"LibGen Books": "success"}
-                        )
-                    
-                    # Try Telegram bots (if enabled)
-                    if self.config and hasattr(self.config, 'telegram'):
-                        if self.config.telegram.underground_enabled and self.config.telegram.api_id:
-                            print("  🔥 Trying Telegram bots for book...")
-                            try:
-                                from src.acquisition.telegram_underground import TelegramUndergroundSource
-                                
-                                telegram_source = TelegramUndergroundSource(
-                                    session=self.session,
-                                    api_id=self.config.telegram.api_id,
-                                    api_hash=self.config.telegram.api_hash,
-                                    phone=self.config.telegram.phone,
-                                    rate_limit_per_hour=self.config.telegram.rate_limit_per_hour
-                                )
-                                
-                                # Try with ISBN first, then title
-                                query = isbn if isbn else title
-                                print(f"    Sending to bots: {query[:60]}...")
-                                
-                                result = telegram_source.try_acquire(
-                                    doi=query,  # Use ISBN or title as "doi"
-                                    output_file=output_file,
-                                    metadata=metadata
-                                )
-                                
-                                if result.success:
-                                    print(f"    ✅ Found via {result.source}!")
-                                    return DownloadResult(
-                                        success=True,
-                                        filepath=output_file,
-                                        source=f"{result.source} (Book via Telegram)",
-                                        metadata=metadata,
-                                        attempts={"Telegram Bots": "success"}
-                                    )
-                                else:
-                                    print(f"    ✗ Not found via Telegram bots")
-                            except Exception as e:
-                                print(f"    ✗ Telegram error: {e}")
-                    
-                    return DownloadResult(
-                        success=False,
-                        error="Book chapter not found (book not in databases)",
-                        metadata=metadata,
-                        attempts={}
-                    )
-
-        # Configure browser callback for this run so publisher modules can open HTML viewers.
-        # This reuses the existing oa_callback(doi, url) contract used by the GUI.
-        # IMPORTANT: Always define a _browser_callback so CLI/benchmark mode behaves like the GUI.
-        if oa_callback:
-            def wrapped_callback(url, d=doi):
-                # Mark browser as opened on both PaperFinder and pipeline (if present)
-                self._browser_opened = True
-                if self.pipeline is not None:
-                    try:
-                        self.pipeline._browser_opened = True
-                    except Exception:
-                        pass
-                oa_callback(d, url)
-            self._browser_callback = wrapped_callback
+    def find_record(self, record: Dict, output_dir: Optional[Path] = None, oa_callback=None,
+                    meta_callback=None, browser_callback=None, _continue_operation=False, recent_sources=False, contact_email=None) -> DownloadResult:
+        """Acquire a selected canonical record without repeating or changing its identity."""
+        from copy import deepcopy
+        record = deepcopy(record)
+        record.pop("fulltext_location", None)
+        identifier = record.get("identifier") or {}
+        kind, value = identifier.get("type"), identifier.get("value")
+        if not value:
+            return DownloadResult(False, error="The selected record has no identifier", metadata=record, status="not_found")
+        if not _continue_operation:
+            self._reset_cancel()
+        if self._cancel_requested:
+            return DownloadResult(False, error="Cancelled by user", status="cancelled", metadata=record)
+        output_dir = Path(output_dir or Path.cwd())
+        output_dir.mkdir(parents=True, exist_ok=True)
+        if meta_callback:
+            meta_callback(record)
+        links = []
+        if isinstance(record.get("url"), str) and record["url"].startswith(("https://", "http://")):
+            links.append(record["url"])
+        def capture_link(*args):
+            url = args[-1] if args else None
+            if isinstance(url, str) and url.startswith(("https://", "http://")) and url not in links:
+                links.append(url)
+                callback = browser_callback or oa_callback
+                if callback:
+                    callback(value, url)
+        self._browser_callback = capture_link
+        result = None
+        version_selection_required = False
+        if kind == "isbn":
+            result = self._handle_book(value, record, output_dir, capture_link, meta_callback)
         else:
-            import webbrowser
-
-            def default_browser_callback(url, d=doi):
-                # Directly open in system browser for CLI/benchmark runs
+            urls = list(record.get("pdf_urls") or [])
+            if record.get("pdf_url"):
+                urls.insert(0, record["pdf_url"])
+            if kind == "arxiv":
+                urls.append(f"https://arxiv.org/pdf/{value}")
+            elif kind in {"biorxiv", "medrxiv"}:
+                urls.append(f"https://www.{kind}.org/content/{value}.full.pdf")
+            doi = record.get("doi") or (value if kind in {"doi", "biorxiv", "medrxiv"} else None)
+            if urls and not (recent_sources and doi and kind == "doi"):
+                result = self._download_record_urls(record, urls, output_dir)
+            if recent_sources and doi and (result is None or not result.success) and not self._cancel_requested:
                 try:
-                    webbrowser.open(url)
+                    access = self.find_access_options(record, contact_email=contact_email)
                 except Exception:
-                    # Best-effort only; failure to open should not crash acquisition
-                    pass
-                self._browser_opened = True
-                if self.pipeline is not None:
+                    access = {"status": "unavailable", "locations": [], "alternatives": [],
+                              "errors": {"discovery": {"kind": "error", "message": "Full-text discovery failed"}}}
+                # Preserve known preprint/conflict evidence even if today's
+                # provider lookup fails or the selected metadata was cached.
+                from src.acquisition.recent_open_access import _location
+                for indexed in record.get("indexed_locations", []):
+                    if not indexed.get("requires_selection"):
+                        continue
+                    alternative = _location(indexed.get("source") or "indexed", doi,
+                        pdf=indexed.get("pdf_url"), landing=indexed.get("landing_page_url"),
+                        version=indexed.get("version"), license=indexed.get("license"))
+                    if alternative:
+                        alternative["requires_selection"] = True
+                        if indexed.get("version_conflict"):
+                            alternative["version"] = "conflicting"
+                        existing = access.setdefault("alternatives", [])
+                        if not any(item.get("url") == alternative["url"] for item in existing):
+                            existing.append(alternative)
+                record["access_options"] = access
+                version_selection_required = bool(access.get("alternatives"))
+                # A repository may advertise an HTML article before a PDF URL.
+                # Bound this extra work and never promote a preprint implicitly.
+                from src.acquisition.recent_open_access import discover_landing_pdf
+                landing_deadline = time.monotonic() + 15
+                landing_checks = 0
+                for index, location in enumerate(access.get("locations", [])):
+                    if self._cancel_requested or landing_checks >= 3 or time.monotonic() >= landing_deadline:
+                        break
+                    if (location.get("downloadable") or location.get("availability") != "open"
+                            or location.get("requires_selection") or location.get("version") == "submittedVersion"):
+                        continue
+                    landing_checks += 1
                     try:
-                        self.pipeline._browser_opened = True
+                        expanded = discover_landing_pdf(location, session=self.session,
+                            timeout=min(5, max(.1, landing_deadline - time.monotonic())))
                     except Exception:
-                        pass
+                        access.setdefault("errors", {})[f"landing_{index}"] = {
+                            "kind": "error", "message": "Repository landing-page inspection failed."}
+                        continue
+                    if expanded:
+                        access["locations"][index] = expanded
+                locations = [location for location in access.get("locations", [])
+                             if location.get("downloadable") and location.get("pdf_url")
+                             and not location.get("requires_selection") and location.get("version") != "submittedVersion"]
+                record["fulltext_locations"] = locations
+                for location in access.get("locations", []):
+                    capture_link(location.get("landing_page_url") or location.get("url"))
+                blocked_urls = {location.get("pdf_url") for group in ("alternatives", "embargoed", "closed")
+                                for location in access.get(group, [])}
+                eligible_urls = [location["pdf_url"] for location in locations]
+                # Once a preprint/version conflict is known, only explicitly
+                # classified main-article locations may be downloaded here.
+                if not version_selection_required:
+                    eligible_urls.extend(url for url in urls if url not in blocked_urls)
+                new_urls = list(dict.fromkeys(eligible_urls))
+                if new_urls and not self._cancel_requested:
+                    recent = self._download_record_urls(record, new_urls, output_dir)
+                    attempts = {**(result.attempts or {} if result else {}), **(recent.attempts or {})}
+                    if recent.success and result and result.filepath and result.filepath != recent.filepath:
+                        try:
+                            Path(result.filepath).unlink(missing_ok=True)
+                        except OSError:
+                            attempts["review_copy_cleanup"] = "Could not remove superseded review copy"
+                    if recent.success or recent.status == "cancelled" or result is None or not result.filepath:
+                        result = recent
+                    result.attempts = attempts
+                    if recent.success:
+                        for location in locations:
+                            if recent.attempts.get(location["pdf_url"]) == "verified":
+                                record["fulltext_location"] = location
+                                break
+            if (result is None or not result.success) and doi and not self._cancel_requested and not version_selection_required:
+                output_file = self._available_output(output_dir, doi)
+                fallback = self._execute_pipeline(doi, output_file, meta_callback=None,
+                                                  oa_callback=capture_link, metadata=record,
+                                                  exclude_sources=("Unpaywall", "Europe PMC", "Preprints Enhanced", "Open Access (Browser)") if recent_sources else ())
+                fallback = self._verify_result(fallback, record)
+                attempts = {**(result.attempts or {} if result else {}), **(fallback.attempts or {})}
+                # Remove only the review copy created by this operation, after a
+                # verified replacement exists. Keep evidence from every source.
+                if fallback.success and result and result.filepath and result.filepath != fallback.filepath:
+                    try:
+                        Path(result.filepath).unlink(missing_ok=True)
+                    except OSError:
+                        attempts["review_copy_cleanup"] = "Could not remove superseded review copy"
+                if fallback.success or fallback.status == "cancelled" or result is None or not result.filepath:
+                    result = fallback
+                result.attempts = attempts
+        if self._cancel_requested:
+            return DownloadResult(False, error="Cancelled by user", metadata=record,
+                                  status="cancelled", attempts=result.attempts if result else {})
+        if result is None:
+            message = ("Preprint or conflicting-version alternatives found; inspect and choose a copy before downloading."
+                       if version_selection_required else "No downloadable full-text location found")
+            result = DownloadResult(False, error=message, metadata=record, status="located" if version_selection_required else "not_found")
+        final = self._verify_result(result, record)
+        if links:
+            final.metadata["links"] = links
+            if not final.success and not final.filepath and final.status not in {"cancelled", "mismatch", "unverifiable"}:
+                final.status = "located"
+                final.error = "Article links found; full-text download has not been verified"
+        return final
 
-            self._browser_callback = default_browser_callback
+    def find_access_options(self, record, contact_email=None):
+        """Inspect fresh full-text locations without downloading or opening pages."""
+        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        identifier = record.get("identifier") or {}
+        doi = record.get("doi") or (identifier.get("value") if identifier.get("type") == "doi" else None)
+        if not doi:
+            return {"status": "not_found", "locations": [], "alternatives": [],
+                    "errors": {"identity": {"kind": "missing_doi", "message": "Full-text copy lookup needs a DOI"}}}
+        if not contact_email:
+            contact_email = getattr(getattr(self.config, "api", None), "unpaywall_email", None)
+        return RecentOpenAccessDiscovery(session=self.session, email=contact_email).discover(doi)
 
-        # Prepare output file, now that we have a canonical DOI
-        safe_doi = doi.replace('/', '_').replace('\\', '_')
-        output_file = output_dir / f"{safe_doi}.pdf"
-        
-        # Execute acquisition pipeline (includes OA check as one of the sources)
-        return self._execute_pipeline(doi, output_file, meta_callback=meta_callback, oa_callback=oa_callback)
-    
-    def _execute_pipeline(self, doi: str, output_file: Path, meta_callback=None, oa_callback=None) -> DownloadResult:
+    @staticmethod
+    def _available_output(directory: Path, identifier: str) -> Path:
+        """Preserve an existing download instead of overwriting it."""
+        import uuid
+        name = re.sub(r'[^\w.\-]', '_', identifier)[:150] or "paper"
+        output = directory / f"{name}.pdf"
+        if output.exists():
+            output = directory / f"{name}_{uuid.uuid4().hex[:8]}.pdf"
+        return output
+
+    def _download_record_urls(self, record: Dict, urls: List[str], directory: Path) -> DownloadResult:
+        """Try provider-discovered PDF locations with bounded size and atomic publication."""
+        import os
+        import time
+        from urllib.parse import urlparse
+        from src.core.validation import verify_document_identity
+        limit = int(getattr(self.config.validation, "max_size_mb", 100)) * 1024 * 1024
+        attempts = {}
+        retained = None
+        deadline = time.monotonic() + 45
+        for url in list(dict.fromkeys(urls))[:5]:
+            if time.monotonic() >= deadline:
+                attempts["deadline"] = "Direct download budget exhausted"
+                break
+            parsed = urlparse(url)
+            if parsed.scheme not in {"https", "http"} or not parsed.hostname or parsed.username or parsed.password:
+                continue
+            if self._cancel_requested:
+                return DownloadResult(False, error="Cancelled by user", status="cancelled", attempts=attempts)
+            fd, name = tempfile.mkstemp(prefix=".paperfinder-", suffix=".pdf", dir=directory)
+            os.close(fd)
+            temporary = Path(name)
+            response = None
+            try:
+                remaining = max(.1, deadline - time.monotonic())
+                response = self.session.get(url, stream=True, timeout=(min(5, remaining), min(15, remaining)))
+                if response.status_code != 200:
+                    attempts[url] = f"HTTP {response.status_code}"
+                    continue
+                length = response.headers.get("Content-Length")
+                if length and int(length) > limit:
+                    attempts[url] = "File exceeds size limit"
+                    continue
+                size = 0
+                with temporary.open('wb') as target:
+                    for chunk in response.iter_content(chunk_size=65536):
+                        if self._cancel_requested:
+                            raise InterruptedError("Cancelled by user")
+                        if time.monotonic() >= deadline:
+                            raise TimeoutError("Download deadline exceeded")
+                        size += len(chunk)
+                        if size > limit:
+                            raise ValueError("File exceeds size limit")
+                        target.write(chunk)
+                if self._cancel_requested:
+                    raise InterruptedError("Cancelled by user")
+                verification = verify_document_identity(temporary, record)
+                state = verification["status"]
+                attempts[url] = state
+                if state == "mismatch":
+                    continue
+                if state == "unverifiable" and temporary.read_bytes()[:5] != b'%PDF-':
+                    continue
+                output = self._available_output(directory, record['identifier']['value'])
+                if state == "unverifiable":
+                    output = self._available_output(directory, output.stem + ".unverified")
+                if self._cancel_requested:
+                    raise InterruptedError("Cancelled by user")
+                for retry in range(5):
+                    try:
+                        os.link(temporary, output)
+                        break
+                    except FileExistsError:
+                        output = self._available_output(directory, output.stem)
+                else:
+                    raise FileExistsError("Could not reserve a unique output filename")
+                temporary.unlink()
+                result = DownloadResult(state == "verified", source="Discovered full text", filepath=output,
+                                        metadata=record, attempts=dict(attempts), status=state, verification=verification)
+                if state == "verified":
+                    if retained and retained.filepath:
+                        retained.filepath.unlink(missing_ok=True)
+                    return result
+                if retained and retained.filepath:
+                    retained.filepath.unlink(missing_ok=True)
+                retained = result
+            except InterruptedError:
+                return DownloadResult(False, error="Cancelled by user", status="cancelled", attempts=attempts)
+            except (requests.RequestException, OSError, ValueError, TimeoutError) as exc:
+                attempts[url] = type(exc).__name__
+            finally:
+                if response is not None:
+                    response.close()
+                temporary.unlink(missing_ok=True)
+        if self._cancel_requested:
+            return DownloadResult(False, error="Cancelled by user", status="cancelled", attempts=attempts)
+        return retained or DownloadResult(False, error="Discovered full-text locations did not yield a verified paper",
+                                          metadata=record, attempts=attempts, status="not_found")
+
+    @staticmethod
+    def _verify_result(result, record: Dict) -> DownloadResult:
+        from src.core.validation import verify_document_identity
+        filepath = getattr(result, "filepath", None)
+        status = getattr(result, "status", "") or "not_found"
+        verification = getattr(result, "verification", None)
+        error = result.error or ""
+        attempts = result.attempts or {}
+        if error == "Cancelled by user":
+            status = "cancelled"
+        elif any(str(v).startswith("unverifiable") for v in attempts.values()):
+            status = "unverifiable"
+        elif any(str(v).startswith("mismatch") for v in attempts.values()):
+            status = "mismatch"
+        success = False
+        if filepath:
+            verification = verify_document_identity(Path(filepath), record)
+            status = verification["status"]
+            success = status == "verified"
+            if success:
+                error = ""
+            if not success:
+                error = "; ".join(verification.get("reasons", [])) or "Document identity could not be verified"
+        elif result.success:
+            status = "located"
+            verification = {"status": "unverifiable", "reasons": ["No local document was verified"]}
+            error = "Article located; downloaded full text has not been verified"
+        return DownloadResult(success, source=result.source, filepath=filepath, error=error,
+                              metadata=record, attempts=result.attempts or {}, status=status,
+                              verification=verification)
+
+    def _execute_pipeline(self, doi: str, output_file: Path, meta_callback=None, oa_callback=None, metadata=None, exclude_sources=()) -> DownloadResult:
         """Execute the multi-source acquisition pipeline"""
         import time
         start_time = time.time()
         
         print(f"Searching for: {doi}")
         
-        # Gather metadata - use new metadata resolver if available
-        print("Gathering metadata...")
-        try:
-            if self.metadata_resolver:
-                meta = self.metadata_resolver.get_crossref_metadata(doi)
-                if not meta:
+        if metadata is not None:
+            meta = dict(metadata)
+            meta.setdefault("doi", doi)
+        else:
+            # Gather metadata - use new metadata resolver if available
+            print("Gathering metadata...")
+            try:
+                if self.metadata_resolver:
+                    meta = self.metadata_resolver.get_crossref_metadata(doi)
+                    if not meta:
+                        meta = self._get_metadata(doi)
+                elif get_crossref_metadata_enhanced:
+                    meta = get_crossref_metadata_enhanced(doi)
+                    if not meta:
+                        meta = self._get_metadata(doi)
+                else:
                     meta = self._get_metadata(doi)
-            elif get_crossref_metadata_enhanced:
-                meta = get_crossref_metadata_enhanced(doi)
-                if not meta:
-                    meta = self._get_metadata(doi)
-            else:
-                meta = self._get_metadata(doi)
-        except Exception as e:
-            print(f"  Metadata lookup failed: {e}")
-            meta = {"doi": doi}
+            except Exception as e:
+                print(f"  Metadata lookup failed: {e}")
+                meta = {"doi": doi}
         
         if meta.get("title"):
             print(f"Found paper: {meta['title']}")
@@ -1191,22 +1066,11 @@ class PaperFinder:
             
             # Execute pipeline
             print("\n[Using new pipeline with parallel execution]")
-            result = self.pipeline.execute(doi, output_file, meta)
+            result = self.pipeline.execute(doi, output_file, meta, exclude_sources=exclude_sources)
             
             # FIX 1: Update our flags from pipeline and check for browser success
             self._cancel_requested = self.pipeline._cancel_requested
             self._browser_opened = self.pipeline._browser_opened
-            
-            # FIX 1: If browser was opened during pipeline execution, ensure we return success
-            if self._browser_opened and not result.success:
-                print("  [FIX] Browser opened during pipeline - returning OA success")
-                return DownloadResult(
-                    success=True,
-                    source="Open Access (Browser)",
-                    filepath=None,
-                    metadata=meta,
-                    attempts={"Open Access (Browser)": "opened during pipeline execution"}
-                )
             
             return result
         
@@ -1242,9 +1106,14 @@ class PaperFinder:
         if self.config and hasattr(self.config, 'telegram') and self.config.telegram.underground_enabled:
             methods.insert(4, ("Telegram Bots", self._try_telegram_underground))
         
+        excluded = set(exclude_sources)
+        if "Preprints Enhanced" in excluded:
+            excluded.add("Preprints & Author Versions")
+        methods = [method for method in methods if method[0] not in excluded]
+
         # Reorder methods based on cache if available
-        if cache and meta.get("publisher") and meta.get("year"):
-            methods = cache.reorder_methods(methods, meta.get("publisher"), meta.get("year"))
+        if self.cache and meta.get("publisher") and meta.get("year"):
+            methods = self.cache.reorder_methods(methods, meta.get("publisher"), meta.get("year"))
             print(f"Methods reordered based on historical success for {meta.get('publisher')}")
         
         # Group methods for parallel execution

@@ -1,250 +1,287 @@
 #!/usr/bin/env python3
+"""Browse candidate metadata, select the right work, then acquire its document.
+
+Run: streamlit run streamlit_app.py
 """
-Paper Finder - Streamlit Web Interface
-Run: streamlit run streamlit_app.py --server.address 0.0.0.0
-Access: http://YOUR_IP:8501
-"""
+from contextlib import redirect_stderr, redirect_stdout
+import io
+import os
+from pathlib import Path
+from urllib.parse import urlparse
 
 import streamlit as st
-from pathlib import Path
-import time
-from paper_finder import PaperFinder, DownloadResult
 
-# Page config
-st.set_page_config(
-    page_title="Paper Finder",
-    page_icon="📄",
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
+from src.cli.search_helpers import begin_search, search_reference, select_candidate, stop_browser_watch
 
-# Custom CSS - center everything
-st.markdown("""
-<style>
-    .main .block-container {
-        max-width: 700px !important;
-        margin: 0 auto !important;
-        text-align: left;
-    }
-    /* Center all direct children */
-    .main .block-container > div {
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .main-title {
-        font-size: 28px;
-        font-weight: bold;
-        margin-bottom: 30px;
-        text-align: center;
-    }
-    .stButton>button {
-        width: 100%;
-    }
-    .result-box {
-        padding: 15px;
-        border-radius: 5px;
-        margin: 10px 0;
-    }
-    .success-box {
-        background-color: #d4edda;
-        border: 1px solid #c3e6cb;
-    }
-    .error-box {
-        background-color: #f8d7da;
-        border: 1px solid #f5c6cb;
-    }
-    section[data-testid="stSidebar"] {
-        display: none;
-    }
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(page_title="Paper Finder", page_icon="📄", layout="centered")
+st.title("Paper Finder")
+st.caption("Find the right paper first. Compare the evidence, then download your selection.")
 
-# Initialize session state
-if 'finder' not in st.session_state:
-    st.session_state.finder = PaperFinder(silent_init=True)
-if 'result' not in st.session_state:
-    st.session_state.result = None
-if 'searching' not in st.session_state:
-    st.session_state.searching = False
+for key, default in {
+    "query": "", "search_result": None, "selected_record": None,
+    "result": None, "browser_url": None, "search_log": "", "access_options": None,
+    "browser_watch": None,
+}.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
-# Output directory
 output_dir = Path.home() / "Downloads" / "Papers"
-output_dir.mkdir(parents=True, exist_ok=True)
+with st.form("paper_search"):
+    reference = st.text_input("Title, citation, description, DOI, ISBN, arXiv ID, or URL", placeholder="The AlphaFold protein structure paper by Jumper, 2021")
+    mode_label = st.radio("What are you looking for?", ["One particular paper", "Papers about a topic"], horizontal=True)
+    limit = st.slider("Maximum candidates", min_value=5, max_value=30, value=10, step=5)
+    refresh = st.checkbox("Check sources again (ignore saved metadata)", value=False)
+    submitted = st.form_submit_button("Find candidates", type="primary")
 
-# Title
-st.markdown('<div class="main-title">Paper Finder</div>', unsafe_allow_html=True)
+if submitted:
+    begin_search(st.session_state, reference.strip())
+    if not reference.strip():
+        st.warning("Enter a reference or a topic to search.")
+    else:
+        log = io.StringIO()
+        try:
+            with st.spinner("Searching and comparing metadata…"), redirect_stdout(log), redirect_stderr(log):
+                st.session_state.search_result = search_reference(reference, limit=limit, mode="identify" if mode_label == "One particular paper" else "discover", refresh=refresh)
+        except Exception as exc:
+            st.error(f"Search failed: {exc}")
+        st.session_state.search_log = log.getvalue()
 
-# Input section
-st.markdown('<div class="main-title" style="font-size: 20px; margin-bottom: 10px;">Search Parameters</div>', unsafe_allow_html=True)
-st.markdown('<div class="main-title" style="font-size: 14px; font-weight: normal; margin-bottom: 10px;">DOI, Title, or URL:</div>', unsafe_allow_html=True)
-reference = st.text_input(
-    "DOI, Title, or URL:",
-    placeholder="e.g., 10.1038/nature12373 or 978-1464126116",
-    label_visibility="collapsed"
-)
+search = st.session_state.search_result
+if search:
+    st.subheader(f"Results for: {search['query']}")
+    status = search.get("status")
+    if status == "matched":
+        st.success("A strong match was found. Review its details and select it below.")
+    elif status == "ambiguous":
+        st.info("Choose the intended paper below. No document has been downloaded.")
+    elif status == "unavailable":
+        st.error("Search providers could not be reached. Try again later.")
+    else:
+        st.warning("No matching metadata was found. Try an author, a year, a fuller title, or an identifier.")
+    if search.get("errors"):
+        with st.expander("Search provider warnings"):
+            for provider, error in search["errors"].items():
+                st.text(f"{provider}: {error}")
+    for index, record in enumerate(search.get("candidates", [])):
+        with st.container(border=True):
+            st.subheader(f"{index + 1}. {record.get('title') or 'Untitled record'}")
+            authors = record.get("authors") or []
+            st.write(", ".join(str(author) for author in authors[:8]) or "Authors unavailable")
+            if len(authors) > 8:
+                st.caption(f"and {len(authors) - 8} more authors")
+            st.caption(" · ".join(str(value) for value in (record.get("year"), record.get("journal")) if value) or "Publication details unavailable")
+            identifier = record.get("identifier") or {}
+            st.text(record.get("doi") or identifier.get("value", "No identifier available"))
+            if record.get("arxiv_ids"):
+                st.caption("Repository identifiers: " + ", ".join("arXiv:" + value for value in record["arxiv_ids"]))
+            for warning in record.get("metadata_warnings", []):
+                st.warning(warning)
+            repository_urls = [value for value in record.get("record_urls", [])
+                               if urlparse(value).scheme in ("http", "https")]
+            if repository_urls:
+                with st.expander("Inspect indexed repository records"):
+                    for location in dict.fromkeys(repository_urls):
+                        st.link_button(location, location)
+            st.caption("Sources: " + ", ".join(record.get("sources") or [record.get("metadata_source") or "unknown"]))
+            if record.get("match_reasons"):
+                st.write("Why it appeared: " + "; ".join(record["match_reasons"]))
+            if record.get("score") is not None:
+                st.caption(f"Bibliographic match score: {record['score']:.1f}/100. This is a heuristic, not a probability.")
+            if record.get("abstract"):
+                with st.expander("Abstract"):
+                    st.text(record["abstract"])
+            url = record.get("url") or ("https://doi.org/" + record["doi"] if record.get("doi") else None)
+            if url and urlparse(url).scheme in ("http", "https"):
+                st.link_button("View record", url)
+            if st.button("Select this paper", key=f"select_{index}"):
+                select_candidate(st.session_state, index)
 
-search_button = st.button("Get Paper", type="primary", use_container_width=True)
-
-# Search logic
-if search_button and reference:
-    st.session_state.searching = True
-    st.session_state.result = None
-    st.session_state.browser_url = None
-    st.session_state.search_log = None
-    
-    # Show activity log during search ONLY
-    status_placeholder = st.empty()
-    log_expander = st.expander("Activity Log", expanded=True)
-    
-    status_placeholder.info(f"Searching for: {reference}")
-    
-    # Capture output and browser callback
-    import io
-    import sys
-    from contextlib import redirect_stdout, redirect_stderr
-    
-    log_output = io.StringIO()
-    captured_url = {'url': None}
-    
-    def browser_callback(identifier, url):
-        """Capture browser URL instead of opening"""
-        captured_url['url'] = url
-    
+contact_email = st.sidebar.text_input("Unpaywall contact email (optional)", value=os.environ.get("UNPAYWALL_EMAIL", ""), help="Unpaywall requires a contact email. Other sources work without it. This field is kept only in this session.")
+recent_sources = st.sidebar.checkbox("Prioritize recent full-text sources", value=True)
+with st.sidebar.expander("University / library access"):
+    from src.acquisition.institutional_access import browser_access_url, validate_login_url, validate_proxy_template
+    from src.core.config import get_config
+    institution = getattr(get_config(), "institutional", {})
+    def institution_value(key):
+        return institution.get(key, "") if isinstance(institution, dict) else getattr(institution, key, "")
+    st.caption("Use your university's publisher sign-in in your normal browser, or connect its VPN. Eduroam provides Wi-Fi; journal access still depends on the institution and its subscriptions.")
+    library_proxy = st.text_input("Library proxy template (optional)", value=os.environ.get("PAPER_FINDER_LIBRARY_PROXY", institution_value("proxy_template")), key="library_proxy", help="Use your library's official URL with {url} where the encoded article URL belongs. Leave blank for direct publisher access.")
+    library_login = st.text_input("Library access page (optional)", value=os.environ.get("PAPER_FINDER_LIBRARY_LOGIN", institution_value("login_url")), key="library_login", help="An official library sign-in or access instructions page. No passwords are stored.")
+    proxy_valid = True
     try:
-        with redirect_stdout(log_output), redirect_stderr(log_output):
-            result = st.session_state.finder.acquire(
-                reference,
-                output_dir=str(output_dir),
-                browser_callback=browser_callback
-            )
-        
-        st.session_state.result = result
-        st.session_state.browser_url = captured_url['url']
-        st.session_state.search_log = log_output.getvalue()
-        
-        # Show log in expander during search
-        with log_expander:
-            st.code(log_output.getvalue(), language="text")
-        
-        status_placeholder.empty()
-        
-    except Exception as e:
+        library_proxy = validate_proxy_template(library_proxy)
+    except ValueError as exc:
+        st.error(f"Library proxy: {exc}")
+        proxy_valid = False
+    try:
+        library_login = validate_login_url(library_login)
+        if library_login:
+            st.link_button("Open library access page", library_login)
+    except ValueError as exc:
+        st.error(f"Library access page: {exc}")
+
+selected = st.session_state.selected_record
+publisher_url = None
+if selected and proxy_valid:
+    try:
+        publisher_url = browser_access_url(selected, library_proxy)
+    except ValueError as exc:
+        st.warning(f"Publisher link unavailable: {exc}")
+if selected:
+    st.divider()
+    st.subheader("Selected paper")
+    st.write(selected.get("title") or selected.get("identifier", {}).get("value"))
+    if selected.get("doi") and st.button("Find full-text copies"):
+        from src.acquisition.recent_open_access import RecentOpenAccessDiscovery
+        with st.spinner("Checking current repository and publisher copies..."):
+            st.session_state.access_options = RecentOpenAccessDiscovery(email=contact_email or None).discover(selected["doi"])
+    if st.button("Download selected paper", type="primary"):
+        stop_browser_watch(st.session_state)
         st.session_state.result = None
-        st.session_state.search_log = log_output.getvalue() + f"\n\nError: {str(e)}"
-        with log_expander:
-            st.code(st.session_state.search_log, language="text")
-        status_placeholder.error(f"Error: {str(e)}")
-    
-    finally:
-        st.session_state.searching = False
+        st.session_state.browser_url = None
+        log = io.StringIO()
+        captured_url = {"url": None}
 
-# Display results (only if we have results)
-if st.session_state.result:
-    result = st.session_state.result
-    
-    st.markdown("---")
-    st.markdown("### Result")
-    
-    if result.success:
-        if result.filepath and Path(result.filepath).exists():
-            # Downloaded file
-            st.markdown('<div class="result-box success-box">', unsafe_allow_html=True)
-            st.markdown("**Status:** Success")
-            st.markdown(f"**Source:** {result.source}")
-            st.markdown(f"**Location:** `{result.filepath}`")
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            # Download button
-            with open(result.filepath, 'rb') as f:
-                st.download_button(
-                    label="Download PDF",
-                    data=f,
-                    file_name=Path(result.filepath).name,
-                    mime="application/pdf",
-                    use_container_width=True
-                )
-        else:
-            # Browser-opened or link available
-            st.markdown('<div class="result-box success-box">', unsafe_allow_html=True)
-            st.markdown("**Status:** Success")
-            st.markdown(f"**Source:** {result.source}")
-            
-            # Show clickable link if we captured it
-            if hasattr(st.session_state, 'browser_url') and st.session_state.browser_url:
-                st.markdown(f"**Link:** [{st.session_state.browser_url}]({st.session_state.browser_url})")
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                # Copy button
-                st.text_input("Direct URL:", value=st.session_state.browser_url, disabled=True)
-            else:
-                st.markdown("Paper found but no download link available. Check the search log.")
-                st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.markdown('<div class="result-box error-box">', unsafe_allow_html=True)
-        st.markdown("**Status:** Failed - Paper not found")
-        if result.error:
-            st.markdown(f"**Error:** {result.error}")
-        st.markdown('</div>', unsafe_allow_html=True)
+        def browser_callback(identifier, url):
+            captured_url["url"] = url
 
-# Sidebar - Info
-with st.sidebar:
-    st.header("About")
-    st.markdown("""
-    **Paper Finder** searches 20+ sources:
-    
-    **Fast Sources:**
-    - Sci-Hub
-    - Anna's Archive
-    - LibGen
-    - Telegram Bots
-    
-    **Open Access:**
-    - Unpaywall
-    - PubMed Central
-    - Europe PMC
-    - arXiv/bioRxiv
-    
-    **Discovery:**
-    - Google Scholar
-    - International sources
-    - Publisher patterns
-    """)
-    
-    st.markdown("---")
-    
-    st.header("Statistics")
-    
-    # Show download folder
-    st.write("**Download Folder:**")
-    st.code(str(output_dir), language=None)
-    
-    # Count PDFs
-    if output_dir.exists():
-        pdf_count = len(list(output_dir.glob("*.pdf")))
-        st.metric("Downloaded Papers", pdf_count)
-    else:
-        st.metric("Downloaded Papers", 0)
-    
-    # Button to open folder
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("Open Folder", use_container_width=True):
-            import subprocess
-            import platform
+        try:
+            with st.spinner("Looking for the selected document and checking its identity…"), redirect_stdout(log), redirect_stderr(log):
+                from paper_finder import PaperFinder
+                finder = PaperFinder(silent_init=True)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                st.session_state.result = finder.find_record(selected, output_dir=str(output_dir), browser_callback=browser_callback, recent_sources=recent_sources, contact_email=contact_email or None)
+                access = getattr(st.session_state.result, "metadata", None) or {}
+                if access.get("access_options"):
+                    st.session_state.access_options = access["access_options"]
+            st.session_state.browser_url = captured_url["url"]
+        except Exception as exc:
+            st.error(f"Acquisition failed: {exc}")
+        st.session_state.search_log = log.getvalue()
+
+if selected:
+    with st.expander("Finish a browser download"):
+        st.write("Start watching, open the publisher, and download its PDF in your browser. Paper Finder detects the finished download and verifies it against the selected paper before saving it.")
+        if publisher_url:
+            st.link_button("Open publisher in browser", publisher_url)
+        download_folder = st.text_input("Browser download folder", value=str(Path.home() / "Downloads"), key="browser_download_dir")
+        st.caption("This is a folder on the computer running Paper Finder. Only new or changed PDFs after starting are checked. Watching stops after five minutes; keep this page open.")
+        if st.button("Watch for browser PDF", disabled=st.session_state.browser_watch is not None):
+            stop_browser_watch(st.session_state)
+            st.session_state.result = None
+            st.session_state.browser_url = None
             try:
-                if platform.system() == 'Darwin':  # macOS
-                    subprocess.run(['open', str(output_dir)])
-                elif platform.system() == 'Windows':
-                    subprocess.run(['explorer', str(output_dir)])
-                else:  # Linux
-                    subprocess.run(['xdg-open', str(output_dir)])
-                st.success("Folder opened")
-            except Exception as e:
-                st.error(f"Could not open folder: {e}")
-    
-    with col2:
-        if st.button("Refresh", use_container_width=True):
-            st.rerun()
+                from src.acquisition.browser_handoff import BrowserDownloadWatcher
+                st.session_state.browser_watch = BrowserDownloadWatcher(selected, Path(download_folder).expanduser(), output_dir)
+            except (ValueError, OSError) as exc:
+                st.error(f"Could not watch downloads: {exc}")
 
-# Footer
-st.markdown("---")
+        @st.fragment(run_every="2s" if st.session_state.browser_watch is not None else None)
+        def browser_download_progress():
+            watcher = st.session_state.browser_watch
+            if watcher is None:
+                return
+            if st.button("Stop watching"):
+                stop_browser_watch(st.session_state)
+                st.rerun()
+            outcome = watcher.poll()
+            if outcome is not None:
+                st.session_state.result = outcome
+                st.session_state.browser_watch = None
+                st.rerun()
+            st.info(watcher.message)
+
+        browser_download_progress()
+        st.caption("Already downloaded, or using Paper Finder on another computer? Add the file below instead.")
+        upload_key = "browser_pdf_" + str((selected.get("identifier") or {}).get("value"))
+        uploaded = st.file_uploader("PDF downloaded in your browser", type=["pdf"], key=upload_key)
+        if st.button("Verify and save browser PDF", disabled=uploaded is None):
+            stop_browser_watch(st.session_state)
+            st.session_state.result = None
+            st.session_state.browser_url = None
+            try:
+                if uploaded.size > 100 * 1024 * 1024:
+                    raise ValueError("PDF exceeds the 100 MB size limit.")
+                from tempfile import TemporaryDirectory
+                from src.acquisition.local_import import import_local_pdf
+                with TemporaryDirectory(prefix="paper-finder-browser-") as staging:
+                    local_pdf = Path(staging) / "browser.pdf"
+                    local_pdf.write_bytes(uploaded.getbuffer())
+                    st.session_state.result = import_local_pdf(selected, local_pdf, output_dir)
+            except Exception as exc:
+                st.error(f"Could not import PDF: {exc}")
+
+version_labels = {"publishedVersion": "Published version", "acceptedVersion": "Accepted manuscript", "submittedVersion": "Preprint", "unknown": "Version not established"}
+access = st.session_state.access_options
+if access:
+    st.subheader("Full-text copies")
+    for group, heading in (("locations", "Available locations"), ("alternatives", "Preprint alternatives: inspect before using"), ("embargoed", "Embargoed copies"), ("closed", "Publisher or institutional access")):
+        items = access.get(group, [])
+        if items:
+            st.write(heading)
+        for index, location in enumerate(items):
+            version = version_labels.get(location.get("version"), "Version not established")
+            st.caption(f"{version} · {location.get('source', 'Repository')} · Licence: {location.get('license') or 'not reported'}")
+            if location.get("available_from"):
+                st.caption("Embargo ends: " + str(location["available_from"]))
+            url = location.get("pdf_url") or location.get("landing_page_url") or location.get("url")
+            if url and urlparse(url).scheme in ("http", "https"):
+                st.link_button(f"Open {version.lower()} ({index + 1})", url)
+    if not any(access.get(group) for group in ("locations", "alternatives", "embargoed", "closed")):
+        st.info("No full-text copy was located by these sources. This does not establish that no copy exists.")
+    if access.get("errors"):
+        with st.expander("Full-text source details"):
+            st.json(access["errors"])
+    if publisher_url:
+        st.link_button("Publisher / institutional sign-in", publisher_url)
+
+result = st.session_state.result
+if result:
+    st.divider()
+    status = getattr(result, "status", "")
+    if result.success and result.filepath and Path(result.filepath).is_file():
+        st.success(f"Document downloaded and verified. Source: {result.source}")
+        st.caption(str(result.filepath))
+        location = (getattr(result, "metadata", None) or {}).get("fulltext_location")
+        if location:
+            st.caption("Downloaded copy: " + version_labels.get(location.get("version"), "Version not established"))
+        with open(result.filepath, "rb") as document:
+            st.download_button("Save PDF", data=document, file_name=Path(result.filepath).name, mime="application/pdf")
+    elif status == "unverifiable":
+        st.warning("A file was retrieved, but its identity could not be verified. Review it before using it.")
+        if result.filepath:
+            st.caption(f"Review file: {result.filepath}")
+    elif status == "mismatch":
+        st.error("The retrieved document does not match the selected paper.")
+    elif status == "located" or st.session_state.browser_url:
+        st.info("A document link was found. No verified PDF was saved.")
+    else:
+        st.error(result.error or "No verified document could be acquired.")
+    if result.error and status in ("located", "unverifiable", "mismatch"):
+        st.caption(result.error)
+    url = st.session_state.browser_url
+    if url and urlparse(url).scheme in ("http", "https"):
+        st.link_button("Open document link", url)
+    verification = getattr(result, "verification", None)
+    if verification:
+        with st.expander("Document verification"):
+            st.json(verification)
+
+if st.session_state.search_log:
+    with st.expander("Activity log"):
+        st.code(st.session_state.search_log, language="text")
+
+with st.sidebar:
+    st.header("Downloads")
+    st.code(str(output_dir), language=None)
+    st.metric("Saved PDFs", len(list(output_dir.glob("*.pdf"))) if output_dir.exists() else 0)
+    if st.button("Open download folder"):
+        import platform
+        import subprocess
+        output_dir.mkdir(parents=True, exist_ok=True)
+        command = {"Darwin": "open", "Windows": "explorer"}.get(platform.system(), "xdg-open")
+        try:
+            subprocess.run([command, str(output_dir)], check=True)
+        except Exception as exc:
+            st.error(f"Could not open folder: {exc}")
+    st.caption("Search only reads metadata. Acquisition starts only when you click Download selected paper.")

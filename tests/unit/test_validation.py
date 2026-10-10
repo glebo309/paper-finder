@@ -54,11 +54,12 @@ def test_is_pdf_content_rejects_html():
 
 def test_check_pdf_readable_valid(tmp_path):
     """check_pdf_readable() should return True for a valid PDF file."""
-    # Must be larger than the default 50KB threshold used by validate_pdf()
-    pdf_bytes = b"%PDF-1.4\n" + b"x" * (60 * 1024)
+    from PyPDF2 import PdfWriter
     pdf_path = tmp_path / "valid_readable.pdf"
-    _write_bytes(pdf_path, pdf_bytes)
-
+    writer = PdfWriter()
+    writer.add_blank_page(width=612, height=792)
+    with pdf_path.open("wb") as handle:
+        writer.write(handle)
     assert check_pdf_readable(pdf_path) is True
 
 

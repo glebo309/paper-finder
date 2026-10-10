@@ -1,0 +1,27 @@
+name: Tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - run: python -m pip install -r requirements.txt
+      - run: python -m pytest -q
+      - run: python main.py search --help
+      - run: python tools/benchmark_identification.py
+      - run: python main.py copies --help
+      - run: python tools/benchmark_recent_fulltext.py
+      - run: python tools/benchmark_recent_fulltext.py --cases tests/fixtures/recent_fulltext_cohort_20261010.json

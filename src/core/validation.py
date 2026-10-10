@@ -74,265 +74,221 @@ def is_pdf_content(content: bytes, min_size_kb: int = 50) -> bool:
 
 
 def check_pdf_readable(path: Path) -> bool:
-    """
-    Check if PDF can be opened and read (deeper validation).
-    
-    Requires PyPDF2 or similar. Returns True if basic validation passes.
-    """
-    if not validate_pdf(path):
+    """Require a parseable PDF with at least one page; magic bytes are insufficient."""
+    if not validate_pdf(path, min_size_kb=0):
         return False
-    
     try:
         from PyPDF2 import PdfReader
         reader = PdfReader(str(path))
-        # Try to read first page
-        if len(reader.pages) > 0:
-            return True
-    except:
-        # PyPDF2 not available or PDF corrupted
-        # Fall back to magic byte validation
-        pass
-    
-    return True
-
-
-def validate_pdf_contains_doi(path: Path, expected_doi: str, max_pages: int = 5) -> bool:
-    """
-    Validate that a PDF actually contains the expected DOI.
-    
-    This is CRITICAL to prevent wrong papers from being accepted.
-    
-    Args:
-        path: Path to PDF file
-        expected_doi: The DOI that should be present in the PDF
-        max_pages: Number of pages to check (default 5, DOI usually on first pages)
-    
-    Returns:
-        True if DOI found in PDF text, False if not found, None if validation not possible
-    """
-    if not path.exists():
-        return False
-    
-    # Basic PDF validation first
-    if not validate_pdf(path):
-        return False
-    
-    # Try PyPDF2 for text extraction
-    try:
-        from PyPDF2 import PdfReader
-        
-        reader = PdfReader(str(path))
-        
-        # Normalize DOI for comparison (remove http://, https://, dx.doi.org, etc.)
-        clean_doi = expected_doi.lower().strip()
-        clean_doi = clean_doi.replace('https://doi.org/', '')
-        clean_doi = clean_doi.replace('http://doi.org/', '')
-        clean_doi = clean_doi.replace('https://dx.doi.org/', '')
-        clean_doi = clean_doi.replace('http://dx.doi.org/', '')
-        clean_doi = clean_doi.replace('doi:', '').strip()
-        
-        # Check first N pages
-        pages_to_check = min(max_pages, len(reader.pages))
-        
-        for page_num in range(pages_to_check):
-            try:
-                page = reader.pages[page_num]
-                text = page.extract_text() or ""
-                text_lower = text.lower()
-                
-                # Look for DOI in various formats
-                # Standard DOI format
-                if clean_doi in text_lower:
-                    return True
-                
-                # DOI with URL prefix
-                if f'doi.org/{clean_doi}' in text_lower:
-                    return True
-                
-                # DOI: prefix
-                if f'doi: {clean_doi}' in text_lower or f'doi:{clean_doi}' in text_lower:
-                    return True
-                
-            except Exception:
-                # Page extraction failed, try next page
-                continue
-        
-        # DOI not found in checked pages
-        return False
-        
-    except ImportError:
-        # PyPDF2 not available - cannot validate content
-        # Return None to indicate validation not possible
-        return None
+        return len(reader.pages) > 0
     except Exception:
-        # PDF corrupted or unreadable
         return False
 
 
 def _normalize_text(text: str) -> str:
-    """Normalize text for comparison (lowercase, collapse spaces)."""
+    """Normalize Unicode, punctuation and whitespace without losing word boundaries."""
     import re
-    t = text.lower().strip()
-    # Replace multiple whitespace with single space
-    t = re.sub(r"\s+", " ", t)
-    return t
+    import unicodedata
+    import html
+    # Citation titles may contain inline superscript/subscript markup. Removing
+    # just formatting tags preserves meaningful literal angle brackets elsewhere.
+    text = re.sub(r"</?(?:sup|sub|i|b|em|strong|span)(?:\s[^>]*)?>", "", str(text), flags=re.I)
+    text = unicodedata.normalize("NFKD", html.unescape(text)).casefold()
+    text = "".join(c for c in text if not unicodedata.combining(c))
+    text = re.sub(r"(?<=\w)-\s*\n\s*(?=\w)", "", text)
+    return " ".join(re.findall(r"[^\W_]+", text, re.UNICODE))
 
 
 def _title_similarity(a: str, b: str) -> float:
-    """Very lightweight title similarity (ratio of common tokens)."""
-    a_norm = _normalize_text(a)
-    b_norm = _normalize_text(b)
-    if not a_norm or not b_norm:
+    """Best contiguous title window; abstracts cannot dilute an actual title."""
+    from difflib import SequenceMatcher
+    target, words = _normalize_text(a).split(), _normalize_text(b).split()
+    if not target or not words:
         return 0.0
-    a_tokens = set(a_norm.split())
-    b_tokens = set(b_norm.split())
-    if not a_tokens or not b_tokens:
-        return 0.0
-    common = len(a_tokens & b_tokens)
-    total = len(a_tokens | b_tokens)
-    return common / total
+    width = len(target)
+    if width > len(words):
+        return SequenceMatcher(None, target, words).ratio()
+    return max(SequenceMatcher(None, target, words[i:i + width]).ratio()
+               for i in range(len(words) - width + 1))
 
 
-def validate_pdf_matches_metadata(
-    path: Path,
-    metadata: Dict,
-    doi: Optional[str],
-    source_name: str,
-    max_pages: int = 5,
-) -> bool:
-    """Validate that a PDF matches the requested paper using metadata.
+def _dois(text: str) -> set:
+    import re
+    values = set()
+    for value in re.findall(r"10\.\d{4,9}/[^\s\"]+", str(text), re.IGNORECASE):
+        value = value.casefold().rstrip(".,;:")
+        # Parentheses can belong to a DOI. Remove only unmatched wrapping
+        # punctuation, preserving distinct identifiers such as example(a).
+        while value and value[-1] in ")]}>":
+            closing = value[-1]
+            opening = {")": "(", "]": "[", "}": "{", ">": "<"}[closing]
+            if value.count(closing) <= value.count(opening):
+                break
+            value = value[:-1].rstrip(".,;:")
+        values.add(value)
+    return values
 
-    Strategy depends on source type:
-    - Trusted publisher / OA / preprint (Springer, Nature, Cell, PMC, arXiv, etc.):
-      * Primary: title similarity vs metadata title
-      * Secondary: DOI match if present
-    - Repositories (Europe PMC, Dataverse, Zenodo, etc.):
-      * Require good title similarity, use DOI if present
-    - High-risk sources (Sci-Hub, Telegram, Anna's Archive, LibGen):
-      * Require DOI match OR very high title similarity
+
+def _front_matter(text: str) -> str:
+    """Only material preceding body sections, never reference entries."""
+    import re
+    # Numeric sections, headings with a same-line abstract, and all-caps variants.
+    boundary = re.search(
+        r"(?im)^\s*(?:(?:[1-9][0-9]*|[IVX]+)[.\s]+)?"
+        r"(?:abstract|introduction|references|bibliography|literature cited)\b", text)
+    return text[:boundary.start() if boundary else 1800][:1800]
+
+
+def verify_document_identity(path: Path, record: Dict) -> Dict:
+    """Compare a PDF's front matter against a selected bibliographic record.
+
+    Returns verified, mismatch, or unverifiable with explicit evidence. This is a
+    conservative local heuristic, not OCR or a guarantee of document authenticity.
+    A DOI quoted in the body or references is never sufficient evidence.
     """
-    # Basic PDF structure check
-    if not validate_pdf(path):
-        return False
+    import re
 
-    title = metadata.get("title") or metadata.get("Title")
-    publisher = (metadata.get("publisher") or "").lower()
-    journal = (metadata.get("journal") or metadata.get("container-title") or "").lower()
+    def result(status, reason, **evidence):
+        return {"status": status, "reasons": [reason], **evidence}
 
-    # Classify source into trust categories
-    src = (source_name or "").lower()
-
-    def is_publisher_like() -> bool:
-        host_keywords = [
-            "springer", "nature.com", "linkinghub.elsevier.com", "cell.com",
-            "acs.org", "wiley.com", "tandfonline", "oup.com", "scielo",
-        ]
-        meta_keywords = ["springer", "nature", "elsevier", "acs", "wiley"]
-        return any(k in src for k in host_keywords) or any(k in publisher for k in meta_keywords)
-
-    def is_oa_preprint_like() -> bool:
-        hosts = ["arxiv", "biorxiv", "medrxiv", "ncbi.nlm.nih.gov/pmc", "europe pmc"]
-        return any(h in src for h in hosts) or "preprint" in journal
-
-    def is_repository_like() -> bool:
-        hosts = ["zenodo", "figshare", "dataverse", "osf", "institutional repo", "repository"]
-        return any(h in src for h in hosts)
-
-    def is_scihub_like() -> bool:
-        hosts = ["sci-hub", "scihub"]
-        return any(h in src for h in hosts)
-
-    def is_shadow_library_like() -> bool:
-        # Higher-risk shadow libraries where we keep stricter validation
-        hosts = ["telegram", "anna's archive", "annas_archive", "libgen"]
-        return any(h in src for h in hosts)
-
-    # If we don't have title metadata, fall back to DOI-only rules
-    if not title:
-        if doi and "/" in doi:
-            doi_result = validate_pdf_contains_doi(path, doi, max_pages=max_pages)
-            return bool(doi_result)
-        # No title and no DOI: we can't validate content deeply, trust basic PDF check
-        return True
-
-    # Track basic file stats for fallback heuristics
+    path = Path(path)
+    identifier = record.get("identifier") or {}
+    title = record.get("title") or record.get("Title") or ""
+    if isinstance(title, list):
+        title = title[0] if title else ""
+    doi = record.get("doi") or (identifier.get("value") if identifier.get("type") == "doi" else "")
+    wanted_dois = _dois(doi or "")
+    arxiv = record.get("arxiv_id") or (identifier.get("value") if identifier.get("type") == "arxiv" else "")
+    if not arxiv and doi and "10.48550/arxiv." in doi.lower():
+        arxiv = doi.lower().split("10.48550/arxiv.", 1)[1]
+    arxiv = str(arxiv).lower()
+    arxiv_base = re.sub(r"v\d+$", "", arxiv)
+    requested_version = bool(re.search(r"v\d+$", arxiv))
+    if not (title or wanted_dois or arxiv):
+        return result("unverifiable", "No target title or supported identifier was provided")
     try:
-        file_size = path.stat().st_size
-    except OSError:
-        file_size = 0
-
-    # Try to read first few pages and extract text
-    try:
+        if not validate_pdf(path, min_size_kb=0):
+            return result("unverifiable", "File is missing or does not have a PDF header")
         from PyPDF2 import PdfReader
         reader = PdfReader(str(path))
-        pages_to_check = min(max_pages, len(reader.pages))
-        extracted = []
-        for i in range(pages_to_check):
-            try:
-                text = reader.pages[i].extract_text() or ""
-                extracted.append(text)
-            except Exception:
-                continue
-        full_text = "\n".join(extracted)
-    except Exception:
-        # If we can't parse text at all, fall back to basic validation only
-        return True
+        if not reader.pages:
+            return result("unverifiable", "PDF has no pages")
+        page_text = reader.pages[0].extract_text() or ""
+        pdf_meta = reader.metadata or {}
+    except Exception as exc:
+        return result("unverifiable", f"PDF text extraction failed: {type(exc).__name__}")
 
-    norm_title = _normalize_text(title)
-    norm_text = _normalize_text(full_text)
-    text_char_count = len(norm_text.strip())
+    front = _front_matter(page_text)
+    norm_front = _normalize_text(front)
+    # Exclude arbitrary subject/keywords: these often contain cited identifiers.
+    meta_dois = _dois(" ".join(str(pdf_meta.get(key) or "") for key in ("/doi", "/DOI", "/WPS-ARTICLEDOI")))
+    front_dois = _dois(front)
+    found_dois = front_dois | meta_dois
+    expected_supplement = bool(re.search(r"supplement(?:ary|al)?|supporting information", title, re.I))
+    is_supplement = bool(re.search(
+        r"(?im)^\s*(?:electronic\s+)?(?:supplement(?:ary|al)?(?:\s*(?:information|materials?|data|appendix|methods))?|supporting\s*information)\s*(?:$|[:.]|for\b)",
+        front))
+    if is_supplement and not expected_supplement:
+        return result("mismatch", "Document is supplementary material, not the selected main article")
 
-    # Quick DOI / identifier check if available
-    doi_ok = None
-    if doi and "/" in doi:
-        # Normal DOI-in-text validation
-        doi_ok = validate_pdf_contains_doi(path, doi, max_pages=max_pages)
+    score = _title_similarity(title, front) if title else 0.0
+    authors = record.get("authors") or record.get("author") or []
+    if isinstance(authors, str):
+        authors = [authors]
+    names = []
+    compact_matched_authors = []
+    for author in authors:
+        if isinstance(author, dict):
+            author = author.get("family") or author.get("name") or ""
+        tokens = _normalize_text(author).split()
+        if tokens:
+            names.append(tokens[-1])
+            # Some PDF text layers omit every inter-word space. Require the
+            # complete given + family name as an extracted token, not a surname
+            # substring or an initial that could match unrelated text.
+            compact_author = "".join(tokens)
+            if (len(tokens) >= 2 and len(tokens[0]) >= 2 and len(compact_author) >= 8
+                    and re.search(r"(?:^|\s)" + re.escape(compact_author) + r"\d*(?:$|\s)", norm_front)):
+                compact_matched_authors.append(tokens[-1])
+    matched_authors = [name for name in names if name in norm_front.split()]
+    title_words = _normalize_text(title).split()
+    compact_title = "".join(title_words)
+    compact_heading = "".join(_normalize_text(front[:700]).split())
+    compact_title_match = bool(len(title_words) >= 4 and len(compact_title) >= 24
+                               and compact_title in compact_heading)
+    doi_match = bool(wanted_dois & found_dois)
+    compact_corroborated = compact_title_match and bool(doi_match or compact_matched_authors)
+    if compact_corroborated:
+        matched_authors = list(dict.fromkeys(matched_authors + compact_matched_authors))
+    strong_title = (bool(title_words) and score >= .92 and (len(title_words) >= 4 or bool(matched_authors))) or compact_corroborated
+    plausible_title = score >= .78 and bool(matched_authors)
+    arxiv_pattern = r"arxiv\s*:\s*((?:\d{4}\.\d{4,5}|[a-z.-]+/\d{7})(?:v\d+)?)"
+    arxiv_values = {item.lower() for item in re.findall(arxiv_pattern, front, re.I)}
+    # arXiv's margin stamp often extracts after the abstract and body. Its
+    # category/date format distinguishes that stamp from ordinary body citations.
+    stamps = re.findall(arxiv_pattern + r"\s*\[[a-z][a-z0-9.-]*\]\s*\d{1,2}\s+[a-z]{3}\s+\d{4}\b",
+                        page_text, re.I)
+    arxiv_values.update(item.lower() for item in stamps)
+    arxiv_bases = {re.sub(r"v\d+$", "", item) for item in arxiv_values}
+    arxiv_match = bool(arxiv and (arxiv in arxiv_values if requested_version else arxiv_base in arxiv_bases))
+    evidence = {"title_similarity": round(score, 3), "compact_title_match": compact_title_match,
+                "matched_authors": matched_authors,
+                "front_matter_dois": sorted(found_dois), "identifier_match": doi_match or arxiv_match,
+                "front_matter_arxiv_ids": sorted(arxiv_values),
+                "text_extracted": bool(norm_front)}
 
-        # Special-case: Crossref arXiv DOIs like 10.48550/arXiv.2311.12345
-        # Many arXiv PDFs only contain "arXiv:2311.12345", not the full DOI.
-        if (doi_ok is False) and doi.lower().startswith("10.48550/arxiv."):
-            try:
-                # Extract the arXiv ID part
-                arxiv_id = doi.split("arxiv.", 1)[1]
-                # Consider both "2311.12345" and "arxiv:2311.12345" forms
-                if arxiv_id in norm_text or f"arxiv:{arxiv_id}" in norm_text:
-                    doi_ok = True
-            except Exception:
-                pass
+    if arxiv and arxiv_values and arxiv_base not in arxiv_bases:
+        return result("mismatch", "Front-matter arXiv identifier conflicts with the selected record", **evidence)
+    if requested_version and not arxiv_match:
+        explicit_versions = {item for item in arxiv_values if re.search(r"v\d+$", item)}
+        if explicit_versions:
+            return result("mismatch", "Front-matter arXiv version differs from the selected version", **evidence)
+        return result("unverifiable", "The explicitly requested arXiv version is not corroborated", **evidence)
 
-    # Title similarity (using only first ~300 chars to bias towards title area)
-    window_text = norm_text[:3000]
-    title_sim = _title_similarity(norm_title, window_text)
+    # An article identifier embedded in metadata cannot erase a contradictory
+    # DOI printed on the page. Identified arXiv versions can legitimately carry
+    # a later journal DOI, as handled by the separate arXiv identity evidence.
+    if wanted_dois and front_dois and not (wanted_dois & front_dois) and not arxiv_match:
+        return result("mismatch", "Printed front-matter DOI conflicts with the selected record", **evidence)
 
-    # Decide based on source class
-    if is_scihub_like() or is_shadow_library_like():
-        # PHILOSOPHY: Identify First, Then Acquire.
-        # If we identified the DOI correctly and asked Sci-Hub/Shadow Libs for it,
-        # we assume the returned PDF is correct.
-        # These sources are DOI-addressable. Mismatches are rare, but false negatives
-        # from text extraction (OCR failure, old scans) are very common.
-        # We trust the source's mapping over our text analysis.
-        return True
+    if strong_title or plausible_title:
+        if names and not matched_authors and not (doi_match or arxiv_match):
+            return result("unverifiable", "Title matches but none of the expected authors are corroborated", **evidence)
+        # A conflicting explicit article DOI is a real contradiction, unless this
+        # is an identified arXiv version carrying a later journal DOI.
+        if wanted_dois and found_dois and not doi_match and not arxiv_match:
+            return result("mismatch", "Front-matter DOI conflicts with the selected record", **evidence)
+        return result("verified", "Title matches the first-page heading" +
+                      (" after word-spacing normalization" if compact_corroborated and score < .92 else "") +
+                      (" with author corroboration" if matched_authors else ""), **evidence)
+    if doi_match or arxiv_match:
+        if title and len(norm_front.split()) >= 5 and score < .35:
+            return result("unverifiable", "Identifier matches but the expected title is not corroborated", **evidence)
+        return result("verified", "Exact identifier matches PDF metadata or front matter", **evidence)
+    if not norm_front:
+        return result("unverifiable", "PDF has no extractable first-page text or matching identifier metadata", **evidence)
+    if wanted_dois and found_dois and not (wanted_dois & found_dois):
+        return result("mismatch", "Front-matter DOI differs from the selected record", **evidence)
+    if title and len(norm_front.split()) >= 4 and score < .35:
+        return result("mismatch", "First-page heading does not match the selected paper", **evidence)
+    return result("unverifiable", "Insufficient front-matter evidence to confirm the selected paper", **evidence)
 
-    if is_publisher_like() or is_oa_preprint_like():
-        # Trusted sources (Nature, Cell, arXiv, bioRxiv, etc.)
-        # Accept with moderate title match OR DOI/ID match
-        if title_sim >= 0.6:
-            return True
-        if doi_ok:
-            return True
-        return False
 
-    if is_repository_like():
-        # Repositories (SciELO, Dataverse, Zenodo, etc.) can host variants
-        # Accept with lower title similarity, or DOI match if present
-        if title_sim >= 0.5:
-            return True
-        if doi_ok:
-            return True
-        return False
+def validate_pdf_contains_doi(path: Path, expected_doi: str, max_pages: int = 5) -> Optional[bool]:
+    """Legacy tri-state API; identifiers must occur in front matter, not citations.
 
-    # Fallback: neutral source – require either DOI or decent title
-    if doi_ok:
-        return True
-    return title_sim >= 0.6
+    max_pages remains accepted for compatibility; identity uses the first page.
+    """
+    result = verify_document_identity(path, {"doi": expected_doi})
+    if result["status"] == "unverifiable":
+        return False if result.get("text_extracted") else None
+    return result["status"] == "verified"
+
+
+def validate_pdf_matches_metadata(path: Path, metadata: Dict, doi: Optional[str],
+                                  source_name: str, max_pages: int = 5) -> bool:
+    """Legacy bool API: only affirmative evidence succeeds, regardless of source."""
+    record = dict(metadata)
+    if doi:
+        record["doi"] = doi
+    return verify_document_identity(path, record)["status"] == "verified"

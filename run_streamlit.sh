@@ -1,25 +1,12 @@
 #!/bin/bash
-# Quick launcher for Paper Finder Streamlit app
-
-echo "================================================"
-echo "  Paper Finder - Streamlit Web Interface"
-echo "================================================"
-echo ""
-
-# Get local IP
-LOCAL_IP=$(ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -n 1)
-
-echo "Starting server..."
-echo ""
-echo "Access URLs:"
-echo "  Local:   http://localhost:8501"
-echo "  Network: http://$LOCAL_IP:8501"
-echo ""
-echo "Share the network URL with your lab colleagues!"
-echo ""
-echo "Press Ctrl+C to stop"
-echo "================================================"
-echo ""
-
-# Run Streamlit
-streamlit run streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "$0")" && pwd)"
+cd "$project_dir"
+if [[ -x "$project_dir/.venv/bin/python" ]]; then
+  python_bin="$project_dir/.venv/bin/python"
+else
+  python_bin="python3"
+fi
+exec "$python_bin" -m streamlit run "$project_dir/streamlit_app.py" \
+  --server.address "${PAPER_FINDER_HOST:-127.0.0.1}" \
+  --server.port "${PAPER_FINDER_PORT:-8501}"

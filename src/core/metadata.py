@@ -34,36 +34,9 @@ class MetadataResolver:
         - "https://doi.org/10.1021/jacs.3c00908"
         - "... 10.1021/jacs.3c00908)"
         """
-        if not text:
-            return None
-        
-        # Normalize whitespace
-        s = " ".join(text.strip().split())
-        
-        # Pattern 1: doi.org URL
-        match = re.search(r'doi\.org/(10\.\d{4,}/[^\s\'"<>]+)', s, re.IGNORECASE)
-        if match:
-            doi = match.group(1)
-            # Clean trailing punctuation
-            doi = re.sub(r'[.,;)\]]+$', '', doi)
-            return doi
-        
-        # Pattern 2: "DOI: 10.xxx/yyy"
-        match = re.search(r'doi[:\s]+(10\.\d{4,}/[^\s\'"<>]+)', s, re.IGNORECASE)
-        if match:
-            doi = match.group(1)
-            doi = re.sub(r'[.,;)\]]+$', '', doi)
-            return doi
-        
-        # Pattern 3: Bare DOI in text
-        match = re.search(r'\b(10\.\d{4,}/[^\s\'"<>]+)', s)
-        if match:
-            doi = match.group(1)
-            doi = re.sub(r'[.,;)\]]+$', '', doi)
-            return doi
-        
-        return None
-    
+        from .discovery import _doi
+        return _doi(text)
+
     def extract_isbn_from_text(self, text: str) -> Optional[str]:
         """
         Extract ISBN-10 or ISBN-13 from text.
@@ -99,8 +72,13 @@ class MetadataResolver:
         Returns:
             Dict with keys: title, authors, year, journal, publisher
         """
+        from .discovery import _doi
+        from urllib.parse import quote
+        doi = _doi(doi)
+        if not doi:
+            return None
         try:
-            url = f"https://api.crossref.org/works/{doi}"
+            url = f"https://api.crossref.org/works/{quote(doi, safe='/')}"
             response = self.session.get(url, timeout=15)
             
             if response.status_code != 200:
@@ -108,7 +86,13 @@ class MetadataResolver:
             
             data = response.json()
             message = data.get("message", {})
-            
+            if not isinstance(message, dict):
+                return None
+            # A wrong or malformed explicit identifier contradicts this endpoint.
+            # When omitted, the exact DOI endpoint itself supplies the identity.
+            if "DOI" in message and _doi(message["DOI"]) != doi:
+                return None
+
             # Extract key fields
             metadata = {
                 "doi": doi,
@@ -162,37 +146,8 @@ class MetadataResolver:
             return None
     
     def resolve_reference(self, ref_str: str) -> Optional[str]:
-        """
-        Try to resolve a reference string to a DOI.
-        
-        Steps:
-        1. Try extracting DOI directly
-        2. Try Crossref search API
-        3. Return None if unsuccessful
-        """
-        # Try direct DOI extraction first
-        doi = self.extract_doi_from_text(ref_str)
-        if doi:
-            return doi
-        
-        # Try Crossref search
-        try:
-            url = "https://api.crossref.org/works"
-            params = {
-                "query": ref_str[:500],  # Limit query length
-                "rows": 1
-            }
-            response = self.session.get(url, params=params, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                items = data.get("message", {}).get("items", [])
-                if items:
-                    doi = items[0].get("DOI")
-                    if doi:
-                        print(f"  Resolved reference via Crossref: {doi}")
-                        return doi
-        except Exception as e:
-            print(f"  Crossref search failed: {type(e).__name__}")
-        
-        return None
+        """Return a DOI only when the shared discovery service establishes a match."""
+        from .discovery import DiscoveryService
+        result = DiscoveryService(session=self.session).search(ref_str, mode="identify")
+        selected = result.get("selected")
+        return selected.get("doi") if result["status"] == "matched" and selected else None

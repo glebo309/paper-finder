@@ -29,7 +29,8 @@ class IdentityResolver:
     - Messy citation text
     """
     
-    def __init__(self, session: requests.Session = None):
+    def __init__(self, session: requests.Session = None, refresh=False):
+        self.refresh = refresh
         self.session = session or requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
@@ -88,48 +89,8 @@ class IdentityResolver:
             elif doi.startswith("10.1101/"):
                 return self._resolve_biorxiv(doi)
             else:
-                # Primary path: try to resolve DOI via Crossref (with canonical redirect)
-                record = self._resolve_doi(doi)
+                return self._resolve_doi(doi)
 
-                # If we had a network error during verification, accept the DOI optimistically
-                # This prevents blocking valid papers during internet hiccups/rate-limiting
-                if record.get("metadata_source") == "manual_network_error":
-                    print(f"  ⚠ Network error validating DOI {doi} - proceeding optimistically")
-                    return record
-
-                # If we obtained real metadata, accept it
-                if record.get("metadata_source") != "manual" and (
-                    record.get("title") or record.get("journal") or record.get("authors")
-                ):
-                    return record
-
-                # If the reference was just this DOI (or a minimal wrapper around it),
-                # avoid guessing via free-text citation search. Treat as identity
-                # failure instead of mis-resolving to an unrelated paper.
-                if self._reference_is_just_this_doi(reference, doi):
-                    failure = self._empty_record(error=f"DOI not found in Crossref/doi.org: {doi}")
-                    failure["input_doi"] = doi
-                    return failure
-
-                # Fallback 1: treat the whole reference as a citation and ask Crossref
-                # to resolve it. This can recover from slightly wrong DOIs when
-                # Crossref knows the canonical record and the reference contains more
-                # context than just the DOI.
-                citation_record = self._resolve_citation(reference)
-                id_type = citation_record.get("identifier", {}).get("type")
-                if id_type == "doi" and citation_record.get("metadata_source") != "manual" and (
-                    citation_record.get("title") or citation_record.get("journal")
-                ):
-                    # Preserve the original (possibly wrong) DOI for transparency
-                    citation_record["original_input"] = reference
-                    citation_record["original_doi"] = doi
-                    return citation_record
-
-                # Fallback 2: identity failure – do NOT claim this as a valid DOI.
-                failure = self._empty_record(error=f"DOI not found in Crossref/doi.org: {doi}")
-                failure["input_doi"] = doi
-                return failure
-        
         # 5. Check for direct URLs
         url_type = self._classify_url(reference)
         if url_type:
@@ -254,18 +215,16 @@ class IdentityResolver:
     
     def _extract_arxiv_id(self, text: str) -> Optional[str]:
         """Extract arXiv ID from various formats."""
-        # Pattern 1: arXiv:YYMM.NNNNN or arXiv:YYMM.NNNNNvN
-        match = re.search(r'arxiv[:\s]*(\d{4}\.\d{4,5}(?:v\d+)?)', text, re.IGNORECASE)
+        # Both modern numeric and legacy subject identifiers may specify a
+        # version. Preserve it through metadata lookup and PDF acquisition.
+        identifier = r'((?:\d{4}\.\d{4,5}|[a-z][a-z.\-]*/\d{7})(?:v\d+)?)(?!\w)'
+        match = re.fullmatch(identifier, text.strip(), re.IGNORECASE)
         if match:
             return match.group(1)
-        
-        # Pattern 2: arxiv.org/abs/YYMM.NNNNN
-        match = re.search(r'arxiv\.org/(?:abs|pdf)/(\d{4}\.\d{4,5}(?:v\d+)?)', text, re.IGNORECASE)
+        match = re.search(r'arxiv[:\s]*' + identifier, text, re.IGNORECASE)
         if match:
             return match.group(1)
-        
-        # Pattern 3: Old format arXiv:subject/YYMMNNN
-        match = re.search(r'arxiv[:\s]*([a-z\-]+/\d{7})', text, re.IGNORECASE)
+        match = re.search(r'arxiv\.org/(?:abs|pdf)/' + identifier, text, re.IGNORECASE)
         if match:
             return match.group(1)
         
@@ -292,55 +251,17 @@ class IdentityResolver:
         return None
     
     def _extract_doi(self, text: str) -> Optional[str]:
-        """Extract DOI from text."""
-        # Normalize whitespace
-        s = " ".join(text.strip().split())
-        s = s.rstrip("`'\"")
-        
-        # Special case: Nature article URLs
-        match = re.search(r'nature\.com/articles/([A-Za-z0-9.\-]+)', s, re.IGNORECASE)
+        from .discovery import _doi
+        match = re.search(r'nature\.com/articles/([A-Za-z0-9.\-]+)', text, re.I)
         if match:
             return f"10.1038/{match.group(1)}"
-        
-        # Pattern 1: doi.org URL
-        match = re.search(r'doi\.org/(10\.\d{4,}/[^\s\'"<>]+)', s, re.IGNORECASE)
-        if match:
-            doi = match.group(1).rstrip(").,;\"']`")
-            return self._normalize_doi(doi)
-        
-        # Pattern 2: DOI with prefix
-        match = re.search(r'doi[:\s]+(10\.\d{4,}/[^\s\'"<>]+)', s, re.IGNORECASE)
-        if match:
-            doi = match.group(1).rstrip(").,;\"']`")
-            return self._normalize_doi(doi)
-        
-        # Pattern 3: Bare DOI
-        match = re.search(r'\b(10\.\d{4,9}/[^\s]+)', s)
-        if match:
-            doi = match.group(1).rstrip(").,;\"']`")
-            return self._normalize_doi(doi)
-        
-        return None
-    
-    def _normalize_doi(self, doi: str) -> str:
-        """Normalize DOI by removing SI suffixes."""
-        if not doi:
-            return doi
-        
-        # If a URL accidentally got concatenated onto the DOI (e.g.
-        # '10.1021/ja01080a054https://pubs.acs.org/doi/10.1021/ja01080a054'),
-        # keep only the part before any new URL fragment.
-        import re as _re
-        parts = _re.split(r"https?://", doi, maxsplit=1)
-        doi = parts[0]
+        return _doi(text)
 
-        # Remove supplementary info suffixes (e.g., .s001)
-        match = re.match(r'(.+)\.s\d+$', doi, re.IGNORECASE)
-        if match:
-            return match.group(1)
-        
-        return doi
-    
+    def _normalize_doi(self, doi: str) -> str:
+        """Normalize punctuation without converting a supplement into another work."""
+        from .discovery import _doi
+        return _doi(doi) or doi
+
     def _classify_url(self, text: str) -> Optional[str]:
         """Classify a URL to determine its type."""
         if not text.startswith(('http://', 'https://')):
@@ -425,6 +346,18 @@ class IdentityResolver:
                 
                 # Find entry
                 entry = root.find('atom:entry', ns)
+                if entry is not None:
+                    entry_id = entry.findtext('atom:id', default='', namespaces=ns)
+                    returned_id = self._extract_arxiv_id(entry_id)
+                    requested = arxiv_id.lower()
+                    returned = (returned_id or '').lower()
+                    explicit_version = bool(re.search(r'v\d+$', requested))
+                    same_identity = (returned == requested if explicit_version else
+                                     re.sub(r'v\d+$', '', returned) == requested)
+                    if not same_identity:
+                        # Retain the user's exact identifier and PDF URL, but
+                        # never attach another paper/version's metadata to it.
+                        entry = None
                 if entry is not None:
                     title_elem = entry.find('atom:title', ns)
                     title = title_elem.text.strip() if title_elem is not None else None
@@ -518,236 +451,17 @@ class IdentityResolver:
             "html_url": f"https://www.biorxiv.org/content/{biorxiv_doi}"
         }
     
-    def _resolve_doi(self, doi: str) -> Dict[str, Any]:
-        """Resolve DOI to metadata using Crossref."""
-        try:
-            url = f"https://api.crossref.org/works/{doi}"
-            response = self.session.get(url, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                message = data.get("message", {})
-                
-                # Extract metadata
-                title = ""
-                titles = message.get("title", [])
-                if titles:
-                    title = titles[0]
-                
-                # Authors
-                authors = []
-                for author in message.get("author", []):
-                    given = author.get("given", "")
-                    family = author.get("family", "")
-                    if family:
-                        full_name = f"{given} {family}".strip()
-                        authors.append(full_name)
-                
-                # Year
-                year = None
-                date_parts = message.get("published-print", message.get("published-online", {}))
-                if date_parts:
-                    parts = date_parts.get("date-parts", [[]])
-                    if parts and parts[0]:
-                        year = parts[0][0]
-                
-                # Journal
-                journal = ""
-                containers = message.get("container-title", [])
-                if containers:
-                    journal = containers[0]
-                
-                # Publisher
-                publisher = message.get("publisher", "")
-                
-                # Volume, issue, pages
-                volume = message.get("volume")
-                issue = message.get("issue")
-                page = message.get("page")
-                
-                # Abstract
-                abstract = message.get("abstract")
-                
-                return {
-                    "identifier": {"type": "doi", "value": doi},
-                    "title": title,
-                    "authors": authors,
-                    "year": year,
-                    "journal": journal,
-                    "publisher": publisher,
-                    "volume": volume,
-                    "issue": issue,
-                    "pages": page,
-                    "abstract": abstract,
-                    "doi": doi,
-                    "metadata_source": "crossref",
-                    "crossref_type": message.get("type"),
-                    "original_metadata": message
-                }
-        except Exception as e:
-            print(f"Crossref lookup failed: {e}")
-        
-        # Return minimal record
-        return {
-            "identifier": {"type": "doi", "value": doi},
-            "title": None,
-            "authors": [],
-            "year": None,
-            "journal": None,
-            "publisher": None,
-            "doi": doi,
-            "metadata_source": "manual"
-        }
-
-    def _resolve_canonical_doi_via_redirect(self, doi: str) -> Optional[str]:
-        '''Try to resolve a canonical DOI using https://doi.org redirects, with AAAS journal heuristics.
-
-        This is used when Crossref /works/{doi} fails. It follows the DOI
-        resolver, examines the final URL, and tries to extract a clean DOI
-        from it. Additionally, for AAAS journals, it tries common prefix swaps
-        (e.g., science → sciadv for Science Advances).
-        '''
-        try:
-            resolver_url = f'https://doi.org/{doi}'
-            response = self.session.get(resolver_url, timeout=15, allow_redirects=True)
-            final_url = getattr(response, 'url', resolver_url) or resolver_url
-
-            # Try to extract a DOI directly from the final URL
-            canonical = self._extract_doi(final_url)
-            if canonical and canonical != doi:
-                return canonical
-        except Exception as e:
-            print(f'DOI redirect resolution failed for {doi}: {e}')
-
-        # Universal DOI suffix heuristic: if DOI fails, try searching Crossref by suffix
-        # Extract suffix after the last /
-        if '/' in doi:
-            suffix = doi.split('/')[-1]
-            if suffix and len(suffix) > 4:  # Avoid too short suffixes
-                try:
-                    search_url = "https://api.crossref.org/works"
-                    params = {"query": f"DOI:{suffix}", "rows": 5}  # Get up to 5 results
-                    search_response = self.session.get(search_url, params=params, timeout=10)
-                    if search_response.status_code == 200:
-                        search_data = search_response.json()
-                        items = search_data.get("message", {}).get("items", [])
-                        if len(items) == 1:  # Only if exactly one match
-                            found_doi = items[0].get("DOI")
-                            if found_doi and found_doi != doi:
-                                print(f'Trying universal DOI suffix heuristic: {doi} → {found_doi} (via suffix "{suffix}")')
-                                return found_doi
-                except Exception as e:
-                    pass  # Heuristic failed, continue
-
-        return None
-
     def _resolve_doi(self, doi: str, _depth: int = 0) -> Dict[str, Any]:
-        '''Resolve DOI to metadata using Crossref, with canonical DOI fallback.
-
-        If Crossref fails for the initial DOI, we try to resolve a canonical DOI
-        via https://doi.org redirects and then retry Crossref once with that
-        canonical value.
-        '''
-        try:
-            url = f'https://api.crossref.org/works/{doi}'
-            response = self.session.get(url, timeout=15)
-
-            if response.status_code == 200:
-                data = response.json()
-                message = data.get('message', {})
-
-                # Extract metadata
-                title = ''
-                titles = message.get('title', [])
-                if titles:
-                    title = titles[0]
-
-                # Authors
-                authors = []
-                for author in message.get('author', []):
-                    given = author.get('given', '')
-                    family = author.get('family', '')
-                    if family:
-                        full_name = f'{given} {family}'.strip()
-                        authors.append(full_name)
-
-                # Year
-                year = None
-                date_parts = message.get('published-print', message.get('published-online', {}))
-                if date_parts:
-                    parts = date_parts.get('date-parts', [[]])
-                    if parts and parts[0]:
-                        year = parts[0][0]
-
-                # Journal
-                journal = ''
-                containers = message.get('container-title', [])
-                if containers:
-                    journal = containers[0]
-
-                # Publisher
-                publisher = message.get('publisher', '')
-
-                # Volume, issue, pages
-                volume = message.get('volume')
-                issue = message.get('issue')
-                page = message.get('page')
-
-                # Abstract
-                abstract = message.get('abstract')
-
-                return {
-                    'identifier': {'type': 'doi', 'value': doi},
-                    'title': title,
-                    'authors': authors,
-                    'year': year,
-                    'journal': journal,
-                    'publisher': publisher,
-                    'volume': volume,
-                    'issue': issue,
-                    'pages': page,
-                    'abstract': abstract,
-                    'doi': doi,
-                    'metadata_source': 'crossref',
-                    'crossref_type': message.get('type'),
-                    'original_metadata': message,
-                }
-            else:
-                print(f'Crossref lookup for DOI {doi} returned status {response.status_code}')
-        except (requests.exceptions.RequestException, ConnectionError, OSError) as e:
-            print(f'Crossref lookup failed (Network Error: {type(e).__name__}) for DOI {doi}: {e}')
-            # Return minimal record but mark as network error so we don't abort resolution
-            return {
-                'identifier': {'type': 'doi', 'value': doi},
-                'title': None,
-                'authors': [],
-                'year': None,
-                'journal': None,
-                'publisher': None,
-                'doi': doi,
-                'metadata_source': 'manual_network_error',
-            }
-        except Exception as e:
-            print(f'Crossref lookup failed for DOI {doi}: {e}')
-
-        # If Crossref failed and we haven't yet tried canonical resolution, do that now
-        if _depth == 0:
-            canonical = self._resolve_canonical_doi_via_redirect(doi)
-            if canonical and canonical != doi:
-                print(f'Resolved canonical DOI via redirect: {canonical} (from {doi})')
-                return self._resolve_doi(canonical, _depth=1)
-
-        # Return minimal record if everything fails
-        return {
-            'identifier': {'type': 'doi', 'value': doi},
-            'title': None,
-            'authors': [],
-            'year': None,
-            'journal': None,
-            'publisher': None,
-            'doi': doi,
-            'metadata_source': 'manual',
-        }
+        """Verify the exact DOI across indexes without guessing a replacement."""
+        from .discovery import DiscoveryService
+        result = DiscoveryService(session=self.session, refresh=self.refresh).search(doi, mode="identify")
+        if result.get("selected") is not None and result['status'] == 'matched':
+            return result['selected']
+        error = "Metadata providers unavailable" if result['status'] == 'unavailable' else "DOI could not be verified"
+        record = self._empty_record(error=error)
+        record.update(status=result['status'], input_doi=doi, candidates=result.get('candidates', []),
+                      provider_errors=result.get('errors', {}))
+        return record
 
     def _resolve_url(self, url: str, url_type: str) -> Dict[str, Any]:
         """Resolve based on URL type."""
@@ -769,55 +483,142 @@ class IdentityResolver:
         if doi:
             return self._resolve_doi(doi)
         
-        # Return URL-based record
-        return {
-            "identifier": {"type": "url", "value": url},
-            "title": None,
-            "authors": [],
-            "year": None,
-            "journal": None,
-            "publisher": None,
-            "url": url,
-            "url_type": url_type,
-            "metadata_source": "manual"
-        }
-    
-    def _resolve_citation(self, citation: str) -> Dict[str, Any]:
-        """Try to resolve a free-text citation via Crossref search."""
+        # Fetch only bounded HTML citation metadata. Page titles and OpenGraph
+        # headings frequently describe login/error pages and are not identities.
+        from html.parser import HTMLParser
+        from urllib.parse import urljoin, urlsplit
+        import time
+
+        def safe_url(value):
+            try:
+                parsed = urlsplit(value)
+                return bool(parsed.scheme in {'http', 'https'} and parsed.hostname
+                            and not parsed.username and not parsed.password)
+            except (TypeError, ValueError):
+                return False
+
+        def unresolved(message, status='not_found'):
+            record = self._empty_record(error=message)
+            record.update(status=status, input_url=url, url=url, pdf_urls=[])
+            return record
+
+        if not safe_url(url):
+            return unresolved('URL must use HTTP or HTTPS without embedded credentials')
+
+        class CitationParser(HTMLParser):
+            def __init__(self):
+                super().__init__(convert_charrefs=True)
+                self.values = {}
+
+            def handle_starttag(self, tag, attrs):
+                attrs = dict(attrs)
+                name = (attrs.get('name') or attrs.get('property') or '').lower()
+                content = (attrs.get('content') or '').strip()
+                if tag.lower() == 'meta' and name.startswith('citation_') and content:
+                    self.values.setdefault(name, []).append(content)
+
+        current = url
+        deadline = time.monotonic() + 15
+        maximum = 1024 * 1024
+        response = None
         try:
-            # Clean up citation for better matching
-            citation = self._normalize_citation(citation)
-            
-            url = "https://api.crossref.org/works"
-            params = {
-                "query": citation[:500],  # Limit length
-                "rows": 1
-            }
-            response = self.session.get(url, params=params, timeout=15)
-            
-            if response.status_code == 200:
-                data = response.json()
-                items = data.get("message", {}).get("items", [])
-                if items:
-                    doi = items[0].get("DOI")
-                    if doi:
-                        print(f"Resolved citation via Crossref to DOI: {doi}")
-                        return self._resolve_doi(doi)
-        except Exception as e:
-            print(f"Citation resolution failed: {e}")
-        
-        # Return title-based record
-        return {
-            "identifier": {"type": "title", "value": citation[:200]},
-            "title": citation,
-            "authors": [],
-            "year": None,
-            "journal": None,
-            "publisher": None,
-            "metadata_source": "manual",
-            "original_citation": citation
-        }
-    
+            for _ in range(4):
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    return unresolved('Publisher metadata request timed out', 'unavailable')
+                response = self.session.get(current, stream=True, allow_redirects=False,
+                                            timeout=min(5, remaining))
+                if response.status_code in (301, 302, 303, 307, 308):
+                    location = response.headers.get('Location')
+                    following = urljoin(current, location) if location else ''
+                    response.close()
+                    response = None
+                    if not safe_url(following):
+                        return unresolved('Publisher redirected to an unsupported URL')
+                    current = following
+                    continue
+                if response.status_code != 200:
+                    status = 'unavailable' if response.status_code in (401, 403, 429) or response.status_code >= 500 else 'not_found'
+                    return unresolved(f'Publisher returned HTTP {response.status_code}', status)
+                content_type = response.headers.get('Content-Type', '').lower()
+                if 'html' not in content_type:
+                    return unresolved('URL does not provide HTML citation metadata; direct PDF identity is unverified')
+                length = response.headers.get('Content-Length')
+                if length and int(length) > maximum:
+                    return unresolved('Publisher HTML exceeds the metadata size limit')
+                body = bytearray()
+                for chunk in response.iter_content(chunk_size=16384):
+                    if time.monotonic() >= deadline:
+                        return unresolved('Publisher metadata request timed out', 'unavailable')
+                    body.extend(chunk)
+                    if len(body) > maximum:
+                        return unresolved('Publisher HTML exceeds the metadata size limit')
+                parser = CitationParser()
+                charset = re.search(r'charset=([a-zA-Z0-9_-]+)', content_type)
+                encoding = charset.group(1) if charset else 'utf-8'
+                try:
+                    parser.feed(body.decode(encoding, errors='replace'))
+                except LookupError:
+                    parser.feed(body.decode('utf-8', errors='replace'))
+                values = parser.values
+                title = next(iter(values.get('citation_title', [])), '')
+                dois = {self._extract_doi(value) for value in values.get('citation_doi', [])}
+                if None in dois:
+                    return unresolved('Publisher metadata contains a malformed article DOI')
+                if len(dois) > 1:
+                    return unresolved('Publisher metadata contains conflicting article DOIs', 'ambiguous')
+                pdfs = []
+                for value in values.get('citation_pdf_url', []):
+                    candidate = urljoin(current, value)
+                    if safe_url(candidate) and candidate not in pdfs:
+                        pdfs.append(candidate)
+                if dois:
+                    record = self._resolve_doi(next(iter(dois)))
+                    record['input_url'] = url
+                    if record.get('error') or record.get('status') in {'unavailable', 'not_found', 'ambiguous'}:
+                        return record
+                    record['pdf_urls'] = list(dict.fromkeys(list(record.get('pdf_urls') or []) + pdfs))
+                    record['sources'] = list(dict.fromkeys(list(record.get('sources') or []) + ['publisher_metadata']))
+                    return record
+                if not title:
+                    return unresolved('No article citation title or DOI found in publisher metadata')
+                date = next(iter(values.get('citation_publication_date', values.get('citation_date', []))), '')
+                year_match = re.search(r'\b(?:18|19|20)\d{2}\b', date)
+                return {
+                    'identifier': {'type': 'url', 'value': current}, 'title': title,
+                    'authors': list(dict.fromkeys(values.get('citation_author', []))),
+                    'year': int(year_match.group()) if year_match else None,
+                    'journal': next(iter(values.get('citation_journal_title', [])), ''),
+                    'publisher': next(iter(values.get('citation_publisher', [])), ''),
+                    'url': current, 'input_url': url, 'url_type': url_type,
+                    'pdf_urls': pdfs, 'metadata_source': 'publisher_metadata',
+                    'sources': ['publisher_metadata'], 'status': 'matched',
+                    'match_reasons': ['Article citation metadata supplied by the requested publisher page'],
+                }
+            return unresolved('Publisher redirect limit exceeded', 'unavailable')
+        except requests.RequestException:
+            return unresolved('Publisher metadata could not be reached', 'unavailable')
+        except (ValueError, TypeError):
+            return unresolved('Publisher returned malformed metadata')
+        finally:
+            if response is not None:
+                response.close()
+
+    def _resolve_citation(self, citation: str) -> Dict[str, Any]:
+        """Resolve text through ranked candidates; preserve ambiguity for every interface."""
+        from .discovery import DiscoveryService
+        result = DiscoveryService(session=self.session, refresh=self.refresh).search(citation, mode="identify")
+        if result.get("selected") is not None and result["status"] == "matched":
+            return result["selected"]
+        record = self._empty_record(error={
+            "ambiguous": "Several possible papers found. Select a candidate before downloading.",
+            "unavailable": "Search providers could not be reached. Try again later.",
+            "not_found": "No sufficiently matching paper found.",
+        }.get(result["status"], "Paper identity could not be established"))
+        record.update(status=result["status"], candidates=result.get("candidates", []),
+                      provider_errors=result.get("errors", {}), original_citation=citation)
+        return record
+
     def _normalize_citation(self, citation: str) -> str:
         """Normalize citation for better Crossref matching."""
         # Split camelCase in obviously concatenated titles
