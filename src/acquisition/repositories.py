@@ -14,6 +14,7 @@ Targets:
 """
 
 import requests
+from src.core.cancellation import cancellable_sleep
 from bs4 import BeautifulSoup
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -139,43 +140,33 @@ def try_figshare(doi: str, title: str, authors: List[str], session: requests.Ses
             if similarity < 0.7:
                 continue
             
-            # Validate authors
+            # Search records are deliberately light; files and authors live in detail.
+            article_id = item.get('id')
+            if article_id is None:
+                continue
+            detail_resp = session.get(f"https://api.figshare.com/v2/articles/{article_id}", timeout=10)
+            if detail_resp.status_code != 200:
+                continue
+            detail = detail_resp.json()
+            similarity = _title_similarity(title, detail.get('title', item_title))
+            if similarity < 0.7:
+                continue
             if authors:
-                item_authors = [a.get('full_name', '') for a in item.get('authors', [])]
-                author_match = False
-                for provided_author in authors[:2]:
-                    author_last = provided_author.split()[-1].lower()
-                    for item_author in item_authors:
-                        if author_last in item_author.lower():
-                            author_match = True
-                            break
-                    if author_match:
-                        break
-                
+                item_authors = [a.get('full_name', '') for a in detail.get('authors', [])]
+                author_match = any(
+                    provided.split() and provided.split()[-1].lower() in candidate.lower()
+                    for provided in authors[:2] for candidate in item_authors
+                )
                 if not author_match and similarity < 0.85:
                     continue
-            
-            # Get PDF file
-            files = item.get('files', [])
-            for file_info in files:
+            for file_info in detail.get('files', []):
                 if file_info.get('is_link_only'):
                     continue
-                
-                name = file_info.get('name', '').lower()
-                if name.endswith('.pdf'):
-                    # Get article detail for download URL
-                    article_id = item.get('id')
-                    detail_url = f"https://api.figshare.com/v2/articles/{article_id}"
-                    detail_resp = session.get(detail_url, timeout=10)
-                    
-                    if detail_resp.status_code == 200:
-                        detail = detail_resp.json()
-                        for f in detail.get('files', []):
-                            if f.get('name', '').lower().endswith('.pdf'):
-                                pdf_url = f.get('download_url')
-                                if pdf_url:
-                                    print(f"      ✓ Found on Figshare (similarity: {similarity:.2f})")
-                                    return pdf_url
+                if file_info.get('name', '').lower().endswith('.pdf'):
+                    pdf_url = file_info.get('download_url')
+                    if pdf_url:
+                        print(f"      ✓ Found on Figshare (similarity: {similarity:.2f})")
+                        return pdf_url
         
     except Exception as e:
         print(f"      ✗ Figshare error: {type(e).__name__}")
@@ -349,7 +340,7 @@ def try_dspace_eprints_generic(doi: str, title: str, session: requests.Session) 
         import time
         import random
         
-        time.sleep(random.uniform(2, 4))
+        cancellable_sleep(random.uniform(2, 4))
         
         search_url = "https://www.google.com/search"
         params = {
@@ -430,7 +421,19 @@ def try_fetch_from_repositories(
                 if pdf_resp.content.startswith(b'%PDF') and len(pdf_resp.content) > 50*1024:
                     with output_file.open('wb') as f:
                         f.write(pdf_resp.content)
-                    print(f"    ✓ Downloaded from {strategy_name}")
+                    from src.core.validation import verify_document_identity
+                    try:
+                        verification = verify_document_identity(output_file, {
+                            'doi': doi, 'title': title, 'authors': authors,
+                        })
+                    except Exception:
+                        output_file.unlink(missing_ok=True)
+                        raise
+                    if verification.get('status') != 'verified':
+                        output_file.unlink(missing_ok=True)
+                        print(f"    ✗ Rejected {strategy_name} PDF: identity not verified")
+                        continue
+                    print(f"    ✓ Downloaded and verified from {strategy_name}")
                     return True
                 else:
                     print(f"    ✗ Not a valid PDF")

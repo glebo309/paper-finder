@@ -10,6 +10,7 @@ Especially good for:
 """
 
 import requests
+from src.core.cancellation import get as cancellable_get
 from pathlib import Path
 from typing import Optional
 from bs4 import BeautifulSoup
@@ -34,7 +35,7 @@ def try_libgen_scimag(doi: str, output_file: Path) -> bool:
             try:
                 # Search by DOI
                 search_url = f"{mirror}/scimag/?q={doi}"
-                response = requests.get(search_url, headers={'User-Agent': UA}, timeout=15)
+                response = cancellable_get(search_url, headers={'User-Agent': UA}, timeout=15)
                 
                 if response.status_code != 200:
                     continue
@@ -54,7 +55,7 @@ def try_libgen_scimag(doi: str, output_file: Path) -> bool:
                                 download_url = f"{mirror}{href}"
                             
                             # Try to download
-                            pdf_response = requests.get(
+                            pdf_response = cancellable_get(
                                 download_url, 
                                 headers={'User-Agent': UA},
                                 timeout=30,
@@ -91,7 +92,7 @@ def try_libgen_main(title: str, authors: list, output_file: Path) -> bool:
             try:
                 # Search
                 search_url = f"{mirror}/search.php?req={query}&lg_topic=libgen&open=0&view=simple&res=25&phrase=1&column=def"
-                response = requests.get(search_url, headers={'User-Agent': UA}, timeout=15)
+                response = cancellable_get(search_url, headers={'User-Agent': UA}, timeout=15)
                 
                 if response.status_code != 200:
                     continue
@@ -120,7 +121,7 @@ def try_libgen_main(title: str, authors: list, output_file: Path) -> bool:
                         if 'library.lol' in href or 'libgen.lc' in href or 'download' in href:
                             # Follow to get actual PDF
                             try:
-                                dl_page = requests.get(href, headers={'User-Agent': UA}, timeout=15)
+                                dl_page = cancellable_get(href, headers={'User-Agent': UA}, timeout=15)
                                 dl_soup = BeautifulSoup(dl_page.content, 'html.parser')
                                 
                                 # Find GET link
@@ -130,13 +131,13 @@ def try_libgen_main(title: str, authors: list, output_file: Path) -> bool:
                                         if not pdf_url.startswith('http'):
                                             pdf_url = f"http://library.lol{pdf_url}"
                                         
-                                        pdf_response = requests.get(pdf_url, timeout=30, allow_redirects=True)
+                                        pdf_response = cancellable_get(pdf_url, timeout=30, allow_redirects=True)
                                         if pdf_response.content.startswith(b'%PDF') and len(pdf_response.content) > 50*1024:
                                             with output_file.open('wb') as f:
                                                 f.write(pdf_response.content)
                                             print(f"      ✓ Found on LibGen (books)!")
                                             return True
-                            except:
+                            except Exception:
                                 continue
                 
             except Exception:

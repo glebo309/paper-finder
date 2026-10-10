@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
-"""
-Telegram Bot Access - High-Power Mode.
+"""Optional acquisition through explicitly configured Telegram bots.
 
-This module uses Telethon to access Telegram bots that have:
-- Private Sci-Hub mirrors
-- Direct LibGen database access
-- Z-Library collections
-- Community-uploaded papers
-- Cached successful downloads
-
-Bots targeted:
-- @scihubot (primary, fastest)
-- @libgen_scihub_bot (books + papers)
-- @booksandpapers_bot (community uploads)
-
-For research purposes only.
+Bot availability and document coverage are not established by this adapter.
+Constructing the adapter does not authenticate or send messages. Actual bot
+requests require enabled configuration and separately authorized acquisition.
 """
 
 import os
@@ -61,21 +50,8 @@ _TELEGRAM_LOCK = threading.Lock()
 
 
 class TelegramUndergroundSource(SimpleAcquisitionSource):
-    """
-    Access papers through high-power Telegram bots.
-    
-    This is the most aggressive acquisition method, accessing:
-    - Private Sci-Hub mirrors
-    - Z-Library (10M+ books)
-    - Community caches
-    - Direct database access
-    
-    Success rate: +15-20% for hard-to-find papers
-    Speed: 2-5 seconds (much faster than scraping)
-    """
-    
-    # Set as FAST tier - these bots are actually faster than scraping!
-    # They have direct DB access and cached results (2-5 seconds)
+    """Optional bot adapter with configurable destinations and no coverage claim."""
+
     tier = "fast"
     
     def __init__(
@@ -85,7 +61,8 @@ class TelegramUndergroundSource(SimpleAcquisitionSource):
         api_hash: str = None,
         phone: str = None,
         max_wait: int = 30,
-        rate_limit_per_hour: int = 20
+        rate_limit_per_hour: int = 20,
+        bots: Optional[List[str]] = None
     ):
         """
         Initialize Telegram client for bot access.
@@ -94,6 +71,7 @@ class TelegramUndergroundSource(SimpleAcquisitionSource):
             api_id: Telegram API ID from https://my.telegram.org
             api_hash: Telegram API hash
             phone: Phone number for authentication (optional, for first run)
+            bots: Explicit bot usernames; an empty list disables requests
             max_wait: Maximum seconds to wait for bot response
             rate_limit_per_hour: Maximum requests per hour
         """
@@ -117,25 +95,25 @@ class TelegramUndergroundSource(SimpleAcquisitionSource):
         # Track rate limiting
         self.request_times = []
         
-        # Bot priority list - only verified working bots
-        # Many bots have been removed due to invalid usernames or rate limits
-        self.bots = [
-            '@scihubot',              # Verified working - primary bot
-            '@scihubreal',            # User provided Sci-Hub bot
-            '@zlibrary_bot',          # Z-Library bot
-        ]
-        
+        # Retain legacy defaults only when no explicit list is provided.
+        configured_bots = ['@scihubot', '@scihubreal', '@zlibrary_bot'] if bots is None else bots
+        if not isinstance(configured_bots, list) or any(
+                not isinstance(bot, str) or not re.fullmatch(r'@[A-Za-z][A-Za-z0-9_]{4,31}', bot)
+                for bot in configured_bots):
+            raise ValueError('Configure bots as a list of valid @usernames.')
+        self.bots = list(dict.fromkeys(configured_bots))
+
         # Session management
         self.client = None
         self.session_name = 'paper_finder_telegram_session'
         
         # Check if we can initialize
-        self.enabled = bool(self.api_id and self.api_hash)
+        self.enabled = bool(self.api_id and self.api_hash and self.bots)
         
         if self.enabled:
-            logger.info(f"Telegram bots source initialized (API ID: {self.api_id})")
+            logger.info("Telegram bot source prerequisites configured; availability is unverified")
         else:
-            logger.warning(f"Telegram bots source disabled. ID={self.api_id}, Hash={'Present' if self.api_hash else 'Missing'}")
+            logger.warning("Telegram bot source disabled: credentials or destinations are missing")
     
     @property
     def name(self) -> str:
@@ -153,14 +131,7 @@ class TelegramUndergroundSource(SimpleAcquisitionSource):
         output_file: Path,
         metadata: Dict
     ) -> AcquisitionResult:
-        """
-        Try to acquire paper through Telegram bots.
-        
-        This is the high-power option - uses Telegram bots with:
-        - Private mirrors
-        - Direct database access
-        - Community caches
-        """
+        """Request a document from configured bots when this adapter is enabled."""
         if not self.enabled:
             return AcquisitionResult.failure_result(
                 source=self.name,

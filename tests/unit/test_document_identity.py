@@ -272,3 +272,11 @@ def test_expected_article_doi_metadata_cannot_override_conflicting_page_doi(tmp_
     path = pdf(tmp_path, GLUED_HEADING + '\nLucreziaLanza\nDOI: 10.1002/chem.different\nAbstract\nResults',
                {'/WPS-ARTICLEDOI': SPACED_TARGET['doi']})
     assert verify(path, SPACED_TARGET)['status'] == 'mismatch'
+
+
+def test_strict_legacy_identity_needs_identifier_when_versions_conflict(tmp_path):
+    path = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nAbstract\nResults')
+    record = dict(TARGET, verification_policy={'require_identifier': True})
+    assert verify(path, record)['status'] == 'unverifiable'
+    path = pdf(tmp_path, TARGET['title'] + '\nJohn Jumper\nDOI: ' + TARGET['doi'] + '\nAbstract\nResults')
+    assert verify(path, record)['status'] == 'verified'

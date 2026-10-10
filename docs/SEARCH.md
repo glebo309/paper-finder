@@ -21,7 +21,7 @@ Enter a title, author/year citation, description, DOI, ISBN, arXiv ID, or URL. C
 
 Click **Select this paper**, review the selected title, then **Download selected paper**. Merely searching or selecting never starts acquisition. A new search clears the previous selection and download result.
 
-After selecting a DOI record, **Find full-text copies** checks current indexed locations without downloading. It shows the reported manuscript version, licence, source, and any preprint alternatives or embargo. The sidebar has **Prioritize recent full-text sources** enabled by default and an optional **Unpaywall contact email**. The native desktop search panel has the same recent-source toggle; set `UNPAYWALL_EMAIL` or the configured Unpaywall email for that interface.
+After selecting a DOI record, **Find full-text copies** checks indexed, publisher and direct-repository locations without downloading. It shows the reported manuscript version, licence, source, and any preprint alternatives or embargo. The sidebar has **Include recent full-text sources** enabled by default and an optional **Unpaywall contact email**. The native desktop search panel has the same recent-source toggle; set `UNPAYWALL_EMAIL` or the configured Unpaywall email for that interface.
 
 The web app saves documents under `~/Downloads/Papers`. Its sidebar shows the folder and saved PDF count. The activity log and verification details remain available below the result.
 
@@ -60,11 +60,20 @@ python3 main.py copies "10.1038/s41586-021-03819-2" --email you@example.org
 python3 main.py copies "https://doi.org/10.1038/s41586-021-03819-2" --json
 ```
 
-`copies` requires an exact DOI and calls Europe PMC, Unpaywall and OpenAlex directly; it does not run identification or construct the downloader. Unpaywall needs `--email` or `UNPAYWALL_EMAIL`; other providers remain usable without it. JSON separates `locations`, `alternatives`, `embargoed`, `closed`, and provider `errors`.
+`copies` accepts an exact DOI or a selected saved record and checks Europe PMC, Unpaywall, OpenAlex, publisher access metadata, HAL and Zenodo. It does not repeat identification or download files. Supplying a saved record also gives repository searches the title and authors needed to corroborate alternate manuscript identities. Unpaywall needs `--email` or `UNPAYWALL_EMAIL`; other providers remain usable without it. JSON separates `locations`, `alternatives`, `embargoed`, `closed`, and provider `errors`.
 
 Each location reports its source, URL, version, licence when known, and availability. A repository landing page is a link, not a verified download. Submitted/preprint versions and conflicting version reports are alternatives requiring inspection, not silent substitutes for a journal version. An unknown licence does not establish reuse rights. An embargo date is reported when the source supplies it.
 
-A missing indexed copy does not establish that no copy exists. Newly deposited manuscripts can take time to appear in these APIs. This command never downloads PDFs or claims acquisition success. It can inspect publisher HTML through bounded DOI redirects when indexes lack an eligible PDF, and checks current official PMC cloud metadata for matching open-access records.
+A missing indexed copy does not establish that no copy exists. Newly deposited manuscripts can take time to appear in these APIs. This command never downloads PDFs or claims acquisition success. Publisher HTML checks use bounded DOI redirects, and matching open-access PMC records can be checked against current official cloud metadata.
+
+### Select an alternative manuscript explicitly
+
+```bash
+python3 main.py copies --from-results results.json --select 1 --save-alternatives manuscripts.json
+python3 main.py acquire --from-results manuscripts.json --select 1 --output downloads
+```
+
+The first command saves selectable alternative identities without choosing or downloading one. Review the saved title, authors, identifier and version before using the second command. An alternative with its own DOI is verified against that DOI, not silently treated as the original journal article. An empty alternative snapshot is not a successful acquisition. In the browser, use **Select this manuscript** and then **Download selected paper**. Merely discovering a preprint does not stop the other acquisition routes.
 
 ## Acquire a selected work
 
@@ -80,7 +89,19 @@ Snapshots use a versioned JSON envelope. Loading validates candidate identifiers
 
 Without `--select`, acquisition proceeds only for a strong match. Ambiguous references return the candidate list without constructing the downloader. `acquire QUERY --select N` remains available for a fresh search, but its order may differ from a previous search; use a snapshot, an exact identifier, or the web interface when choosing a result you have already reviewed.
 
-By default, `acquire` checks current full-text locations first for DOI records, then tries classified copies and eligible URLs from the selected record before the remaining acquisition adapters. Use `--skip-recent-sources` to omit the current-copy stage. `--email CONTACT` supplies the Unpaywall address for that stage. Available published or accepted manuscript locations can be tried automatically; submitted versions and version conflicts remain alternatives. Embargoed and closed locations are not promoted to downloadable copies. If known preprint or conflicting-version alternatives exist and no eligible copy verifies, recent mode stops for inspection rather than invoking legacy sources that cannot preserve version evidence. Otherwise legacy copies can remain version-unknown even when their identity verifies. Every retrieved PDF still passes the same identity checks.
+By default, the normal paper pipeline races all enabled registered sources together with eligible direct URLs from the selected record. For DOI records, recent-source mode adds six independent jobs: Europe PMC, OpenAlex, Unpaywall, publisher metadata, HAL and Zenodo. There are no serial source tiers. The first identity-verified PDF wins; a metadata match or document link does not win. Use `--skip-recent-sources` to omit those six jobs and `--email CONTACT` to supply the Unpaywall address.
+
+Published and accepted manuscript copies can use the existing title-and-author verification path. In recent-source mode, unknown-version and unclassified copies must provide the requested identifier in the verifier's accepted evidence. Known submitted versions and version conflicts require explicit manuscript selection. Those alternatives never stop unrelated routes from trying to obtain the requested work. Embargoed and closed locations are not promoted to downloadable open copies, and every retrieved PDF still undergoes identity verification.
+
+The acquisition operation shares the `pipeline.method_timeout` deadline, 45 seconds by default. Set `pipeline.parallel_execution: false` to try the same jobs sequentially instead. For example:
+
+```yaml
+pipeline:
+  parallel_execution: true
+  method_timeout: 45
+```
+
+Losing jobs are cancelled cooperatively and cannot publish over a verified winner. Already running requests may take until their bounded network timeout to return; Python threads cannot be forcibly killed.
 
 `--config FILE` uses a YAML configuration file; the default is `config.yaml` when present. Output paths accept `~`. CLI progress goes to stderr, keeping `--json` stdout parseable. Ordinary acquisition captures document links instead of opening a browser. The explicit `--watch-downloads` mode opens the selected publisher or configured library proxy in your default browser.
 
@@ -94,6 +115,15 @@ Results distinguish:
 - **not_found / unavailable / failed / error**: no result, unavailable metadata services, unsuccessful acquisition, or an operational error.
 
 A link alone is not reported as a successful download. Verification evidence is included in acquisition JSON when available.
+
+## Inspect source configuration
+
+```bash
+python3 main.py sources
+python3 main.py sources --config config.yaml --json
+```
+
+This local inventory makes no source requests and sends no messages. The browser provides the same information under **Search sources and configuration**. Enabled or configured does not mean live retrieval has succeeded: source-specific credentials, disabled adapters, Telegram configuration and known prerequisites remain visible. For measured retrieval results, see the [validation record](VALIDATION.md) and [legacy source audit](DEEP_SOURCES.md).
 
 ## Finish a browser download
 

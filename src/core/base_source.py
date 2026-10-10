@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Dict, Optional
 import requests
+from .cancellation import CancellableSession, check_cancelled
 
 from .result import AcquisitionResult
 from .validation import validate_pdf
@@ -26,7 +27,7 @@ class AcquisitionSource(ABC):
     
     def _create_session(self) -> requests.Session:
         """Create HTTP session with standard headers."""
-        session = requests.Session()
+        session = CancellableSession()
         session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36'
         })
@@ -82,6 +83,7 @@ class SimpleAcquisitionSource(AcquisitionSource):
     ) -> AcquisitionResult:
         """Standard acquisition flow with error handling."""
         try:
+            check_cancelled()
             # Get download URL(s)
             urls = self.get_download_urls(doi, metadata)
             if not urls:
@@ -91,9 +93,14 @@ class SimpleAcquisitionSource(AcquisitionSource):
                 )
             
             # Try each URL
+            from .validation import verify_document_identity
+            record = dict(metadata)
+            if doi:
+                record['doi'] = doi
             for url in urls:
+                check_cancelled()
                 if self._download_from_url(url, output_file):
-                    if self.validate_result(output_file):
+                    if self.validate_result(output_file) and verify_document_identity(output_file, record).get('status') == 'verified':
                         return AcquisitionResult.success_result(
                             source=self.name,
                             filepath=output_file,
@@ -130,7 +137,9 @@ class SimpleAcquisitionSource(AcquisitionSource):
         Returns:
             True if download succeeded (doesn't validate PDF)
         """
+        response = None
         try:
+            check_cancelled()
             response = self.session.get(url, timeout=30, stream=True)
             response.raise_for_status()
             
@@ -142,6 +151,7 @@ class SimpleAcquisitionSource(AcquisitionSource):
             # Download
             with output_file.open('wb') as f:
                 for chunk in response.iter_content(chunk_size=1024*1024):
+                    check_cancelled()
                     if chunk:
                         f.write(chunk)
             
@@ -149,3 +159,6 @@ class SimpleAcquisitionSource(AcquisitionSource):
             
         except Exception:
             return False
+        finally:
+            if response is not None:
+                response.close()

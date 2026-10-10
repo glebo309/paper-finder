@@ -20,6 +20,7 @@ from typing import Optional, List, Dict, Tuple
 from urllib.parse import quote, urljoin, urlparse
 
 import requests
+from src.core.cancellation import CancellableSession, get as cancellable_get, cancellable_sleep
 from bs4 import BeautifulSoup
 
 
@@ -146,7 +147,7 @@ def search_baidu_scholar(title: str, doi: str = "") -> List[str]:
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         }
         
-        session = requests.Session()
+        session = CancellableSession()
         response = session.get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
@@ -247,7 +248,7 @@ def search_cyberleninka(title: str, doi: str = None) -> List[Tuple[str, str]]:
             'Accept-Language': 'en,ru;q=0.9',
         }
         
-        response = requests.get(search_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(search_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -292,7 +293,7 @@ def search_cyberleninka(title: str, doi: str = None) -> List[Tuple[str, str]]:
                     # Also try visiting the article page
                     if len(pdf_urls) < 3:  # Only if we need more candidates
                         try:
-                            article_response = requests.get(article_url, headers=headers, timeout=10)
+                            article_response = cancellable_get(article_url, headers=headers, timeout=10)
                             article_soup = BeautifulSoup(article_response.content, 'html.parser')
                             
                             # Look for download buttons
@@ -303,7 +304,7 @@ def search_cyberleninka(title: str, doi: str = None) -> List[Tuple[str, str]]:
                                     pdf_url = urljoin('https://cyberleninka.ru', href)
                                     pdf_urls.append(pdf_url)
                             
-                            time.sleep(0.3)  # Be respectful
+                            cancellable_sleep(0.3)  # Be respectful
                             
                         except Exception:
                             continue
@@ -343,7 +344,7 @@ def search_sid_iran(title: str, doi: str = "") -> List[str]:
         
         headers = {'User-Agent': UA}
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -392,7 +393,7 @@ def search_kiss_korea(title: str, doi: str = "") -> List[str]:
             'Accept-Language': 'ko,en;q=0.9',
         }
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -436,7 +437,7 @@ def search_dialnet(title: str, doi: str = "") -> List[str]:
             'Accept-Language': 'es,en;q=0.9',
         }
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -495,7 +496,7 @@ def search_hal_france(title: str, doi: str = "") -> List[str]:
             }
         
         headers = {'User-Agent': UA}
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -564,7 +565,7 @@ def search_scielo(title: str, doi: str = "") -> List[str]:
         
         # Try API first
         try:
-            response = requests.get(api_url, params=params, headers=headers, timeout=15)
+            response = cancellable_get(api_url, params=params, headers=headers, timeout=15)
             if response.status_code == 200:
                 data = response.json()
                 articles = data.get('articles', [])
@@ -604,7 +605,7 @@ def search_scielo(title: str, doi: str = "") -> List[str]:
                 'format': 'summary',
             }
             
-            response = requests.get(search_url, params=params, headers={'User-Agent': UA}, timeout=15)
+            response = cancellable_get(search_url, params=params, headers={'User-Agent': UA}, timeout=15)
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -681,7 +682,7 @@ def search_international_sources(title: str, doi: str = "", countries: List[str]
         print("  Searching CyberLeninka (Russia)...")
         try:
             urls = search_cyberleninka(title, doi)
-            for url in urls:
+            for url, _title in urls:
                 results.append(('CyberLeninka', url))
         except Exception as e:
             print(f"  CyberLeninka failed: {e}")
@@ -769,7 +770,7 @@ def try_fetch_from_international_sources(
     print(f"  Found {len(candidates)} international source candidates")
     
     # Try each candidate
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': UA})
     
     for source_name, url in candidates:

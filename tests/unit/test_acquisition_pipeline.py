@@ -174,3 +174,139 @@ def test_explicit_source_exclusion_is_per_operation(tmp_path):
     pipeline.execute('10.1234/test', tmp_path / 'one.pdf', {}, exclude_sources=('excluded',))
     assert calls == ['retained']
     assert all(source.enabled for source in pipeline.sources)
+
+
+def test_all_tiers_start_together_even_when_old_worker_limit_is_one(monkeypatch, tmp_path):
+    obj = pipeline(monkeypatch)
+    obj.config.network.max_workers = 1
+    barrier = threading.Barrier(3)
+    called = []
+    def source(name, winner=False):
+        def run(doi, path, metadata):
+            called.append(name)
+            barrier.wait(timeout=1)
+            return write(path, name) if winner else False
+        return run
+    obj.register_source('fast', source('fast'), 'fast')
+    obj.register_source('medium', source('medium'), 'medium')
+    obj.register_source('slow', source('slow', True), 'slow')
+    result = obj.execute('10.1234/paper', tmp_path/'race.pdf', {})
+    assert result.success and result.source == 'slow'
+    assert set(called) == {'fast','medium','slow'}
+
+
+def test_operation_sources_join_race_without_mutating_registration(monkeypatch, tmp_path):
+    from src.core.pipeline import SourceMethod
+    obj = pipeline(monkeypatch)
+    started = threading.Event()
+    def registered(doi,path,metadata):
+        started.set()
+        return False
+    def extra(doi,path,metadata):
+        assert started.wait(1)
+        return write(path,'direct')
+    obj.register_source('registered',registered,'slow')
+    result = obj.execute('10.1234/paper',tmp_path/'extra.pdf',{},additional_sources=(SourceMethod('direct',extra,'medium'),))
+    assert result.success and result.source == 'direct'
+    assert obj.get_registered_sources() == ['registered']
+
+
+def test_rejected_candidate_does_not_stop_other_tiers(monkeypatch,tmp_path):
+    obj = pipeline(monkeypatch)
+    rejected = threading.Event()
+    def verify(path,record):
+        if b'wrong' in path.read_bytes():
+            rejected.set()
+            return {'status':'mismatch','reasons':['Different DOI']}
+        return {'status':'verified','reasons':[]}
+    monkeypatch.setattr(pipeline_module,'verify_document_identity',verify)
+    obj.register_source('wrong',lambda doi,path,metadata:write(path,'wrong'),'fast')
+    def correct(doi,path,metadata):
+        assert rejected.wait(1)
+        return write(path,'correct')
+    obj.register_source('correct',correct,'slow')
+    result = obj.execute('10.1234/paper',tmp_path/'correct.pdf',{})
+    assert result.success and result.source == 'correct'
+    assert 'mismatch' in result.attempts['wrong']
+
+
+def test_old_worker_cancel_event_stays_set_after_reset_and_new_operation(monkeypatch,tmp_path):
+    from src.core.pipeline import SourceMethod
+    obj = pipeline(monkeypatch)
+    started,release,finished = threading.Event(),threading.Event(),threading.Event()
+    observed = []
+    def old(doi,path,metadata):
+        event = pipeline_module.current_operation_stop_event()
+        assert event is not None
+        started.set()
+        release.wait(2)
+        observed.extend([event.is_set(), pipeline_module.operation_cancelled(),obj._check_cancel()])
+        finished.set()
+        return write(path,'old')
+    obj.register_source('old',old)
+    results = []
+    thread = threading.Thread(target=lambda:results.append(obj.execute('10.1234/old',tmp_path/'old.pdf',{})))
+    thread.start()
+    try:
+        assert started.wait(1)
+        obj.request_cancel()
+        obj._reset_cancel()
+        new = obj.execute('10.1234/new',tmp_path/'new.pdf',{},exclude_sources=('old',),
+            additional_sources=(SourceMethod('new',lambda doi,path,meta:write(path,'new'),'fast'),))
+        assert new.success
+    finally:
+        release.set()
+        thread.join(2)
+    assert finished.wait(1)
+    assert observed == [True,True,True]
+    assert results and not results[0].success
+    assert not (tmp_path/'old.pdf').exists()
+
+
+def test_source_specific_verification_policy_is_per_operation(monkeypatch,tmp_path):
+    obj = pipeline(monkeypatch)
+    seen = []
+    metadata = {'title':'A paper','verification_policy':{'original':True}}
+    def verify(path,record):
+        seen.append(record['verification_policy'])
+        return {'status':'verified','reasons':[]}
+    monkeypatch.setattr(pipeline_module,'verify_document_identity',verify)
+    obj.register_source('legacy',lambda doi,path,meta:write(path,'legacy'))
+    result = obj.execute('10.1234/paper',tmp_path/'policy.pdf',metadata,
+                         verification_policies={'legacy':{'require_identifier':True}})
+    assert result.success
+    assert seen == [{'original':True,'require_identifier':True}]
+    assert metadata['verification_policy'] == {'original':True}
+
+
+def test_sequential_opt_out_does_not_launch_after_verified_winner(monkeypatch,tmp_path):
+    obj = pipeline(monkeypatch,parallel=False)
+    calls = []
+    obj.register_source('first',lambda doi,path,meta:calls.append('first') or False,'fast')
+    obj.register_source('winner',lambda doi,path,meta:calls.append('winner') or write(path,'winner'),'medium')
+    obj.register_source('unused',lambda doi,path,meta:calls.append('unused') or False,'slow')
+    result = obj.execute('10.1234/paper',tmp_path/'sequential.pdf',{})
+    assert result.success
+    assert calls == ['first','winner']
+
+
+def test_cancelled_adapter_does_not_abort_other_worker_or_leak_candidate(monkeypatch, tmp_path):
+    from src.core.cancellation import AcquisitionCancelled
+    obj = pipeline(monkeypatch)
+    cancelled = threading.Event()
+    paths = []
+    def abandoned(doi, path, metadata):
+        paths.append(path)
+        write(path, 'abandoned')
+        cancelled.set()
+        raise AcquisitionCancelled('Adapter stopped')
+    def winner(doi, path, metadata):
+        assert cancelled.wait(1)
+        return write(path, 'winner')
+    obj.register_source('abandoned', abandoned)
+    obj.register_source('winner', winner)
+    result = obj.execute('10.1234/paper', tmp_path/'winner.pdf', {})
+    assert result.success and result.source == 'winner'
+    assert result.attempts['abandoned'] == 'cancelled'
+    assert all(not path.exists() for path in paths)
+    assert not list(tmp_path.glob('.paperfinder-*'))

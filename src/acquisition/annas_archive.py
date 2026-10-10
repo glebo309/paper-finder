@@ -14,6 +14,7 @@ This is the SINGLE BEST source for book chapters and proceedings.
 """
 
 import requests
+from src.core.cancellation import get as cancellable_get
 from bs4 import BeautifulSoup
 from pathlib import Path
 from typing import Optional, List, Dict
@@ -118,7 +119,7 @@ def search_annas_archive(query: str, search_type: str = "title") -> List[Dict]:
                 'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             }
             
-            response = requests.get(search_url, params=params, headers=headers, timeout=15)
+            response = cancellable_get(search_url, params=params, headers=headers, timeout=15)
             
             if response.status_code == 200:
                 soup = BeautifulSoup(response.content, 'html.parser')
@@ -156,7 +157,7 @@ def get_download_links(detail_url: str) -> List[str]:
     
     try:
         headers = {'User-Agent': UA}
-        response = requests.get(detail_url, headers=headers, timeout=15)
+        response = cancellable_get(detail_url, headers=headers, timeout=15)
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -196,7 +197,7 @@ def try_download_from_annas(download_url: str, output_file: Path) -> bool:
             'Accept': 'application/pdf,*/*',
         }
         
-        response = requests.get(download_url, headers=headers, timeout=30, allow_redirects=True)
+        response = cancellable_get(download_url, headers=headers, timeout=30, allow_redirects=True)
         
         # Check if it's a PDF
         if response.content.startswith(b'%PDF'):
@@ -219,7 +220,7 @@ def try_download_from_annas(download_url: str, output_file: Path) -> bool:
                         pdf_url = urljoin(download_url, pdf_url)
                     
                     # Recursive call (only once to avoid loops)
-                    pdf_resp = requests.get(pdf_url, headers=headers, timeout=30)
+                    pdf_resp = cancellable_get(pdf_url, headers=headers, timeout=30)
                     if pdf_resp.content.startswith(b'%PDF') and len(pdf_resp.content) > 50*1024:
                         with output_file.open('wb') as f:
                             f.write(pdf_resp.content)

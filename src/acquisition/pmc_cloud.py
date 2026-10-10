@@ -12,6 +12,7 @@ from urllib.parse import quote, urlsplit
 from xml.etree import ElementTree
 
 import requests
+from src.core.cancellation import CancellableSession
 
 from src.core import provider_limits
 from src.core.discovery import _doi
@@ -33,7 +34,7 @@ def discover_pmc_cloud(pmcid, doi, session=None, timeout=8, deadline=12,
         output['errors']['pmc_cloud'] = {'kind': 'invalid', 'message': 'A confirmed PMCID and DOI are required.'}
         return output
     doi = _doi(doi)
-    session = session or requests.Session()
+    session = session or CancellableSession()
     cache = cache if cache is not None else DiscoveryCache()
     end = time.monotonic() + max(.1, float(deadline))
 

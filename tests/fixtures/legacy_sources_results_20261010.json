@@ -1,0 +1,2463 @@
+{
+  "frozen_at": "2026-10-10",
+  "selection": "Four index-hard recent papers from the already frozen 26-paper cohort, one each Wiley/ACS/Elsevier/Nature; one independently verified PMC-cloud OA control. No selection based on these adapters results.",
+  "cases": [
+    {
+      "id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 2,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42779262",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/adma.75120"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 6,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42689727",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1021/acsami.6c11728"
+          }
+        ]
+      }
+    },
+    {
+      "id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "domain": "chemistry_biocatalysis",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(biocatalysis OR biocatalytic OR \"enzyme catalysis\" OR \"organic synthesis\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 5,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42772121",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1016/j.copbio.2026.103584"
+          }
+        ]
+      }
+    },
+    {
+      "id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "domain": "structural_molecular_biology",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"protein structure\" OR \"protein design\" OR \"cryo electron microscopy\" OR \"molecular mechanism\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 2,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42749801",
+        "screened_at": "2026-10-10T15:31:50Z",
+        "is_open_access": "N",
+        "main_pdf_count": 0,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1038/s41586-026-11021-5"
+          }
+        ]
+      }
+    },
+    {
+      "id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "domain": "enzyme_engineering",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "sampling": {
+        "query": "(\"enzyme engineering\" OR \"directed evolution\" OR peroxygenase OR transaminase OR \"enzyme immobilization\") AND FIRST_PDATE:[2026-09-01 TO 2026-10-10] AND SRC:MED",
+        "relevance_rank": 7,
+        "source": "Europe PMC core",
+        "source_record_url": "https://europepmc.org/article/MED/42801570",
+        "screened_at": "2026-10-10T15:31:49Z",
+        "is_open_access": "Y",
+        "main_pdf_count": 1,
+        "fulltext_observations": [
+          {
+            "availability": "Subscription required",
+            "availabilityCode": "S",
+            "documentStyle": "doi",
+            "site": "DOI",
+            "url": "https://doi.org/10.1002/advs.77789"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "html",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13616300"
+          },
+          {
+            "availability": "Open access",
+            "availabilityCode": "OA",
+            "documentStyle": "pdf",
+            "site": "Europe_PMC",
+            "url": "https://europepmc.org/articles/PMC13616300?pdf=render"
+          }
+        ]
+      }
+    }
+  ],
+  "limits": {
+    "per_group_wall_seconds": 25,
+    "per_request_seconds": 4,
+    "http_request_cap_per_group": 10,
+    "sequential": true,
+    "excluded": [
+      "mirrors",
+      "Telegram",
+      "Crossref",
+      "OpenAlex"
+    ]
+  },
+  "results": [
+    {
+      "case_id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "repositories",
+      "requests": [
+        {
+          "host": "zenodo.org",
+          "path": "/api/records",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.figshare.com",
+          "path": "/v2/articles/search",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/search/",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1002/adma.75120",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 6.063
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "preprints",
+      "requests": [
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1002/adma.75120",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/10.1002/adma.75120",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/Programmable%20Carrier-Free%20All-Enzyme%20Beads%20for%20Modular%20Continuous-Flow%20Biocatalysis.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/10.1002/adma.75120",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/Programmable%20Carrier-Free%20All-Enzyme%20Beads%20for%20Modular%20Continuous-Flow%20Biocatalysis.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.ebi.ac.uk",
+          "path": "/europepmc/webservices/rest/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "chemrxiv.org",
+          "path": "/engage/chemrxiv/public-api/v1/items",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "papers.ssrn.com",
+          "path": "/sol3/results.cfm",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/preprints/",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 5.781
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "international",
+      "requests": [
+        {
+          "host": "xueshu.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "cyberleninka.ru",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.sid.ir",
+          "path": "/en/Journal/SearchPaper.aspx",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "kiss.kstudy.com",
+          "path": "/search/searchList.asp",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "dialnet.unirioja.es",
+          "path": "/buscar/documentos",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.archives-ouvertes.fr",
+          "path": "/search/",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/api/v1/article",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 4.782
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "chinese",
+      "requests": [
+        {
+          "host": "kns.cnki.net",
+          "path": "/kns8/defaultresult/index",
+          "method": "GET",
+          "error": "SSLError"
+        },
+        {
+          "host": "s.wanfangdata.com.cn",
+          "path": "/paper",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "wappass.baidu.com",
+          "path": "/static/captcha/tuxing_v2.html",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 13.093
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-01",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/adma.75120"
+        },
+        "doi": "10.1002/adma.75120",
+        "title": "Programmable Carrier-Free All-Enzyme Beads for Modular Continuous-Flow Biocatalysis.",
+        "authors": [
+          "Jennifer K\u00fchne",
+          "Julian S Hertel",
+          "Andr\u00e9 Delavault",
+          "Judith Felk",
+          "Martin Peng",
+          "Lara Reuber",
+          "Felix Ott",
+          "Kim Wanner",
+          "Marc F M\u00fcnker",
+          "Adrian Neukirch",
+          "Alexei Kiselev",
+          "Kersten S Rabe",
+          "Christof M Niemeyer"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-24",
+        "journal": "Advanced materials (Deerfield Beach, Fla.)",
+        "pmid": "42779262",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "deep_crawl",
+      "requests": [
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 16.591
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "repositories",
+      "requests": [
+        {
+          "host": "zenodo.org",
+          "path": "/api/records",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.figshare.com",
+          "path": "/v2/articles/search",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/search/",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1021/acsami.6c11728",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/access/datafile/13302604",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "dvn-cloud-iqss.s3.amazonaws.com",
+          "path": "/10.7910/DVN/UAABZK/19b7871f1aa-d45af5a0684d",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": true,
+      "pdf_bytes": 832398,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 5.102,
+      "sha256": "b31ce82ceaf50aa5356dbec32065e8db0532e3747fa72cb077f1fb347ce937d5",
+      "identity": {
+        "status": "mismatch",
+        "reasons": [
+          "First-page heading does not match the selected paper"
+        ],
+        "title_similarity": 0.25,
+        "compact_title_match": false,
+        "matched_authors": [],
+        "front_matter_dois": [],
+        "identifier_match": false,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      }
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "preprints",
+      "requests": [
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1021/acsami.6c11728",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/10.1021/acsami.6c11728",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/Living%20Whole-Cell%20Biocatalysis%20for%20Sustainable%20and%20Durable%20Melanin-Based%20Textile%20Coloration.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/10.1021/acsami.6c11728",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/Living%20Whole-Cell%20Biocatalysis%20for%20Sustainable%20and%20Durable%20Melanin-Based%20Textile%20Coloration.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.ebi.ac.uk",
+          "path": "/europepmc/webservices/rest/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "chemrxiv.org",
+          "path": "/engage/chemrxiv/public-api/v1/items",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "papers.ssrn.com",
+          "path": "/sol3/results.cfm",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/preprints/",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 4.957
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "international",
+      "requests": [
+        {
+          "host": "xueshu.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "cyberleninka.ru",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.sid.ir",
+          "path": "/en/Journal/SearchPaper.aspx",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "kiss.kstudy.com",
+          "path": "/search/searchList.asp",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "dialnet.unirioja.es",
+          "path": "/buscar/documentos",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.archives-ouvertes.fr",
+          "path": "/search/",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/api/v1/article",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 3.584
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "chinese",
+      "requests": [
+        {
+          "host": "kns.cnki.net",
+          "path": "/kns8/defaultresult/index",
+          "method": "GET",
+          "error": "SSLError"
+        },
+        {
+          "host": "s.wanfangdata.com.cn",
+          "path": "/paper",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "wappass.baidu.com",
+          "path": "/static/captcha/tuxing_v2.html",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 9.666
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-04",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1021/acsami.6c11728"
+        },
+        "doi": "10.1021/acsami.6c11728",
+        "title": "Living Whole-Cell Biocatalysis for Sustainable and Durable Melanin-Based Textile Coloration.",
+        "authors": [
+          "Asish Das",
+          "Tanu Tiwari",
+          "Karthik Pushpavanam"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "ACS applied materials & interfaces",
+        "pmid": "42689727",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "deep_crawl",
+      "requests": [
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 17.186
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "repositories",
+      "requests": [
+        {
+          "host": "zenodo.org",
+          "path": "/api/records",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.figshare.com",
+          "path": "/v2/articles/search",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/search/",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1016/j.copbio.2026.103584",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/access/datafile/13316541",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "dvn-cloud-iqss.s3.amazonaws.com",
+          "path": "/10.7910/DVN/UAABZK/19b8b4930fe-d744d2c3412d",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": true,
+      "pdf_bytes": 500112,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 5.902,
+      "sha256": "4041776a87d2ad3ebe5abbcb18a6dd00eabdc3e0b308f96a6cf63aa4332505e6",
+      "identity": {
+        "status": "mismatch",
+        "reasons": [
+          "First-page heading does not match the selected paper"
+        ],
+        "title_similarity": 0.167,
+        "compact_title_match": false,
+        "matched_authors": [],
+        "front_matter_dois": [],
+        "identifier_match": false,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      }
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "preprints",
+      "requests": [
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1016/j.copbio.2026.103584",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/10.1016/j.copbio.2026.103584",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/Enzymatic%20tailoring%20of%20prebiotic%20oligosaccharides,%20flavonoids,%20and%20terpenoids%20for%20enhanced%20physiological%20effects.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/10.1016/j.copbio.2026.103584",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/Enzymatic%20tailoring%20of%20prebiotic%20oligosaccharides,%20flavonoids,%20and%20terpenoids%20for%20enhanced%20physiological%20effects.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.ebi.ac.uk",
+          "path": "/europepmc/webservices/rest/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "chemrxiv.org",
+          "path": "/engage/chemrxiv/public-api/v1/items",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "papers.ssrn.com",
+          "path": "/sol3/results.cfm",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/preprints/",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 5.057
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "international",
+      "requests": [
+        {
+          "host": "xueshu.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "cyberleninka.ru",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.sid.ir",
+          "path": "/en/Journal/SearchPaper.aspx",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "kiss.kstudy.com",
+          "path": "/search/searchList.asp",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "dialnet.unirioja.es",
+          "path": "/buscar/documentos",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.archives-ouvertes.fr",
+          "path": "/search/",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/api/v1/article",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 3.601
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "chinese",
+      "requests": [
+        {
+          "host": "kns.cnki.net",
+          "path": "/kns8/defaultresult/index",
+          "method": "GET",
+          "error": "SSLError"
+        },
+        {
+          "host": "s.wanfangdata.com.cn",
+          "path": "/paper",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "wappass.baidu.com",
+          "path": "/static/captcha/tuxing_v2.html",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 9.347
+    },
+    {
+      "case_id": "chemistry_biocatalysis-hard-03",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.copbio.2026.103584"
+        },
+        "doi": "10.1016/j.copbio.2026.103584",
+        "title": "Enzymatic tailoring of prebiotic oligosaccharides, flavonoids, and terpenoids for enhanced physiological effects.",
+        "authors": [
+          "Dan-Gyeong Han",
+          "Beom Soo Kim",
+          "Uwe T Bornscheuer",
+          "In Jung Kim"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-22",
+        "journal": "Current opinion in biotechnology",
+        "pmid": "42772121",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "deep_crawl",
+      "requests": [
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 16.762
+    },
+    {
+      "case_id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "repositories",
+      "requests": [
+        {
+          "host": "zenodo.org",
+          "path": "/api/records",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.figshare.com",
+          "path": "/v2/articles/search",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/search/",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1038/s41586-026-11021-5",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/access/datafile/4167050",
+          "method": "GET",
+          "status": 400
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 8.465
+    },
+    {
+      "case_id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "preprints",
+      "requests": [
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1038/s41586-026-11021-5",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/10.1038/s41586-026-11021-5",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/Transcriptional%20activation%20of%20plant%20immunity%20by%20salicylic%20acid.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/10.1038/s41586-026-11021-5",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/Transcriptional%20activation%20of%20plant%20immunity%20by%20salicylic%20acid.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.ebi.ac.uk",
+          "path": "/europepmc/webservices/rest/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "chemrxiv.org",
+          "path": "/engage/chemrxiv/public-api/v1/items",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "papers.ssrn.com",
+          "path": "/sol3/results.cfm",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/preprints/",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 5.107
+    },
+    {
+      "case_id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "international",
+      "requests": [
+        {
+          "host": "xueshu.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "cyberleninka.ru",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.sid.ir",
+          "path": "/en/Journal/SearchPaper.aspx",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "kiss.kstudy.com",
+          "path": "/search/searchList.asp",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "dialnet.unirioja.es",
+          "path": "/buscar/documentos",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.archives-ouvertes.fr",
+          "path": "/search/",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/api/v1/article",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 3.724
+    },
+    {
+      "case_id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "chinese",
+      "requests": [
+        {
+          "host": "kns.cnki.net",
+          "path": "/kns8/defaultresult/index",
+          "method": "GET",
+          "error": "SSLError"
+        },
+        {
+          "host": "s.wanfangdata.com.cn",
+          "path": "/paper",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "wappass.baidu.com",
+          "path": "/static/captcha/tuxing_v2.html",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 9.087
+    },
+    {
+      "case_id": "structural_molecular_biology-hard-02",
+      "cohort": "hard",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1038/s41586-026-11021-5"
+        },
+        "doi": "10.1038/s41586-026-11021-5",
+        "title": "Transcriptional activation of plant immunity by salicylic acid.",
+        "authors": [
+          "Songwen Zhang",
+          "Madeline Gish",
+          "Huan Li",
+          "Thomas R Hinds",
+          "Haibin Mao",
+          "Moira Cornell",
+          "Massi Silvetti",
+          "Sydney Klucas",
+          "Clint Vorauer",
+          "Charlie C Mundorff",
+          "Smita Yadav",
+          "Miklos Guttman",
+          "Ning Zheng"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-16",
+        "journal": "Nature",
+        "pmid": "42749801",
+        "pmcid": "",
+        "record_type": "journal-article"
+      },
+      "source_group": "deep_crawl",
+      "requests": [
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 429,
+          "rate_limited": true
+        },
+        {
+          "host": "www.google.com",
+          "path": "/sorry/index",
+          "method": "GET",
+          "status": 429,
+          "rate_limited": true
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 23.907
+    },
+    {
+      "case_id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "source_group": "repositories",
+      "requests": [
+        {
+          "host": "zenodo.org",
+          "path": "/api/records",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.figshare.com",
+          "path": "/v2/articles/search",
+          "method": "POST",
+          "status": 200
+        },
+        {
+          "host": "api.osf.io",
+          "path": "/v2/search/",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1002/advs.77789",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "dataverse.harvard.edu",
+          "path": "/api/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 7.757
+    },
+    {
+      "case_id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "source_group": "preprints",
+      "requests": [
+        {
+          "host": "api.crossref.org",
+          "path": "/works/10.1002/advs.77789",
+          "method": "GET",
+          "skipped": "excluded_from_audit"
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "export.arxiv.org",
+          "path": "/api/query",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/10.1002/advs.77789",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.biorxiv.org",
+          "path": "/search/Predicting%20Enzyme%20Turnover%20Numbers%20and%20Enabling%20Rational%20Enzyme%20Evolution.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/10.1002/advs.77789",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.medrxiv.org",
+          "path": "/search/Predicting%20Enzyme%20Turnover%20Numbers%20and%20Enabling%20Rational%20Enzyme%20Evolution.",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "www.ebi.ac.uk",
+          "path": "/europepmc/webservices/rest/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "europepmc.org",
+          "path": "/articles/PMC13616300",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "chemrxiv.org",
+          "path": "/engage/chemrxiv/public-api/v1/items",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "papers.ssrn.com",
+          "path": "/sol3/results.cfm",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 4.824
+    },
+    {
+      "case_id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "source_group": "international",
+      "requests": [
+        {
+          "host": "xueshu.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "cyberleninka.ru",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.sid.ir",
+          "path": "/en/Journal/SearchPaper.aspx",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "kiss.kstudy.com",
+          "path": "/search/searchList.asp",
+          "method": "GET",
+          "status": 404
+        },
+        {
+          "host": "dialnet.unirioja.es",
+          "path": "/buscar/documentos",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "api.archives-ouvertes.fr",
+          "path": "/search/",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/api/v1/article",
+          "method": "GET",
+          "status": 403
+        },
+        {
+          "host": "search.scielo.org",
+          "path": "/",
+          "method": "GET",
+          "status": 403
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 3.438
+    },
+    {
+      "case_id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "source_group": "chinese",
+      "requests": [
+        {
+          "host": "kns.cnki.net",
+          "path": "/kns8/defaultresult/index",
+          "method": "GET",
+          "error": "SSLError"
+        },
+        {
+          "host": "s.wanfangdata.com.cn",
+          "path": "/paper",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "www.baidu.com",
+          "path": "/s",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "wappass.baidu.com",
+          "path": "/static/captcha/tuxing_v2.html",
+          "method": "GET",
+          "status": 200
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "returned",
+      "elapsed_seconds": 10.547
+    },
+    {
+      "case_id": "enzyme_engineering-available_control-01",
+      "cohort": "available_control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/advs.77789"
+        },
+        "doi": "10.1002/advs.77789",
+        "title": "Predicting Enzyme Turnover Numbers and Enabling Rational Enzyme Evolution.",
+        "authors": [
+          "Fengya Ge",
+          "Xiangyang Ma",
+          "Jiyan Li",
+          "Mengxiang Wang",
+          "Fuping Lu",
+          "Yihan Liu",
+          "Lin Wang"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-27",
+        "journal": "Advanced science (Weinheim, Baden-Wurttemberg, Germany)",
+        "pmid": "42801570",
+        "pmcid": "PMC13616300",
+        "record_type": "journal-article"
+      },
+      "source_group": "deep_crawl",
+      "requests": [
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.bing.com",
+          "path": "/search",
+          "method": "GET",
+          "status": 200
+        },
+        {
+          "host": "html.duckduckgo.com",
+          "path": "/html/",
+          "method": "GET",
+          "status": 202
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        },
+        {
+          "host": "www.google.com",
+          "path": "/search",
+          "method": "GET",
+          "skipped": "server_rate_limit"
+        }
+      ],
+      "adapter_claimed": false,
+      "pdf_bytes": 0,
+      "verified": false,
+      "outcome": "budget_exhausted",
+      "elapsed_seconds": 24.202
+    }
+  ],
+  "implementation_state": "After Figshare detail, CyberLeninka tuple and canonical authors repairs; before group-internal PDF verification repair. Coordinator identity verification was applied to every output.",
+  "summary": {
+    "cases": 5,
+    "hard_cases": 4,
+    "available_controls": 1,
+    "group_runs": 25,
+    "verified_pdfs": 0,
+    "adapter_claimed_successes": 2,
+    "identity_mismatches": 2,
+    "sum_source_elapsed_seconds": 228.532,
+    "outcomes": {
+      "returned": 15,
+      "budget_exhausted": 10
+    },
+    "network_requests": 180
+  }
+}

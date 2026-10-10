@@ -13,6 +13,7 @@ from typing import Optional, List, Tuple
 from urllib.parse import urlparse, urljoin
 
 import requests
+from src.core.cancellation import CancellableSession
 from bs4 import BeautifulSoup
 
 
@@ -406,7 +407,7 @@ def try_fetch_from_publisher_patterns(
     
     print(f"  Found {len(candidates)} publisher pattern candidates")
     
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': UA})
     
     for url in candidates:

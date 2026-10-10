@@ -11,6 +11,7 @@ import time
 from urllib.parse import quote, urljoin
 
 import requests
+from src.core.cancellation import CancellableSession
 
 from .recent_open_access import _doi, _url, _location
 
@@ -89,7 +90,7 @@ def discover_publisher_access(doi, session=None, timeout=8, max_bytes=1024 * 102
         return result
     result['status'] = 'unknown'
     owned_session = session is None
-    session = session or requests.Session()
+    session = session or CancellableSession()
     current = 'https://doi.org/' + quote(expected, safe='/')
     deadline = time.monotonic() + max(.1, float(timeout))
     try:

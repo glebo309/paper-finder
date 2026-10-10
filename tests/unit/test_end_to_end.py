@@ -46,7 +46,9 @@ def test_phrase_to_merged_identity_to_correct_pdf(tmp_path):
     assert set(result.metadata['sources']) == {'openalex', 'crossref'}
     assert result.filepath.read_bytes() == correct
     assert result.attempts['https://example.org/wrong.pdf'] == 'mismatch'
-    assert calls == ['https://api.openalex.org/works', 'https://api.crossref.org/works',
-                     'https://www.ebi.ac.uk/europepmc/webservices/rest/search',
-                     'https://example.org/wrong.pdf', 'https://example.org/right.pdf']
+    # Identification is stable; acquisition now starts independent routes too.
+    assert calls[:3] == ['https://api.openalex.org/works', 'https://api.crossref.org/works',
+                        'https://www.ebi.ac.uk/europepmc/webservices/rest/search']
+    assert calls.count('https://api.openalex.org/works') == 1
+    assert calls.index('https://example.org/wrong.pdf') < calls.index('https://example.org/right.pdf')
     assert not list(tmp_path.glob('.paperfinder-*'))

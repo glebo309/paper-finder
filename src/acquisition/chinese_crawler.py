@@ -19,6 +19,7 @@ from typing import Optional, List, Dict, Tuple
 from urllib.parse import quote, urljoin
 
 import requests
+from src.core.cancellation import CancellableSession, get as cancellable_get, cancellable_sleep
 from bs4 import BeautifulSoup
 
 
@@ -39,10 +40,10 @@ def search_cnki(title: str, author: str = None, doi: str = None) -> List[Tuple[s
         if doi:
             doi_url = f"https://doi.cnki.net/{doi}"
             try:
-                response = requests.get(doi_url, headers={'User-Agent': UA}, timeout=10, allow_redirects=True)
+                response = cancellable_get(doi_url, headers={'User-Agent': UA}, timeout=10, allow_redirects=True)
                 if response.status_code == 200 and 'cnki.net' in response.url:
                     results.append((response.url, f"CNKI DOI: {doi}"))
-            except:
+            except Exception:
                 pass
         
         # Strategy 2: Title search with better parsing
@@ -54,8 +55,8 @@ def search_cnki(title: str, author: str = None, doi: str = None) -> List[Tuple[s
             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
         }
         
-        time.sleep(random.uniform(1, 2))  # Faster
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        cancellable_sleep(random.uniform(1, 2))  # Faster
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code == 200:
             soup = BeautifulSoup(response.content, 'html.parser')
@@ -101,9 +102,9 @@ def search_wanfang(title: str, author: str = None) -> List[Tuple[str, str]]:
         
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(2, 3))
+        cancellable_sleep(random.uniform(2, 3))
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -142,9 +143,9 @@ def search_vip(title: str, author: str = None) -> List[Tuple[str, str]]:
         
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(2, 3))
+        cancellable_sleep(random.uniform(2, 3))
         
-        response = requests.get(base_url, params=params, headers=headers, timeout=15)
+        response = cancellable_get(base_url, params=params, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return []
@@ -193,9 +194,9 @@ def search_chinese_universities(title: str, author: str = None) -> List[str]:
         
         headers = {'User-Agent': UA}
         
-        time.sleep(random.uniform(2, 3))
+        cancellable_sleep(random.uniform(2, 3))
         
-        response = requests.get(url, headers=headers, timeout=10)
+        response = cancellable_get(url, headers=headers, timeout=10)
         
         if response.status_code != 200:
             return []
@@ -226,7 +227,7 @@ def extract_pdf_from_cnki(page_url: str) -> Optional[str]:
     """
     try:
         headers = {'User-Agent': UA}
-        response = requests.get(page_url, headers=headers, timeout=15)
+        response = cancellable_get(page_url, headers=headers, timeout=15)
         
         if response.status_code != 200:
             return None
@@ -285,7 +286,7 @@ def try_fetch_chinese_sources(
     
     search_title = translated_title if translated_title else title
     
-    session = requests.Session()
+    session = CancellableSession()
     session.headers.update({'User-Agent': UA})
     
     # Try CNKI

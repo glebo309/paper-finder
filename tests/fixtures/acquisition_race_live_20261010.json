@@ -1,0 +1,396 @@
+{
+  "schema_version": 1,
+  "description": "Live smoke of normal PaperFinder.find_record acquisition race with six public discovery jobs only. Existing registered legacy sources deliberately disabled. Known available controls, not a random or hard-case cohort.",
+  "observed_date": "2026-10-10",
+  "entrypoint": "PaperFinder.find_record(record, output_dir=temporary_directory, recent_sources=True)",
+  "configuration": {
+    "pipeline_sources": [],
+    "additional_jobs": [
+      "Europe PMC discovery",
+      "OpenAlex discovery",
+      "Unpaywall discovery",
+      "Publisher discovery",
+      "HAL repository",
+      "Zenodo repository"
+    ],
+    "parallel_execution": true,
+    "method_timeout_seconds": 35,
+    "subprocess_timeout_seconds": 50,
+    "metadata_identification": "supplied canonical records; not repeated",
+    "cooldowns": "existing persistent provider cooldowns respected",
+    "browser_or_messaging_used": false
+  },
+  "sanitization": "Local filesystem paths, URL query strings and fragments omitted. No credentials, cookies or PDF bytes included; URLs are source evidence and not necessarily replayable without removed query parameters.",
+  "summary": {
+    "cases": 2,
+    "verified_pdf_downloads": 1,
+    "unverifiable": 1,
+    "process_timeouts": 0,
+    "scope_note": "The HAL metadata location was found but its download was reported unverifiable and no PDF was retained. This report does not establish why verification failed. These results do not change the frozen 26-paper cohort or legacy audit counts."
+  },
+  "cases": [
+    {
+      "case": "oa-control",
+      "record": {
+        "identifier": {
+          "type": "doi",
+          "value": "10.1002/cbic.70489"
+        },
+        "doi": "10.1002/cbic.70489",
+        "title": "Next-Generation Manufacturing: The Evolving Role of Biocatalysis in AstraZeneca.",
+        "authors": [
+          "Alba Diaz-Rodriguez",
+          "Martin A Hayes",
+          "Keith R Mulholland",
+          "Fernando Tur",
+          "Samantha Staniland"
+        ],
+        "year": 2026,
+        "publication_date": "2026-09-01",
+        "journal": "Chembiochem : a European journal of chemical biology"
+      },
+      "observed_at": "2026-10-10T16:04:47.802380+00:00",
+      "elapsed_seconds": 2.729,
+      "status": "verified",
+      "success": true,
+      "source": "Europe PMC discovery",
+      "error": "",
+      "attempts": {
+        "OpenAlex discovery": "failed",
+        "Unpaywall discovery": "failed",
+        "Zenodo repository": "failed",
+        "HAL repository": "failed",
+        "Publisher discovery": "failed",
+        "Europe PMC discovery": "verified",
+        "https://pmc-oa-opendata.s3.amazonaws.com/PMC13572967.1/PMC13572967.1.pdf": "verified"
+      },
+      "verification": {
+        "status": "verified",
+        "reasons": [
+          "Title matches the first-page heading with author corroboration"
+        ],
+        "title_similarity": 1.0,
+        "compact_title_match": true,
+        "matched_authors": [
+          "rodriguez"
+        ],
+        "front_matter_dois": [
+          "10.1002/cbic.70489"
+        ],
+        "identifier_match": true,
+        "front_matter_arxiv_ids": [],
+        "text_extracted": true
+      },
+      "winning_location": {
+        "doi": "10.1002/cbic.70489",
+        "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13572967.1/PMC13572967.1.pdf",
+        "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13572967.1/PMC13572967.1.pdf",
+        "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13572967/",
+        "version": "publishedVersion",
+        "license": "CC BY",
+        "host_type": "repository",
+        "source": "pmc_cloud",
+        "sources": [
+          "pmc_cloud"
+        ],
+        "availability": "open",
+        "available_from": null,
+        "requires_selection": false,
+        "downloadable": true,
+        "provenance": [
+          {
+            "provider": "pmc_cloud",
+            "doi": "10.1002/cbic.70489",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "availability": "open",
+            "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13572967.1.json",
+            "attribution": "US National Library of Medicine, PMC Article Datasets"
+          }
+        ],
+        "pmcid": "PMC13572967",
+        "pmc_version": 1
+      },
+      "access_options": {
+        "locations": [
+          {
+            "doi": "10.1002/cbic.70489",
+            "url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13572967.1/PMC13572967.1.pdf",
+            "pdf_url": "https://pmc-oa-opendata.s3.amazonaws.com/PMC13572967.1/PMC13572967.1.pdf",
+            "landing_page_url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13572967/",
+            "version": "publishedVersion",
+            "license": "CC BY",
+            "host_type": "repository",
+            "source": "pmc_cloud",
+            "sources": [
+              "pmc_cloud"
+            ],
+            "availability": "open",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": true,
+            "provenance": [
+              {
+                "provider": "pmc_cloud",
+                "doi": "10.1002/cbic.70489",
+                "version": "publishedVersion",
+                "license": "CC BY",
+                "availability": "open",
+                "metadata_url": "https://pmc-oa-opendata.s3.amazonaws.com/metadata/PMC13572967.1.json",
+                "attribution": "US National Library of Medicine, PMC Article Datasets"
+              }
+            ],
+            "pmcid": "PMC13572967",
+            "pmc_version": 1
+          },
+          {
+            "doi": "10.1002/cbic.70489",
+            "url": "https://europepmc.org/articles/PMC13572967",
+            "pdf_url": "https://europepmc.org/articles/PMC13572967",
+            "landing_page_url": null,
+            "version": "unknown",
+            "license": "cc by",
+            "host_type": "unknown",
+            "source": "europepmc",
+            "sources": [
+              "europepmc"
+            ],
+            "availability": "open",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": true,
+            "provenance": [
+              {
+                "provider": "europepmc",
+                "doi": "10.1002/cbic.70489",
+                "version": "unknown",
+                "license": "cc by",
+                "availability": "open"
+              }
+            ]
+          },
+          {
+            "doi": "10.1002/cbic.70489",
+            "url": "https://europepmc.org/articles/PMC13572967",
+            "pdf_url": null,
+            "landing_page_url": "https://europepmc.org/articles/PMC13572967",
+            "version": "unknown",
+            "license": "cc by",
+            "host_type": "unknown",
+            "source": "europepmc",
+            "sources": [
+              "europepmc"
+            ],
+            "availability": "open",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": false,
+            "provenance": [
+              {
+                "provider": "europepmc",
+                "doi": "10.1002/cbic.70489",
+                "version": "unknown",
+                "license": "cc by",
+                "availability": "open"
+              }
+            ]
+          }
+        ],
+        "alternatives": [],
+        "embargoed": [],
+        "closed": [
+          {
+            "doi": "10.1002/cbic.70489",
+            "url": "https://doi.org/10.1002/cbic.70489",
+            "pdf_url": null,
+            "landing_page_url": "https://doi.org/10.1002/cbic.70489",
+            "version": "unknown",
+            "license": "cc by",
+            "host_type": "unknown",
+            "source": "europepmc",
+            "sources": [
+              "europepmc"
+            ],
+            "availability": "closed",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": false,
+            "provenance": [
+              {
+                "provider": "europepmc",
+                "doi": "10.1002/cbic.70489",
+                "version": "unknown",
+                "license": "cc by",
+                "availability": "closed"
+              }
+            ]
+          }
+        ],
+        "errors": {
+          "openalex": {
+            "kind": "rate_limited",
+            "message": "Provider is cooling down.",
+            "retry_after": 28516
+          },
+          "unpaywall": {
+            "kind": "not_configured",
+            "message": "Set UNPAYWALL_EMAIL to your contact email to enable Unpaywall."
+          },
+          "publisher": {
+            "kind": "http",
+            "status": 403,
+            "message": "Publisher blocked automated access. This does not establish that the article is closed."
+          }
+        },
+        "doi": "10.1002/cbic.70489",
+        "publisher_access": {
+          "doi": "10.1002/cbic.70489",
+          "status": "blocked",
+          "locations": [],
+          "errors": {
+            "publisher": {
+              "kind": "http",
+              "status": 403
+            }
+          },
+          "landing_page_url": "https://chemistry-europe.onlinelibrary.wiley.com/doi/10.1002/cbic.70489"
+        },
+        "status": "found"
+      },
+      "pdf_bytes": 1254342,
+      "pdf_pages": 14,
+      "sha256": "7bf325265528b4623189b122f5189f1487220cf4807b6ccbe154834413133b8d",
+      "process_elapsed_seconds": 3.009,
+      "process_exit_code": 0,
+      "retained_pdf_files": 1
+    },
+    {
+      "case": "hal-control",
+      "record": {
+        "doi": "10.1016/j.coelec.2023.101346",
+        "identifier": {
+          "type": "doi",
+          "value": "10.1016/j.coelec.2023.101346"
+        },
+        "title": "When nanoelectrochemistry meets biocatalysis",
+        "authors": [
+          "Arnaud Chovin",
+          "Christophe Demaille",
+          "Telmo Paiva"
+        ],
+        "year": 2023
+      },
+      "observed_at": "2026-10-10T16:05:07.365509+00:00",
+      "elapsed_seconds": 4.344,
+      "status": "unverifiable",
+      "success": false,
+      "source": "",
+      "error": "No verified PDF acquired",
+      "attempts": {
+        "OpenAlex discovery": "failed",
+        "Unpaywall discovery": "failed",
+        "Europe PMC discovery": "failed",
+        "HAL repository": "failed",
+        "Zenodo repository": "failed",
+        "Publisher discovery": "failed",
+        "https://hal.science/hal-04284537/document": "unverifiable"
+      },
+      "verification": null,
+      "winning_location": null,
+      "access_options": {
+        "locations": [
+          {
+            "doi": "10.1016/j.coelec.2023.101346",
+            "url": "https://hal.science/hal-04284537/document",
+            "pdf_url": "https://hal.science/hal-04284537/document",
+            "landing_page_url": "https://hal.science/hal-04284537v1",
+            "version": "unknown",
+            "license": "https://about.hal.science/hal-authorisation-v1/",
+            "host_type": "repository",
+            "source": "hal",
+            "sources": [
+              "hal"
+            ],
+            "availability": "open",
+            "available_from": null,
+            "requires_selection": false,
+            "downloadable": true,
+            "provenance": [
+              {
+                "provider": "hal",
+                "doi": "10.1016/j.coelec.2023.101346",
+                "version": "unknown",
+                "license": "https://about.hal.science/hal-authorisation-v1/",
+                "availability": "open",
+                "repository_doi": "10.1016/j.coelec.2023.101346",
+                "identity_evidence": "exact_doi"
+              }
+            ],
+            "requested_doi": "10.1016/j.coelec.2023.101346",
+            "repository_doi": "10.1016/j.coelec.2023.101346",
+            "identity_evidence": "exact_doi",
+            "record": {
+              "doi": "10.1016/j.coelec.2023.101346",
+              "title": "When nanoelectrochemistry meets biocatalysis",
+              "authors": [
+                "Arnaud Chovin",
+                "Christophe Demaille",
+                "Telmo Paiva"
+              ],
+              "year": 2023,
+              "url": "https://hal.science/hal-04284537v1",
+              "record_urls": [
+                "https://hal.science/hal-04284537v1"
+              ],
+              "record_type": "article",
+              "identifier": {
+                "type": "doi",
+                "value": "10.1016/j.coelec.2023.101346"
+              },
+              "pdf_urls": [
+                "https://hal.science/hal-04284537/document"
+              ],
+              "source": "hal"
+            }
+          }
+        ],
+        "alternatives": [],
+        "embargoed": [],
+        "closed": [],
+        "errors": {
+          "openalex": {
+            "kind": "rate_limited",
+            "message": "Provider is cooling down.",
+            "retry_after": 28498
+          },
+          "unpaywall": {
+            "kind": "not_configured",
+            "message": "Set UNPAYWALL_EMAIL to your contact email to enable Unpaywall."
+          },
+          "publisher": {
+            "kind": "http",
+            "status": 403,
+            "message": "Publisher blocked automated access. This does not establish that the article is closed."
+          }
+        },
+        "doi": "10.1016/j.coelec.2023.101346",
+        "publisher_access": {
+          "doi": "10.1016/j.coelec.2023.101346",
+          "status": "blocked",
+          "locations": [],
+          "errors": {
+            "publisher": {
+              "kind": "http",
+              "status": 403
+            }
+          },
+          "landing_page_url": "https://www.sciencedirect.com/science/article/pii/S2451910323001394"
+        },
+        "status": "found"
+      },
+      "process_elapsed_seconds": 4.622,
+      "process_exit_code": 0,
+      "retained_pdf_files": 0
+    }
+  ]
+}

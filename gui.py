@@ -151,7 +151,7 @@ class PaperFinderGUI:
         browse_btn.grid(row=1, column=2, padx=(6, 0), pady=(10, 0))
         
         self.recent_sources = tk.BooleanVar(value=True)
-        ttk.Checkbutton(input_frame, text="Prioritize recent full-text sources",
+        ttk.Checkbutton(input_frame, text="Include recent full-text sources",
                         variable=self.recent_sources).grid(
                             row=2, column=0, columnspan=3, sticky=tk.W, pady=(12, 0))
 
