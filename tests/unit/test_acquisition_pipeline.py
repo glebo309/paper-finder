@@ -28,6 +28,7 @@ def write(path, marker):
 
 
 def test_losing_worker_cannot_overwrite_winning_file(monkeypatch, tmp_path):
+    import time
     obj = pipeline(monkeypatch)
     loser_started, release_loser, loser_finished = threading.Event(), threading.Event(), threading.Event()
     paths = []
@@ -47,8 +48,10 @@ def test_losing_worker_cannot_overwrite_winning_file(monkeypatch, tmp_path):
     obj.register_source("loser", loser, "fast")
     output = tmp_path / "paper.pdf"
     try:
+        start = time.monotonic()
         result = obj.execute("10.1000/example", output, {})
         assert result.success and result.source == "winner"
+        assert time.monotonic() - start < .2
     finally:
         release_loser.set()
     assert loser_finished.wait(1)
@@ -310,3 +313,70 @@ def test_cancelled_adapter_does_not_abort_other_worker_or_leak_candidate(monkeyp
     assert result.attempts['abandoned'] == 'cancelled'
     assert all(not path.exists() for path in paths)
     assert not list(tmp_path.glob('.paperfinder-*'))
+
+
+@pytest.mark.parametrize('outcome', ['mismatch', 'cancelled'])
+def test_winner_retains_other_outcome_while_candidate_cleanup_finishes(monkeypatch, tmp_path, outcome):
+    import os
+    import time
+    from src.core.cancellation import AcquisitionCancelled
+    obj = pipeline(monkeypatch)
+    cleanup_started, published = threading.Event(), threading.Event()
+    rejected_paths = []
+    original_unlink, original_link = Path.unlink, os.link
+    def unlink(path, *args, **kwargs):
+        if path in rejected_paths and not cleanup_started.is_set():
+            cleanup_started.set()
+            assert published.wait(1)
+            time.sleep(.015)
+        return original_unlink(path, *args, **kwargs)
+    def link(source, destination, *args, **kwargs):
+        result = original_link(source, destination, *args, **kwargs)
+        published.set()
+        return result
+    monkeypatch.setattr(Path, 'unlink', unlink)
+    monkeypatch.setattr(os, 'link', link)
+    def rejected(doi, path, record):
+        rejected_paths.append(path)
+        write(path, 'rejected')
+        if outcome == 'cancelled':
+            raise AcquisitionCancelled('Adapter stopped')
+        return True
+    def verify(path, record):
+        return {'status': 'mismatch' if path in rejected_paths else 'verified', 'reasons': []}
+    def winner(doi, path, record):
+        assert cleanup_started.wait(1)
+        return write(path, 'winner')
+    monkeypatch.setattr(pipeline_module, 'verify_document_identity', verify)
+    obj.register_source('rejected', rejected)
+    obj.register_source('winner', winner)
+    start = time.monotonic()
+    result = obj.execute('10.1234/paper', tmp_path/'out.pdf', {})
+    assert result.success and result.source == 'winner'
+    assert result.attempts['rejected'] == ('cancelled' if outcome == 'cancelled' else 'mismatch: ')
+    assert not list(tmp_path.glob('.paperfinder-*'))
+    assert time.monotonic() - start < .2
+
+
+def test_verifier_rejection_returning_just_after_winner_keeps_evidence(monkeypatch, tmp_path):
+    obj = pipeline(monkeypatch)
+    verifying = threading.Event()
+    wrong_paths = []
+    def verify(path, record):
+        if path in wrong_paths:
+            verifying.set()
+            assert pipeline_module.current_operation_stop_event().wait(1)
+            return {'status':'mismatch', 'reasons':['Different DOI']}
+        return {'status':'verified', 'reasons':[]}
+    def wrong(doi, path, record):
+        wrong_paths.append(path)
+        return write(path, 'wrong')
+    def winner(doi, path, record):
+        assert verifying.wait(1)
+        return write(path, 'winner')
+    monkeypatch.setattr(pipeline_module, 'verify_document_identity', verify)
+    obj.register_source('wrong', wrong)
+    obj.register_source('winner', winner)
+    result = obj.execute('10.1234/paper', tmp_path/'out.pdf', {})
+    assert result.success
+    assert result.attempts['wrong'] == 'mismatch: Different DOI'

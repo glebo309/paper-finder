@@ -263,11 +263,11 @@ class AcquisitionPipeline:
                     verification = verify_document_identity(path, record)
                 except Exception as exc:
                     verification = {'status':'unverifiable', 'reasons':[type(exc).__name__]}
-                if stop.is_set():
-                    return {'status':'cancelled', 'path':None}
                 status = verification.get('status', 'unverifiable')
                 if status != 'verified':
                     return {'status':status + ': ' + '; '.join(verification.get('reasons', [])), 'path':None}
+                if stop.is_set():
+                    return {'status':'cancelled', 'path':None}
                 keep = True
                 return {'status':'verified', 'path':path, 'completed_at':time.monotonic()}
             except AcquisitionCancelled:
@@ -342,6 +342,21 @@ class AcquisitionPipeline:
                     finally:
                         cleanup(path)
                     cache_attempt(source,True)
+                    # Preserve failures already decided by workers finishing
+                    # their cleanup. Bound this grace period independently of
+                    # socket timeouts; unresponsive sources must not delay the
+                    # verified winner. Their late files still clean up below.
+                    if pending:
+                        finished, _ = concurrent.futures.wait(pending, timeout=.05)
+                        for other_future in finished:
+                            other_source = pending.pop(other_future)
+                            other_item = other_future.result()
+                            cleanup(other_item.get('path'))
+                            if other_item['status'] != 'verified':
+                                attempts[other_source.name] = other_item['status']
+                                cache_attempt(other_source,False)
+                            else:
+                                attempts[other_source.name] = 'cancelled after verified result'
                     for other in list(pending.values()) + list(queue):
                         attempts.setdefault(other.name,'cancelled after verified result')
                     if progress_callback:
