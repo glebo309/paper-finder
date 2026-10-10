@@ -380,11 +380,15 @@ class PaperFinderGUI:
         The engine (paper_finder) controls if/when the browser is opened,
         based on whether the paper is actually Open Access.
         """
+        if getattr(self, "_search_active", False):
+            return
         ref = self.doi_var.get().strip()
         if not ref:
             messagebox.showwarning("Input Required", "Please enter a DOI, title, or URL")
             return
         
+        self._search_active = True
+        self._search_id = getattr(self, "_search_id", 0) + 1
         self.logging_silenced = False
         # Clear previous results
         self.clear_results()
@@ -411,6 +415,12 @@ class PaperFinderGUI:
     
     def _search_thread(self, ref: str, output_dir: Path):
         """Background thread for searching"""
+        request_id = getattr(self, "_search_id", 0)
+        def post(callback, *args):
+            def dispatch():
+                if getattr(self, "_search_id", 0) == request_id:
+                    callback(*args)
+            self.root.after(0, dispatch)
         redirector: Optional[_TextRedirector] = None
         old_stdout = None
         old_stderr = None
@@ -418,7 +428,7 @@ class PaperFinderGUI:
         
         try:
             # Log start of search on the main thread
-            self.root.after(0, self.log, f"Searching for: {ref}")
+            post(self.log, f"Searching for: {ref}")
 
             # Verbose logging: stream stdout/stderr to the Activity Log in real time
             if self.verbose_logging.get():
@@ -426,27 +436,9 @@ class PaperFinderGUI:
                 old_stdout, old_stderr = sys.stdout, sys.stderr
                 sys.stdout, sys.stderr = redirector, redirector
 
-            # Define OA callback that opens browser immediately when OA is detected
-            def on_oa_detected(doi: str, oa_url: str):
-                def _open():
-                    self.log(f"Paper is Open Access (fast check). Opening in browser: {oa_url}")
-                    self.status_var.set("Opening Open Access paper in browser...")
-                    try:
-                        webbrowser.open(oa_url)
-                        # Update status and result immediately
-                        self.result_fields['status'].set("✓ Opened in browser")
-                        self.result_fields['source'].set("Open Access (Browser)")
-                        # Show green checkmark immediately
-                        self.status_indicator.configure(text="✓")
-                        # Auto-show result section
-                        if not self.result_visible.get():
-                            self.toggle_result()
-                        self.status_var.set("Continuing deep search...")
-                        browser_opened[0] = True  # Mark that we opened the browser
-                    except Exception as e:
-                        self.log(f"Browser open failed: {e}")
-                        self.status_var.set("Browser open failed")
-                self.root.after(0, _open)
+            # A located article is not a verified download. Keep its URL in the log.
+            def on_oa_detected(identifier: str, url: str):
+                post(self.log, f"Article link found: {url}")
 
             # Metadata callback: update title/author in Results section as soon as paper is identified
             def on_meta(meta: dict):
@@ -475,15 +467,18 @@ class PaperFinderGUI:
                     if author_str:
                         self.result_fields['author'].set(author_str)
 
-                self.root.after(0, _set)
+                post(_set)
 
-            result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
+            if isinstance(ref, dict):
+                result = self.finder.find_record(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
+            else:
+                result = self.finder.find(ref, output_dir, oa_callback=on_oa_detected, meta_callback=on_meta)
 
             # Update UI in main thread, passing the browser_opened flag
-            self.root.after(0, self._update_results, result, browser_opened[0])
+            post(self._update_results, result, browser_opened[0])
 
         except Exception as e:
-            self.root.after(0, self._search_error, str(e))
+            post(self._search_error, str(e))
         finally:
             # Restore original stdout/stderr
             if redirector is not None and old_stdout is not None and old_stderr is not None:
@@ -491,6 +486,7 @@ class PaperFinderGUI:
     
     def _update_results(self, result: DownloadResult, browser_already_opened: bool = False):
         """Update UI with search results"""
+        self._search_active = False
         # Re-enable search button, disable Stop
         self.search_button.configure(state='normal')
         self.stop_button.configure(state='disabled')
@@ -526,56 +522,84 @@ class PaperFinderGUI:
                 author_str = str(authors)
             self.result_fields['author'].set(author_str)
         
-        if result.success:
-            # Check if this is a browser-only success (no PDF file)
-            if result.filepath is None:
-                self.status_var.set("✓ Paper opened in browser")
-                self.result_fields['status'].set("✓ Opened in browser")
-                self.result_fields['source'].set(result.source)
-                self.result_fields['file'].set("(Opened in browser)")
-                self.log(f"✓ Paper successfully opened in browser via {result.source}")
-            else:
-                self.status_var.set("✓ Download successful")
-                self.result_fields['status'].set("✓ Success")
-                self.result_fields['source'].set(result.source)
-                self.result_fields['file'].set(str(result.filepath))
-                self.log(f"✓ Successfully downloaded from {result.source}")
-                self.log(f"Saved to: {result.filepath}")
-            
-            # Show green checkmark
-            self.status_indicator.configure(text="✓")
-            
-        else:
-            if result.error == "Cancelled by user":
-                # Graceful cancellation: don't treat as hard failure
-                self.status_var.set("Search cancelled")
-                self.result_fields['status'].set("Cancelled")
-                self.result_fields['source'].set("None")
-                self.log("Search cancelled by user.")
+        candidates = meta.get('candidates', [])
+        if getattr(result, 'status', '') == 'ambiguous' and candidates:
+            self.status_var.set("Choose the paper you meant")
+            self.result_fields['status'].set("Needs selection")
+            self._show_candidates(candidates)
+            return
+        status = getattr(result, 'status', '') or ('verified' if result.success else 'not_found')
+        labels = {
+            'verified': 'Verified download', 'unverifiable': 'Saved, identity unverified' if result.filepath else 'Document identity unverified',
+            'mismatch': 'Document does not match', 'located': 'Article link found, no verified download',
+            'cancelled': 'Search cancelled', 'unavailable': 'Search providers unavailable',
+            'not_found': 'No verified download found',
+        }
+        label = labels.get(status, status.replace('_', ' ').capitalize())
+        self.status_var.set(label)
+        self.result_fields['status'].set(label)
+        self.result_fields['source'].set(result.source or "None")
+        self.result_fields['file'].set(str(result.filepath) if result.filepath else "")
+        self.status_indicator.configure(text="OK" if result.success else "")
+        self.log(label)
+        if result.error:
+            self.log(result.error)
+        if result.filepath:
+            self.log(f"Saved to: {result.filepath}")
+
+    def _show_candidates(self, candidates):
+        """Offer real records for explicit selection on the Tk main thread."""
+        window = tk.Toplevel(self.root)
+        window.title("Choose a paper")
+        window.geometry("900x480")
+        window.transient(self.root)
+        ttk.Label(window, text="Several papers may match. Select the one you want to download.",
+                  padding=12).pack(anchor='w')
+        columns = ('title', 'authors', 'year', 'source')
+        table = ttk.Treeview(window, columns=columns, show='headings', selectmode='browse')
+        for key, width in zip(columns, (420, 220, 65, 140)):
+            table.heading(key, text=key.capitalize())
+            table.column(key, width=width, minwidth=50)
+        for index, record in enumerate(candidates):
+            table.insert('', 'end', iid=str(index), values=(record.get('title', ''),
+                         ', '.join(record.get('authors', [])[:3]), record.get('year') or '',
+                         ', '.join(record.get('sources', []))))
+        table.pack(fill='both', expand=True, padx=12)
+        details = tk.StringVar(value="Select a result to see the match evidence.")
+        ttk.Label(window, textvariable=details, wraplength=850, padding=12).pack(anchor='w')
+        def select(_event=None):
+            selection = table.selection()
+            if selection:
+                record = candidates[int(selection[0])]
+                details.set(record.get('title', '') + "\n" + '; '.join(record.get('match_reasons', []))
+                            + "\n" + str((record.get('identifier') or {}).get('value', '')))
+                download.configure(state='normal')
+        def acquire():
+            selection = table.selection()
+            if not selection:
                 return
-            
-            # Download failed; decide whether to open in browser based on OA status
-            if is_oa:
-                # Paper was already opened in browser via fast OA check
-                # Don't say "failed" - the user got access to the paper!
-                self.status_var.set("✓ Paper opened in browser (Open Access)")
-                # Show green checkmark
-                self.status_indicator.configure(text="✓")
-                # Status and source were already set by on_oa_detected callback
-                if not browser_already_opened:
-                    # This shouldn't happen, but just in case the fast check failed
-                    self.result_fields['status'].set("✓ Opened in browser")
-                    self.result_fields['source'].set("Open Access (Browser)")
-                    self.log(f"PDF download not available, but paper is accessible via Open Access.")
-            else:
-                # Not Open Access and download failed – truly failed
-                self.status_var.set("✗ Download failed")
-                self.result_fields['status'].set("✗ Failed")
-                self.result_fields['source'].set("None")
-                self.log(f"Download failed: {result.error}")
-    
+            record = candidates[int(selection[0])]
+            window.destroy()
+            self._search_active = True
+            self._search_id = getattr(self, "_search_id", 0) + 1
+            self.clear_results()
+            self.search_button.configure(state='disabled')
+            self.stop_button.configure(state='normal')
+            self.status_var.set("Downloading selected paper...")
+            self.start_spinner()
+            threading.Thread(target=self._search_thread,
+                             args=(record, Path(self.output_var.get())), daemon=True).start()
+        buttons = ttk.Frame(window, padding=12)
+        buttons.pack(fill='x')
+        download = ttk.Button(buttons, text="Download selected paper", command=acquire, state='disabled')
+        download.pack(side='right')
+        ttk.Button(buttons, text="Cancel", command=window.destroy).pack(side='right', padx=8)
+        table.bind('<<TreeviewSelect>>', select)
+        window.grab_set()
+
     def _search_error(self, error: str):
         """Handle search error"""
+        self._search_active = False
         self.search_button.configure(state='normal')
         self.stop_button.configure(state='disabled')
         self.stop_spinner()

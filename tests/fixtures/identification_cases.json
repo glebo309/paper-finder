@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "description": "Curated smoke benchmark, not held-out or representative. Targets checked against primary bibliographic records; synthetic abstention cases explicitly marked. No PDFs required.",
+  "cases": [
+    {
+      "id": "alphafold-exact",
+      "category": "exact",
+      "query": "Highly accurate protein structure prediction with AlphaFold",
+      "expected_ids": [
+        "doi:10.1038/s41586-021-03819-2"
+      ],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2"
+    },
+    {
+      "id": "alphafold-citation",
+      "category": "citation",
+      "query": "Jumper et al. 2021. Highly accurate protein structure prediction with AlphaFold. Nature 596, 583-589.",
+      "expected_ids": [
+        "doi:10.1038/s41586-021-03819-2"
+      ],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2"
+    },
+    {
+      "id": "alphafold-partial",
+      "category": "partial",
+      "query": "protein structure prediction AlphaFold Jumper 2021",
+      "expected_ids": [
+        "doi:10.1038/s41586-021-03819-2"
+      ],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2"
+    },
+    {
+      "id": "alphafold-description",
+      "category": "description",
+      "query": "DeepMind paper by Jumper in 2021 that predicted protein structures at near experimental accuracy in CASP14",
+      "expected_ids": [
+        "doi:10.1038/s41586-021-03819-2"
+      ],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2"
+    },
+    {
+      "id": "alphafold-typo",
+      "category": "typo",
+      "query": "Highly acurate protein stucture prediction with Alphafold",
+      "expected_ids": [
+        "doi:10.1038/s41586-021-03819-2"
+      ],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2"
+    },
+    {
+      "id": "transformer-exact",
+      "category": "exact",
+      "query": "Attention Is All You Need",
+      "expected_ids": [
+        "arxiv:1706.03762"
+      ],
+      "source": "https://arxiv.org/abs/1706.03762"
+    },
+    {
+      "id": "transformer-citation",
+      "category": "citation",
+      "query": "Vaswani et al. (2017). Attention Is All You Need.",
+      "expected_ids": [
+        "arxiv:1706.03762"
+      ],
+      "source": "https://arxiv.org/abs/1706.03762"
+    },
+    {
+      "id": "transformer-description",
+      "category": "description",
+      "query": "2017 Vaswani paper introducing the Transformer architecture using only attention and no recurrence",
+      "expected_ids": [
+        "arxiv:1706.03762"
+      ],
+      "source": "https://arxiv.org/abs/1706.03762"
+    },
+    {
+      "id": "bert-exact",
+      "category": "exact",
+      "query": "BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding",
+      "expected_ids": [
+        "doi:10.18653/v1/N19-1423",
+        "arxiv:1810.04805"
+      ],
+      "source": "https://aclanthology.org/N19-1423/"
+    },
+    {
+      "id": "bert-citation",
+      "category": "citation",
+      "query": "Devlin, Chang, Lee, Toutanova. 2019. BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding. NAACL.",
+      "expected_ids": [
+        "doi:10.18653/v1/N19-1423",
+        "arxiv:1810.04805"
+      ],
+      "source": "https://aclanthology.org/N19-1423/"
+    },
+    {
+      "id": "crispr-exact",
+      "category": "exact",
+      "query": "A Programmable Dual-RNA-Guided DNA Endonuclease in Adaptive Bacterial Immunity",
+      "expected_ids": [
+        "doi:10.1126/science.1225829"
+      ],
+      "source": "https://doi.org/10.1126/science.1225829"
+    },
+    {
+      "id": "crispr-description",
+      "category": "description",
+      "query": "Jinek Doudna Charpentier 2012 programmable dual RNA guided Cas9 bacterial immunity",
+      "expected_ids": [
+        "doi:10.1126/science.1225829"
+      ],
+      "source": "https://doi.org/10.1126/science.1225829"
+    },
+    {
+      "id": "ambiguous-proteins",
+      "category": "ambiguous",
+      "query": "protein structure prediction",
+      "expected_ids": [],
+      "source": null,
+      "synthetic": true,
+      "must_abstain": true
+    },
+    {
+      "id": "ambiguous-attention",
+      "category": "ambiguous",
+      "query": "attention",
+      "expected_ids": [],
+      "source": null,
+      "synthetic": true,
+      "must_abstain": true
+    },
+    {
+      "id": "impossible-title",
+      "category": "impossible",
+      "query": "Quantum banana teleportation with dragon enzymes by Professor Zqxvplm 2087",
+      "expected_ids": [],
+      "source": null,
+      "synthetic": true,
+      "must_abstain": true
+    },
+    {
+      "id": "conflicting-citation",
+      "category": "ambiguous",
+      "query": "Highly accurate protein structure prediction with AlphaFold. Albert Einstein, 1905.",
+      "expected_ids": [],
+      "source": "https://www.nature.com/articles/s41586-021-03819-2",
+      "must_abstain": true
+    }
+  ]
+}
