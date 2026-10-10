@@ -325,6 +325,8 @@ class AcquisitionPipeline:
                         break
                     if item['status'] != 'verified':
                         cache_attempt(source,False)
+                        if progress_callback:
+                            progress_callback(source.name,item['status'])
                         continue
                     try:
                         # Cancellation and publication share a lock, so a Stop

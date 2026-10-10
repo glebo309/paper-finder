@@ -219,7 +219,6 @@ def test_rejected_candidate_does_not_stop_other_tiers(monkeypatch,tmp_path):
     rejected = threading.Event()
     def verify(path,record):
         if b'wrong' in path.read_bytes():
-            rejected.set()
             return {'status':'mismatch','reasons':['Different DOI']}
         return {'status':'verified','reasons':[]}
     monkeypatch.setattr(pipeline_module,'verify_document_identity',verify)
@@ -228,7 +227,11 @@ def test_rejected_candidate_does_not_stop_other_tiers(monkeypatch,tmp_path):
         assert rejected.wait(1)
         return write(path,'correct')
     obj.register_source('correct',correct,'slow')
-    result = obj.execute('10.1234/paper',tmp_path/'correct.pdf',{})
+    def progress(source, message):
+        if source == 'wrong' and message.startswith('mismatch'):
+            rejected.set()
+    # Wait for a recorded rejection, not a signal inside an unfinished verifier.
+    result = obj.execute('10.1234/paper',tmp_path/'correct.pdf',{}, progress_callback=progress)
     assert result.success and result.source == 'correct'
     assert 'mismatch' in result.attempts['wrong']
 
